@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: fresnel
+      POSTGRES_PASSWORD: fresnel
+      POSTGRES_DB: fresnel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fresnel -d fresnel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm --hostname-strict=false --http-relative-path=/
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./keycloak/fresnel-realm.json:/opt/keycloak/data/import/fresnel-realm.json:ro
+    ports:
+      - "8081:8080"
+
+  clamav:
+    image: clamav/clamav:latest
+    volumes:
+      - clamdata:/var/lib/clamav
+    # Default image exposes clamd on 3310 TCP; app uses socket in full deploy — optional for M0.
+
+  fresnel:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    environment:
+      LISTEN_ADDR: ":8080"
+      DATABASE_URL: postgres://fresnel:fresnel@postgres:5432/fresnel?sslmode=disable
+      KEYCLOAK_ISSUER: http://keycloak:8080/realms/fresnel
+      KEYCLOAK_CLIENT_ID: fresnel-app
+      KEYCLOAK_CLIENT_SECRET: fresnel-client-secret-change-me
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      APP_PUBLIC_URL: https://localhost
+      HMAC_SECRET: devsecretdevsecretdevsecretdev12must_be_32b
+      CLAMAV_SOCKET: ""
+      ATTACHMENT_DIR: /tmp/fresnel-attachments
+    ports:
+      - "8080:8080"
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/security-headers.conf:/etc/nginx/security-headers.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    ports:
+      - "443:443"
+    depends_on:
+      - fresnel
+
+volumes:
+  pgdata: {}
+  clamdata: {}

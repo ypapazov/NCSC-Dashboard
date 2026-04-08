@@ -1,0 +1,37 @@
+# Build output
+/bin/
+*.exe
+
+# Go
+vendor/
+coverage.out
+*.test
+*.prof
+*.pprof
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# TLS certs
+deploy/nginx/certs/
+
+# Docker persistent volumes
+deploy/pgdata/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+tmp/
+*.tmp
+*.log

@@ -1,0 +1,15 @@
+# Dev overrides: expose debug ports, disable nginx (optional).
+services:
+  fresnel:
+    ports:
+      - "8080:8080"
+    environment:
+      LISTEN_ADDR: ":8080"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  keycloak:
+    ports:
+      - "8081:8080"

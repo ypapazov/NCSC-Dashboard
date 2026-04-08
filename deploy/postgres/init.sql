@@ -1,0 +1,2 @@
+-- Optional: extensions not covered by migrations run by the app.
+-- pgvector is enabled in migration 004.

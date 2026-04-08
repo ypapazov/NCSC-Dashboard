@@ -1,0 +1,39 @@
+{
+  "id": "fresnel",
+  "realm": "fresnel",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 600,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 28800,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "clients": [
+    {
+      "clientId": "fresnel-app",
+      "name": "Fresnel",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "fresnel-client-secret-change-me",
+      "redirectUris": [
+        "https://localhost/*",
+        "https://127.0.0.1/*"
+      ],
+      "webOrigins": [
+        "https://localhost",
+        "https://127.0.0.1"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false
+    }
+  ]
+}
