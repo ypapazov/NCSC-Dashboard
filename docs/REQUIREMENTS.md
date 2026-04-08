@@ -2,9 +2,10 @@
 
 *A Fresnel lens lets the lighthouse cast light further and more efficiently.*
 
-**Version**: 0.1
-**Status**: Specification draft — pending final review before architecture phase
+**Version**: 0.1.1
+**Status**: Specification — architecture document complete
 **Scope**: Cyber situational awareness platform for hierarchical multi-organization operational status tracking and sharing
+**Key revision**: Verticals removed. Sectors are recursive (sectors can contain subsectors). Hierarchy depth is flexible, not fixed.
 
 ---
 
@@ -12,7 +13,7 @@
 
 ### 1.1 What Fresnel Is
 
-A **cyber situational awareness platform** for tracking and sharing operational status across a hierarchical structure of sectors, verticals, and organizations. It serves decision-makers — people involved in cyber governance and organizational impact assessment who need to understand *the situation*, not the technical details.
+A **cyber situational awareness platform** for tracking and sharing operational status across a hierarchical structure of sectors (which can nest as subsectors) and organizations. It serves decision-makers — people involved in cyber governance and organizational impact assessment who need to understand *the situation*, not the technical details.
 
 Users care about: outcomes, recovery objectives, impact, timelines, affected services, process status, cross-organizational awareness, and trends over time.
 
@@ -41,13 +42,16 @@ Fresnel is the **dashboard layer above all of the above** — the place where de
 ```
 Platform (single instance, single root)
   └── Sector (e.g., "Government", "Finance", "Critical Infrastructure")
-        └── Vertical (e.g., "Federal", "State", "Municipal")
-              └── Organization (e.g., "Department of X", "Agency Y")
+        └── Sector (subsector, e.g., "Federal", "State", "Municipal")
+              └── Sector (further nesting if needed)
+                    └── Organization (e.g., "Department of X", "Agency Y")
 ```
 
-- Hierarchy is fixed at three levels below platform. Organizations do not nest further.
+- **Sectors are recursive.** A sector can contain subsectors (child sectors) and/or organizations. Subsectors function identically to top-level sectors — same entity type, same root model, same governance rules. The only difference is they have a parent sector.
+- Organizations attach to any sector at any depth.
+- **Maximum nesting depth**: 5 levels of sectors (configurable). This is a governance guardrail, not a technical limit.
 - **An organization can be a member of multiple sectors.** Each sector membership requires a distinct root user for that org within that sector's governance context.
-- Each organizational unit (platform, sector, vertical, org) has: unique ID, display name, status (active/inactive/suspended), creation timestamp.
+- Each organizational unit (platform, sector, org) has: unique ID, display name, parent reference (null for top-level sectors), status (active/inactive/suspended), creation timestamp, and a materialized ancestry path for efficient hierarchy traversal.
 
 ### 2.2 Root User Model
 
@@ -56,8 +60,7 @@ Every organizational unit has a **root user** — a principal with maximum autho
 | Scope | Root Authority |
 |---|---|
 | Platform Root | Full control and data plane access across the entire platform. Can reassign any root. |
-| Sector Root | Full control and data plane access within their sector, including all verticals and orgs. |
-| Vertical Root | Full control and data plane access within their vertical and its orgs. |
+| Sector Root | Full control and data plane access within their sector, including all descendant subsectors and orgs. One root per sector, regardless of nesting level. |
 | Org Root | Full control and data plane access within their organization. |
 
 **Root reassignment rules:**
@@ -169,9 +172,9 @@ Break-glass **cannot** be initiated when:
 
 The domain model has two primary dimensions:
 
-**Vertical (hierarchical):**
+**Hierarchical:**
 ```
-Status Reports (situational state of an org, vertical, or sector)
+Status Reports (situational state of an org or sector)
   └── Events (operational incidents, disruptions, situations)
         └── Event Updates (chronological progress log on a specific event)
 ```
@@ -185,14 +188,14 @@ Status Reports are the highest-level first-class objects. They represent the *as
 
 ### 3.2 Status Reports
 
-A Status Report is a periodic situational assessment that assigns an operational state to an organization, vertical, or sector. It is the primary object displayed on the hierarchical dashboard.
+A Status Report is a periodic situational assessment that assigns an operational state to an organization or sector (at any level). It is the primary object displayed on the hierarchical dashboard.
 
 | Field | Type | Description |
 |---|---|---|
 | id | UUID | Globally unique |
 | source_instance | String | Instance ID (federation-ready). Default: local. |
 | sector_context | Sector ref | Which sector this report belongs to. Immutable after creation. |
-| scope | Enum + Ref | What this report covers: ORG (+ org ref), VERTICAL (+ vertical ref), or SECTOR (+ sector ref) |
+| scope | Enum + Ref | What this report covers: ORG (+ org ref) or SECTOR (+ sector ref, at any nesting level) |
 | title | String | Report title (e.g., "Weekly Sector Status — Finance") |
 | body | Rich Text (Markdown) | Narrative assessment |
 | period_covered_start | Timestamp | Start of the period this report covers |
@@ -203,14 +206,13 @@ A Status Report is a periodic situational assessment that assigns an operational
 | impact | Enum | CRITICAL (black), HIGH (red), MEDIUM (amber), LOW (yellow), INFO (green) |
 | tlp | Enum | Sharing restriction: RED, AMBER_STRICT, AMBER, GREEN, CLEAR |
 | author | User ref | Who wrote the report |
-| organization | Org ref | Owning organization (even for vertical/sector reports, someone owns authorship) |
+| organization | Org ref | Owning organization (even for sector-level reports, someone owns authorship) |
 | referenced_events | List[Event ref] | Events discussed or informing this report |
 | revision_history | List[Revision] | Full edit history, immutable |
 
 **Who can create Status Reports:**
 - Org Root / Org Admin: Reports scoped to their org.
-- Vertical Root: Reports scoped to their vertical.
-- Sector Root: Reports scoped to their sector.
+- Sector Root: Reports scoped to their sector (at any nesting level).
 - Content Admin: Reports at any scope.
 - Cedar policies govern all access.
 
@@ -245,7 +247,7 @@ An Event represents a specific operational incident, disruption, or situation.
 
 Edits create a new revision. Full history retained, only platform root can purge.
 
-Who can edit: submitter, org admins, org root, vertical admins (within scope), content admins. Governed by Cedar.
+Who can edit: submitter, org admins, org root, ancestor sector roots (within scope), content admins. Governed by Cedar.
 
 #### 3.3.1 Event Type Classification
 
@@ -392,16 +394,17 @@ The main interface is a hierarchical dashboard showing the assessed operational 
 │  GLOBAL STATUS: [computed]                                  │
 │                                                             │
 │  ┌─── Sector: Government [computed] ──────────────────┐     │
-│  │  ├── Vertical: Federal [computed]                  │     │
+│  │  ├── Subsector: Federal [computed]                 │     │
 │  │  │     ├── Org A: NORMAL                           │     │
 │  │  │     ├── Org B: DEGRADED                         │     │
 │  │  │     └── Org C: CRITICAL                         │     │
-│  │  └── Vertical: State [computed]                    │     │
+│  │  └── Subsector: State [computed]                   │     │
 │  │        └── Org D: IMPAIRED                         │     │
 │  └────────────────────────────────────────────────────┘     │
 │                                                             │
 │  ┌─── Sector: Finance [computed] ─────────────────────┐     │
-│  │  ...                                               │     │
+│  │  ├── Org E: NORMAL                                 │     │
+│  │  └── Org F: NORMAL  (no subsectors needed here)    │     │
 │  └────────────────────────────────────────────────────┘     │
 │                                                             │
 │  ═══ Campaigns ═══════════════════════════════════════════   │
@@ -412,13 +415,13 @@ The main interface is a hierarchical dashboard showing the assessed operational 
 ```
 
 - Each node shows its assessed status (color-coded).
-- **Computed statuses** for verticals, sectors, and global are derived from child statuses using a configurable formula (see Section 4.1.3).
-- The hierarchy is collapsible/expandable.
+- **Computed statuses** for sectors (at any nesting level) and global are derived from child statuses using a configurable formula (see Section 4.1.3).
+- The hierarchy is collapsible/expandable. Depth varies per sector — some have subsectors, some have orgs directly.
 - Campaigns appear as a separate horizontal section below (or beside) the hierarchy, since they span sectors.
 
 #### 4.1.2 Side Panel (Timeline View)
 
-Selecting any node (org, vertical, sector, or campaign) opens a side panel showing a **chronological timeline** combining:
+Selecting any node (org, sector at any level, or campaign) opens a side panel showing a **chronological timeline** combining:
 
 - Status Reports scoped to that node.
 - Events owned by or scoped to that node (subject to the viewer's access permissions).
@@ -429,7 +432,7 @@ Clicking a timeline entry navigates to a **dedicated detail page** showing full 
 
 #### 4.1.3 Status Aggregation Formulas (Starlark)
 
-Computed statuses (vertical, sector, global) are derived from child node statuses using formulas.
+Computed statuses (any sector with children, and global) are derived from child node statuses using formulas.
 
 **Default formula**: Weighted average, mapping statuses to numeric values (NORMAL=0, DEGRADED=1, IMPAIRED=2, CRITICAL=3, UNKNOWN=null/excluded) and applying thresholds.
 
@@ -522,7 +525,7 @@ Keycloak is bundled and is the default IdP. Federated instances (Phase 2) use th
 
 #### 5.2.2 Resource Types
 
-Status Reports, Events, Event Updates, Campaigns, Correlations, Organizations, Verticals, Sectors, IAM Functions, Audit Logs, Agent Configurations, Formulas.
+Status Reports, Events, Event Updates, Campaigns, Correlations, Organizations, Sectors, IAM Functions, Audit Logs, Agent Configurations, Formulas.
 
 #### 5.2.3 Actions
 
@@ -533,8 +536,7 @@ Status Reports, Events, Event Updates, Campaigns, Correlations, Organizations, V
 | Role | Scope | Data Plane | Control Plane |
 |---|---|---|---|
 | Platform Root | Global | Full | Full |
-| Sector Root | Sector | Full within sector | Full within sector |
-| Vertical Root | Vertical | Full within vertical | Full within vertical |
+| Sector Root | Sector + descendants | Full within sector and all descendant subsectors/orgs | Full within sector and all descendant subsectors/orgs |
 | Org Root | Organization | Full within org | Full within org |
 | Content Admin | Global | Edit/moderate any event/report | None |
 | Org Admin | Organization | Full within org | User management within org |
@@ -644,10 +646,11 @@ All open events with impact > INFO also receive a **weekly digest nudge** regard
 ### 7.3 Escalation Chain
 
 ```
-Event contributors → Org Root → Vertical Root → Sector Root → Platform Root
+Event contributors → Org Root → Parent Sector Root → ... → Top-Level Sector Root → Platform Root
 ```
 
 - Each level gets 1 business day to respond (any status update on the event from that scope counts).
+- Escalation follows the sector ancestry chain upward.
 - If the chain reaches platform root with no response, nudging continues weekly as a combined email. No further escalation — if this happens, the platform has been abandoned.
 
 ### 7.4 Constraints
@@ -703,10 +706,8 @@ Full automation potential from day one. The UI is not a separate app — it's a 
 
 /api/v1/sectors                     GET
 /api/v1/sectors/{id}                GET
+/api/v1/sectors/{id}/children       GET (child sectors and orgs)
 /api/v1/sectors/{id}/formula        GET, PUT
-
-/api/v1/verticals                   GET
-/api/v1/verticals/{id}              GET
 
 /api/v1/users                       GET, POST
 /api/v1/users/{id}                  GET, PUT
@@ -812,13 +813,13 @@ The platform may programmatically control firewall rules (blackholing malicious 
 
 | Feature | Scope |
 |---|---|
-| Status Reports | Full CRUD, scope (org/vertical/sector), period/as-of timestamps, assessed status |
+| Status Reports | Full CRUD, scope (org/sector at any level), period/as-of timestamps, assessed status |
 | Events | Full CRUD, revision history, TLP, impact, status lifecycle, event type classification |
 | Event Updates | Create, view, TLP/impact/status changes |
 | Campaigns | Full CRUD, event linking, cross-sector display |
 | Manual correlations | Create, view, delete |
 | Event relationships | Create, view (supports future sanitization workflow) |
-| Hierarchical dashboard | Global → sector → vertical → org tree with computed statuses, side panel timeline, campaign section |
+| Hierarchical dashboard | Global → sector → subsector → org tree (variable depth) with computed statuses, side panel timeline, campaign section |
 | Status aggregation | Default formula + Starlark engine for custom formulas |
 | IAM | Keycloak integration, TOTP MFA, Cedar policy evaluation with templates |
 | Root user model | Full hierarchy, root self-assignment and parent assignment |

@@ -76,7 +76,7 @@
 |---|---|---|
 | nginx | TLS termination, security headers (CSP etc.), rate limiting, WAF (ModSecurity + OWASP CRS), reverse proxy, fail2ban integration | Single nginx container with static config |
 | Fresnel API Server | All application logic: routing, authentication, authorization, business rules, content negotiation, template rendering, Starlark execution | Single Go binary |
-| PostgreSQL | Primary data store for all domain objects, audit log, Cedar policies, user sessions | Single PostgreSQL 16 instance with pgvector extension |
+| PostgreSQL | Primary data store for all domain objects, audit log, Cedar policies | Single PostgreSQL 16 instance with pgvector extension |
 | Keycloak | Identity provider: OIDC/SAML, user store, TOTP MFA, brute-force protection, session management | Single Keycloak container, single realm |
 | ClamAV | Virus scanning for file uploads | clamd daemon, API server connects via socket |
 | Ollama | LLM inference for AI agents (Phase 2) | Container present in compose file, no application integration |
@@ -108,7 +108,7 @@ It does **not** answer: "Which specific events can User X see?" That requires kn
 ```go
 // Middleware chain (conceptual)
 router.Use(RequestLogger)
-router.Use(TokenValidator)        // Keycloak OIDC token → AuthContext
+router.Use(OIDCTokenValidator)    // validate access token (JWKS), refresh if expired → AuthContext
 router.Use(CedarGate)             // AuthContext + route → permit/deny
 router.Use(CSRFValidator)         // state-changing HTML only
 router.Use(ContentNegotiator)     // sets renderer on context
@@ -122,14 +122,14 @@ type AuthContext struct {
     PrimaryOrgID        uuid.UUID
     OrgMemberships      []uuid.UUID
     ActiveOrgContext     uuid.UUID       // selected by user for multi-org
-    AdministrativeScope []ScopeEntry     // org/vertical/sector admin scopes
+    AdministrativeScope []ScopeEntry     // org/sector admin scopes
     IsRoot              bool
     RootScope           *ScopeEntry      // nil if not root
     Roles               []RoleAssignment
 }
 ```
 
-This struct is populated once at the HTTP boundary and threaded through service and storage calls. It is the single source of truth for "who is making this request."
+This struct is **derived from Keycloak token claims on every request**. Because access tokens are short-lived (10 min), changes to a user's roles or memberships in Keycloak propagate within one token lifetime without any application-side cache invalidation. The `ActiveOrgContext` is read from a request header or cookie set by the UI's org context selector.
 
 ### 3.2 Service Layer
 
@@ -325,7 +325,7 @@ Three logical schemas within one PostgreSQL instance:
 
 | Schema | Contents | Access Pattern |
 |---|---|---|
-| `fresnel` | Events, status reports, campaigns, correlations, relationships, event updates, attachments metadata, org hierarchy, user-org memberships | Full CRUD, auth-scoped reads |
+| `fresnel` | Events, status reports, campaigns, correlations, relationships, event updates, attachments metadata, TLP:RED recipients, org hierarchy, user-org memberships, platform config, nudge/escalation state | Full CRUD, auth-scoped reads |
 | `fresnel_iam` | Cedar policies, role assignments, root designations, access grants | Read-heavy (cached), infrequent writes |
 | `fresnel_audit` | Immutable audit entries | Append-only. The application database role has INSERT but not UPDATE or DELETE on this schema. |
 
@@ -338,33 +338,33 @@ The three schemas share one PostgreSQL instance for PoC. The storage interfaces 
 
 CREATE TABLE sectors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_sector_id UUID REFERENCES sectors(id),  -- NULL for top-level sectors
     name TEXT NOT NULL,
+    ancestry_path TEXT NOT NULL DEFAULT '/',         -- materialized path, e.g., '/platform/gov/federal/'
+    depth INTEGER NOT NULL DEFAULT 1,               -- nesting level (1 = top-level)
     status TEXT NOT NULL DEFAULT 'active',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK (depth <= 5)                              -- max nesting depth
 );
 
-CREATE TABLE verticals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sector_id UUID NOT NULL REFERENCES sectors(id),
-    name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'active',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+CREATE INDEX idx_sectors_parent ON sectors(parent_sector_id);
+CREATE INDEX idx_sectors_ancestry ON sectors(ancestry_path text_pattern_ops);  -- prefix search
 
 CREATE TABLE organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    vertical_id UUID NOT NULL REFERENCES verticals(id),
+    sector_id UUID NOT NULL REFERENCES sectors(id), -- direct parent sector
     name TEXT NOT NULL,
+    timezone TEXT NOT NULL DEFAULT 'UTC',             -- nudge EOB fallback; defaults to platform_config.default_timezone
     status TEXT NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Multi-sector membership (org can appear under multiple verticals/sectors)
+-- Multi-sector membership (org can appear under multiple sectors at any level)
 CREATE TABLE org_sector_memberships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id),
     sector_id UUID NOT NULL REFERENCES sectors(id),
-    root_user_id UUID REFERENCES users(id),
+    root_user_id UUID REFERENCES users(id),         -- sector-specific root for this org
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(organization_id, sector_id)
 );
@@ -434,7 +434,7 @@ CREATE TABLE status_reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source_instance TEXT NOT NULL DEFAULT 'local',
     sector_context UUID NOT NULL REFERENCES sectors(id),
-    scope_type TEXT NOT NULL,                  -- 'ORG', 'VERTICAL', 'SECTOR'
+    scope_type TEXT NOT NULL,                  -- 'ORG', 'SECTOR'
     scope_ref UUID NOT NULL,                   -- references the scoped entity
     title TEXT NOT NULL,
     body TEXT NOT NULL,
@@ -450,6 +450,28 @@ CREATE TABLE status_reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE status_report_revisions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    status_report_id UUID NOT NULL REFERENCES status_reports(id),
+    revision_number INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    assessed_status TEXT NOT NULL,
+    impact TEXT NOT NULL,
+    tlp TEXT NOT NULL,
+    changed_by UUID NOT NULL REFERENCES users(id),
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(status_report_id, revision_number)
+);
+
+CREATE TABLE status_report_events (
+    status_report_id UUID NOT NULL REFERENCES status_reports(id),
+    event_id UUID NOT NULL REFERENCES events(id),
+    PRIMARY KEY (status_report_id, event_id)
+);
+
+CREATE INDEX idx_status_report_events_event ON status_report_events(event_id);
 
 CREATE TABLE campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -505,11 +527,49 @@ CREATE TABLE attachments (
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE tlp_red_recipients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    resource_type TEXT NOT NULL,                -- 'EVENT', 'STATUS_REPORT', 'EVENT_UPDATE'
+    resource_id UUID NOT NULL,
+    recipient_user_id UUID NOT NULL REFERENCES users(id),
+    granted_by UUID NOT NULL REFERENCES users(id),
+    granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(resource_type, resource_id, recipient_user_id)
+);
+
+CREATE INDEX idx_tlp_red_resource ON tlp_red_recipients(resource_type, resource_id);
+
+CREATE TABLE platform_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_by UUID REFERENCES users(id),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Seeded on init: ('default_timezone', 'UTC')
+
+CREATE TABLE nudge_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id),
+    recipient_id UUID NOT NULL REFERENCES users(id),
+    nudge_type TEXT NOT NULL,                  -- 'DAILY', 'WEEKLY', 'DIGEST', 'ESCALATION'
+    escalation_level INTEGER,                  -- NULL for non-escalation nudges
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_nudge_event_date ON nudge_log(event_id, sent_at DESC);
+
+CREATE TABLE escalation_state (
+    event_id UUID PRIMARY KEY REFERENCES events(id),
+    current_level INTEGER NOT NULL DEFAULT 0,  -- 0=contributors, 1=org root, 2+=ancestor sector roots
+    escalated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_response_at TIMESTAMPTZ
+);
+
 -- Formula storage for Starlark status aggregation
 CREATE TABLE status_formulas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    node_type TEXT NOT NULL,                   -- 'SECTOR', 'VERTICAL', 'PLATFORM'
-    node_id UUID NOT NULL,                     -- references the entity (or NULL for platform)
+    node_type TEXT NOT NULL,                   -- 'SECTOR', 'PLATFORM'
+    node_id UUID,                              -- NULL for platform-level formula
     starlark_source TEXT NOT NULL,             -- the Starlark code
     set_by UUID NOT NULL REFERENCES users(id),
     set_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -522,7 +582,7 @@ CREATE TABLE status_formulas (
 
 CREATE TABLE cedar_policies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    scope_type TEXT NOT NULL,                  -- 'PLATFORM', 'SECTOR', 'VERTICAL', 'ORG'
+    scope_type TEXT NOT NULL,                  -- 'PLATFORM', 'SECTOR', 'ORG'
     scope_id UUID,                             -- NULL for platform-wide
     policy_template TEXT NOT NULL,             -- template identifier
     cedar_text TEXT NOT NULL,                  -- rendered Cedar policy
@@ -545,7 +605,7 @@ CREATE TABLE role_assignments (
 CREATE TABLE root_designations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    scope_type TEXT NOT NULL,                  -- 'PLATFORM', 'SECTOR', 'VERTICAL', 'ORG'
+    scope_type TEXT NOT NULL,                  -- 'PLATFORM', 'SECTOR', 'ORG'
     scope_id UUID,
     designated_by UUID NOT NULL,               -- self or parent root
     designated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -600,42 +660,91 @@ CREATE INDEX idx_embeddings_ivfflat ON event_embeddings
 
 ## 6. Authentication Flow
 
+### 6.1 Model
+
+The Fresnel API server is a **stateless OIDC Relying Party**. Keycloak is a black box identity provider — the same integration pattern as Auth0, Okta, or any other OIDC provider. The application stores no authentication state.
+
+| Parameter | Value | Managed By |
+|---|---|---|
+| Access token TTL | 10 minutes | Keycloak realm config |
+| Refresh token TTL | 8 hours (= effective session length) | Keycloak realm config |
+| Token storage | httpOnly, Secure, SameSite=Strict cookies on the client | Browser |
+| Session expiry | Refresh token expiry → redirect to Keycloak login | Keycloak |
+| Logout | Keycloak OIDC logout endpoint revokes refresh token | Keycloak |
+| Role/membership changes | Propagate on next token refresh (≤ 10 minutes) | Keycloak claims |
+| Server-side auth state | **None.** | — |
+
+### 6.2 Request Flow
+
+```
+On each request:
+  1. Read access_token from httpOnly cookie
+  2. Validate locally (Keycloak JWKS, expiry check)
+  3. If valid → extract claims → build AuthContext → proceed to Cedar Gate
+  4. If expired → read refresh_token from httpOnly cookie
+     → call Keycloak token endpoint → get new access_token
+     → set updated cookie → proceed
+  5. If refresh fails (expired/revoked) → 302 to Keycloak login
+```
+
+The server is **fully stateless** with respect to authentication. The AuthContext is derived from token claims on every request. No server-side session store, no cache, no state to replicate for HA. The cookies are the session.
+
+### 6.3 Login Flow
+
 ```
 User                Browser              nginx             API Server           Keycloak
  │                    │                    │                    │                    │
  │  navigate to /     │                    │                    │                    │
  │───────────────────►│───────────────────►│───────────────────►│                    │
- │                    │                    │                    │                    │
+ │                    │                    │   no valid token   │                    │
  │                    │                    │   302 → Keycloak   │                    │
  │                    │◄───────────────────│◄───────────────────│                    │
  │                    │                    │                    │                    │
- │  Keycloak login page (TOTP MFA)        │                    │                    │
+ │  Keycloak login (TOTP MFA)             │                    │                    │
  │◄───────────────────│────────────────────│────────────────────│───────────────────►│
  │                    │                    │                    │                    │
  │  credentials+TOTP  │                    │                    │                    │
  │───────────────────►│────────────────────│────────────────────│───────────────────►│
  │                    │                    │                    │                    │
- │                    │  302 + auth code   │                    │     auth code      │
+ │                    │  302 + auth code   │                    │                    │
  │                    │◄───────────────────│────────────────────│◄───────────────────│
  │                    │                    │                    │                    │
- │                    │  code exchange     │                    │                    │
+ │                    │  code → tokens     │                    │                    │
  │                    │───────────────────►│───────────────────►│ ──── token req ───►│
+ │                    │                    │                    │ ◄── access+refresh─│
  │                    │                    │                    │                    │
- │                    │                    │                    │ ◄── OIDC tokens ───│
- │                    │                    │                    │                    │
- │                    │  session cookie    │                    │                    │
- │                    │  (httponly,secure)  │                    │                    │
+ │                    │  Set-Cookie:       │                    │                    │
+ │                    │  access_token      │                    │                    │
+ │                    │  refresh_token     │                    │                    │
+ │                    │  (httpOnly,Secure,  │                    │                    │
+ │                    │   SameSite=Strict) │                    │                    │
  │                    │◄───────────────────│◄───────────────────│                    │
  │                    │                    │                    │                    │
- │  subsequent requests use session cookie │                    │                    │
- │───────────────────►│───────────────────►│───────────────────►│                    │
- │                    │                    │                    │  (validates cached  │
- │                    │                    │                    │   token / refresh)  │
+ │  subsequent: cookies sent automatically │                    │                    │
+ │───────────────────►│───────────────────►│───────────────────►│  validate token,  │
+ │                    │                    │                    │  build AuthContext │
+ │                    │                    │                    │  from claims       │
 ```
 
-**Session management**: The API server manages sessions (encrypted cookie). The OIDC tokens (access + refresh) are stored server-side, associated with the session. The browser never sees the OIDC tokens directly — only the session cookie.
+### 6.4 Logout
 
-**API (JSON) authentication**: API consumers send a Bearer token (obtained via Keycloak's token endpoint directly) in the Authorization header. No session cookie. The API server validates the token against Keycloak's JWKS endpoint (cached).
+User clicks logout → API server redirects to Keycloak's OIDC end_session_endpoint with the ID token hint. Keycloak revokes the refresh token and destroys the SSO session. API server clears the token cookies. Done.
+
+### 6.5 External SSO
+
+External SSO is **entirely a Keycloak configuration concern**. The Fresnel application is unaware of upstream identity providers.
+
+Keycloak supports identity brokering: an upstream OIDC or SAML IdP is configured in the Keycloak admin console. When a user from an organization with an external IdP authenticates, Keycloak redirects to their IdP, receives the assertion, maps claims, and issues Fresnel-scoped tokens. The API server sees only Keycloak-issued tokens regardless of the upstream provider.
+
+Adding or removing an external SSO provider is a Keycloak admin configuration change — zero application code, zero deployment, zero downtime.
+
+### 6.6 API (JSON) Authentication
+
+API consumers (automation, agents) obtain tokens directly from Keycloak's token endpoint (client credentials or resource owner password grant, depending on use case) and send the access token as a Bearer header. Same validation path — JWKS, claims extraction, AuthContext. The API consumer manages its own token lifecycle.
+
+### 6.7 CSRF Protection
+
+SameSite=Strict cookies prevent cross-origin cookie attachment. As defense in depth, state-changing HTML requests also carry a CSRF token in a custom header, validated by the API server. The CSRF token is derived from the access token (HMAC) so it requires no server-side state either.
 
 ---
 
