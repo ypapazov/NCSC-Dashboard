@@ -29,6 +29,7 @@ services:
 
   clamav:
     image: clamav/clamav:latest
+    platform: linux/amd64
     volumes:
       - clamdata:/var/lib/clamav
     # Default image exposes clamd on 3310 TCP; app uses socket in full deploy — optional for M0.

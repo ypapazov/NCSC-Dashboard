@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS vector;
-
 SET search_path TO fresnel, public;
 
 CREATE TABLE event_embeddings (

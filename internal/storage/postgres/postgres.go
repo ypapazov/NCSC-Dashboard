@@ -30,6 +30,9 @@ func NewPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 }
 
 // Migrate applies pending SQL migration files in lexical order.
+// Each migration runs in its own transaction so that DDL side-effects
+// (e.g. CREATE EXTENSION adding new types) are committed and visible
+// to subsequent migrations.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	if _, err := pool.Exec(ctx, `
 CREATE TABLE IF NOT EXISTS public.schema_migrations (
@@ -52,15 +55,9 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
 	}
 	sort.Strings(names)
 
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
 	for _, name := range names {
 		var exists bool
-		err := tx.QueryRow(ctx,
+		err := pool.QueryRow(ctx,
 			`SELECT EXISTS (SELECT 1 FROM public.schema_migrations WHERE version = $1)`,
 			name,
 		).Scan(&exists)
@@ -70,19 +67,40 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
 		if exists {
 			continue
 		}
-		b, err := migrations.Files.ReadFile(name)
-		if err != nil {
-			return fmt.Errorf("read %s: %w", name, err)
+
+		if err := applyMigration(ctx, pool, name); err != nil {
+			return err
 		}
-		if _, err := tx.Exec(ctx, string(b)); err != nil {
-			return fmt.Errorf("apply %s: %w", name, err)
-		}
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO public.schema_migrations (version) VALUES ($1)`,
-			name,
-		); err != nil {
-			return fmt.Errorf("record %s: %w", name, err)
-		}
+	}
+	return nil
+}
+
+func applyMigration(ctx context.Context, pool *pgxpool.Pool, name string) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin %s: %w", name, err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Pooled connections may carry session state (e.g. search_path) from
+	// earlier migrations. Reset to a clean default so each migration starts
+	// from a known state.
+	if _, err := tx.Exec(ctx, `RESET search_path`); err != nil {
+		return fmt.Errorf("reset search_path for %s: %w", name, err)
+	}
+
+	b, err := migrations.Files.ReadFile(name)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", name, err)
+	}
+	if _, err := tx.Exec(ctx, string(b)); err != nil {
+		return fmt.Errorf("apply %s: %w", name, err)
+	}
+	if _, err := tx.Exec(ctx,
+		`INSERT INTO public.schema_migrations (version) VALUES ($1)`,
+		name,
+	); err != nil {
+		return fmt.Errorf("record %s: %w", name, err)
 	}
 	return tx.Commit(ctx)
 }
