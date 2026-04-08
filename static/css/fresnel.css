@@ -1,0 +1,25 @@
+:root {
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+body {
+  margin: 0;
+  background: #0f1419;
+  color: #e6edf3;
+}
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+nav a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+main {
+  padding: 1rem;
+  max-width: 960px;
+}

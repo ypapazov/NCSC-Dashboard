@@ -43,7 +43,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := apphttp.NewRouter(log, cfg, pool)
+	handler, err := apphttp.NewRouter(log, cfg, pool)
+	if err != nil {
+		log.Error("router", "err", err)
+		os.Exit(1)
+	}
 	srv := apphttp.NewServer(cfg.ListenAddr, log, handler)
 
 	go func() {

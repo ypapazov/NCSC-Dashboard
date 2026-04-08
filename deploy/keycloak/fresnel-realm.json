@@ -3,6 +3,9 @@
   "realm": "fresnel",
   "enabled": true,
   "sslRequired": "none",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
   "accessTokenLifespan": 600,
   "ssoSessionIdleTimeout": 28800,
   "ssoSessionMaxLifespan": 28800,
@@ -33,7 +36,29 @@
       "publicClient": false,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "post.logout.redirect.uris": "https://localhost/*##https://127.0.0.1/*"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "platform-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@fresnel.local",
+      "firstName": "Platform",
+      "lastName": "Administrator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe_PlatformAdmin!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
     }
   ]
 }

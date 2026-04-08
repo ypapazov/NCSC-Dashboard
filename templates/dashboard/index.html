@@ -1,0 +1,10 @@
+{{define "content"}}
+<h1>Dashboard</h1>
+{{if .User}}
+<p>Signed in as <strong>{{.User.DisplayName}}</strong> ({{.User.Email}}).</p>
+<p>User ID: <code>{{.User.UserID}}</code></p>
+<p>Active organization context: <code>{{.User.ActiveOrgContext}}</code></p>
+{{else}}
+<p>Not signed in.</p>
+{{end}}
+{{end}}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,6 +25,8 @@ type Config struct {
 	AttachmentDir   string
 	// DashboardCacheTTL is the default TTL for computed dashboard node status.
 	DashboardCacheTTL time.Duration
+	// CookieSecure sets the Secure flag on auth cookies (use true behind HTTPS).
+	CookieSecure bool
 }
 
 func getenv(key, def string) string {
@@ -67,6 +70,10 @@ func Load() (*Config, error) {
 		}
 		cacheTTL = time.Duration(n) * time.Second
 	}
+	cookieSecure := strings.HasPrefix(getenv("APP_PUBLIC_URL", "https://localhost"), "https://")
+	if v := os.Getenv("COOKIE_SECURE"); v != "" {
+		cookieSecure = v == "1" || v == "true"
+	}
 	return &Config{
 		ListenAddr:           getenv("LISTEN_ADDR", ":8080"),
 		DatabaseURL:          getenv("DATABASE_URL", ""),
@@ -81,7 +88,33 @@ func Load() (*Config, error) {
 		HMACSecret:             hmac,
 		AttachmentDir:          getenv("ATTACHMENT_DIR", "/var/lib/fresnel/attachments"),
 		DashboardCacheTTL:      cacheTTL,
+		CookieSecure:           cookieSecure,
 	}, nil
+}
+
+// AuthEndpoint returns the OIDC authorization URL for this realm.
+func (c *Config) AuthEndpoint() string {
+	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/auth"
+}
+
+// TokenEndpoint returns the token URL.
+func (c *Config) TokenEndpoint() string {
+	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/token"
+}
+
+// LogoutEndpoint returns the RP-initiated logout URL.
+func (c *Config) LogoutEndpoint() string {
+	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/logout"
+}
+
+// JWKSURL returns the JWKS document URL.
+func (c *Config) JWKSURL() string {
+	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/certs"
+}
+
+// RedirectURI is the registered OIDC redirect URI for this app.
+func (c *Config) RedirectURI() string {
+	return strings.TrimSuffix(c.AppPublicURL, "/") + "/auth/callback"
 }
 
 func (c *Config) Validate() error {
@@ -90,6 +123,12 @@ func (c *Config) Validate() error {
 	}
 	if c.KeycloakIssuer == "" {
 		return fmt.Errorf("KEYCLOAK_ISSUER is required")
+	}
+	if c.KeycloakClientID == "" {
+		return fmt.Errorf("KEYCLOAK_CLIENT_ID is required")
+	}
+	if c.KeycloakClientSecret == "" {
+		return fmt.Errorf("KEYCLOAK_CLIENT_SECRET is required")
 	}
 	return nil
 }
