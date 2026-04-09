@@ -44,7 +44,7 @@ func (o *OIDC) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := oauth.VerifyAccessToken(r.Context(), raw, o.Cfg.KeycloakIssuer, o.JWKS)
+		claims, err := oauth.VerifyAccessToken(r.Context(), raw, o.Cfg.AllowedTokenIssuers(), o.JWKS)
 		if err != nil {
 			rt, err2 := r.Cookie(CookieRefresh)
 			if err2 != nil || rt.Value == "" {
@@ -58,7 +58,7 @@ func (o *OIDC) Handler(next http.Handler) http.Handler {
 			}
 			SetAuthCookies(w, o.Cfg, naccess, nrefresh, nid)
 			raw = naccess
-			claims, err = oauth.VerifyAccessToken(r.Context(), raw, o.Cfg.KeycloakIssuer, o.JWKS)
+			claims, err = oauth.VerifyAccessToken(r.Context(), raw, o.Cfg.AllowedTokenIssuers(), o.JWKS)
 			if err != nil {
 				o.unauthenticated(w, r)
 				return

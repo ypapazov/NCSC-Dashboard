@@ -21,7 +21,9 @@ type AccessClaims struct {
 }
 
 // VerifyAccessToken checks the JWT signature against JWKS and validates iss/exp.
-func VerifyAccessToken(ctx context.Context, compact string, issuer string, jwks *JWKS) (*AccessClaims, error) {
+// allowedIssuers must include every issuer string Keycloak may emit (e.g. internal Docker hostname
+// and localhost:port for browser flows).
+func VerifyAccessToken(ctx context.Context, compact string, allowedIssuers []string, jwks *JWKS) (*AccessClaims, error) {
 	tok, err := jose.ParseSigned(compact, []jose.SignatureAlgorithm{
 		jose.RS256, jose.RS384, jose.RS512,
 		jose.ES256, jose.ES384, jose.ES512,
@@ -62,9 +64,8 @@ func VerifyAccessToken(ctx context.Context, compact string, issuer string, jwks 
 	if err := json.Unmarshal(raw, &c); err != nil {
 		return nil, err
 	}
-	iss := strings.TrimSuffix(issuer, "/")
 	tokIss := strings.TrimSuffix(c.Iss, "/")
-	if tokIss != iss {
+	if !issuerAllowed(tokIss, allowedIssuers) {
 		return nil, fmt.Errorf("jwt: invalid iss")
 	}
 	now := time.Now().Unix()
@@ -72,4 +73,13 @@ func VerifyAccessToken(ctx context.Context, compact string, issuer string, jwks 
 		return nil, fmt.Errorf("jwt: expired")
 	}
 	return &c, nil
+}
+
+func issuerAllowed(tokIss string, allowed []string) bool {
+	for _, a := range allowed {
+		if tokIss == strings.TrimSuffix(strings.TrimSpace(a), "/") {
+			return true
+		}
+	}
+	return false
 }

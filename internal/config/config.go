@@ -15,8 +15,14 @@ type Config struct {
 	KeycloakIssuer   string
 	KeycloakClientID string
 	KeycloakClientSecret string
-	// KeycloakBaseURL is the origin only (scheme + host + optional port), used for token endpoint.
-	KeycloakBaseURL string
+	// KeycloakExternalURL is the realm URL reachable by the browser (e.g. http://localhost:8081/realms/fresnel).
+	// Used for authorize and logout redirects. Falls back to KeycloakIssuer if not set
+	// (appropriate when the same URL is reachable by both the app and the browser, e.g. production).
+	KeycloakExternalURL string
+	// KeycloakTokenURL is the full OIDC token endpoint URL for POST (code exchange, refresh).
+	// Optional. If empty, derived from KeycloakIssuer. In Docker, set to the same host the browser
+	// uses for Keycloak (e.g. http://host.docker.internal:8081/.../token) so refresh matches token iss.
+	KeycloakTokenURL string
 	AppPublicURL    string // e.g. https://localhost — for redirects and cookie domain hints
 	ClamAVSocket    string
 	SMTPHost        string
@@ -80,7 +86,8 @@ func Load() (*Config, error) {
 		KeycloakIssuer:       getenv("KEYCLOAK_ISSUER", ""),
 		KeycloakClientID:     getenv("KEYCLOAK_CLIENT_ID", ""),
 		KeycloakClientSecret: getenv("KEYCLOAK_CLIENT_SECRET", ""),
-		KeycloakBaseURL:      getenv("KEYCLOAK_BASE_URL", ""),
+		KeycloakExternalURL:  getenv("KEYCLOAK_EXTERNAL_URL", ""),
+		KeycloakTokenURL:     getenv("KEYCLOAK_TOKEN_URL", ""),
 		AppPublicURL:         getenv("APP_PUBLIC_URL", "https://localhost"),
 		ClamAVSocket:         getenv("CLAMAV_SOCKET", "/var/run/clamav/clamd.sock"),
 		SMTPHost:               getenv("SMTP_HOST", ""),
@@ -92,22 +99,51 @@ func Load() (*Config, error) {
 	}, nil
 }
 
-// AuthEndpoint returns the OIDC authorization URL for this realm.
-func (c *Config) AuthEndpoint() string {
-	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/auth"
+// keycloakBrowserBase returns the realm URL reachable by the browser.
+// Falls back to KeycloakIssuer when KeycloakExternalURL is not set.
+func (c *Config) keycloakBrowserBase() string {
+	if c.KeycloakExternalURL != "" {
+		return strings.TrimSuffix(c.KeycloakExternalURL, "/")
+	}
+	return strings.TrimSuffix(c.KeycloakIssuer, "/")
 }
 
-// TokenEndpoint returns the token URL.
+// AuthEndpoint returns the OIDC authorization URL (browser-facing).
+func (c *Config) AuthEndpoint() string {
+	return c.keycloakBrowserBase() + "/protocol/openid-connect/auth"
+}
+
+// LogoutEndpoint returns the RP-initiated logout URL (browser-facing).
+func (c *Config) LogoutEndpoint() string {
+	return c.keycloakBrowserBase() + "/protocol/openid-connect/logout"
+}
+
+// TokenEndpoint returns the token POST URL (code exchange, refresh).
 func (c *Config) TokenEndpoint() string {
+	if c.KeycloakTokenURL != "" {
+		return c.KeycloakTokenURL
+	}
 	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/token"
 }
 
-// LogoutEndpoint returns the RP-initiated logout URL.
-func (c *Config) LogoutEndpoint() string {
-	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/logout"
+// AllowedTokenIssuers lists issuer values Keycloak may put in JWT `iss` (browser vs internal Docker URL).
+func (c *Config) AllowedTokenIssuers() []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(s string) {
+		s = strings.TrimSuffix(strings.TrimSpace(s), "/")
+		if s == "" || seen[s] {
+			return
+		}
+		seen[s] = true
+		out = append(out, s)
+	}
+	add(c.KeycloakIssuer)
+	add(c.KeycloakExternalURL)
+	return out
 }
 
-// JWKSURL returns the JWKS document URL.
+// JWKSURL returns the JWKS document URL (server-to-server, uses internal issuer URL).
 func (c *Config) JWKSURL() string {
 	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/certs"
 }
