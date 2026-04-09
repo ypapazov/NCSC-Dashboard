@@ -1,10 +1,139 @@
-{{define "content"}}
-<h1>Dashboard</h1>
-{{if .User}}
-<p>Signed in as <strong>{{.User.DisplayName}}</strong> ({{.User.Email}}).</p>
-<p>User ID: <code>{{.User.UserID}}</code></p>
-<p>Active organization context: <code>{{.User.ActiveOrgContext}}</code></p>
-{{else}}
-<p>Not signed in.</p>
-{{end}}
+{{define "dashboard"}}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  {{if .User}}
+  <span class="text-muted text-sm">
+    {{.User.DisplayName}} &middot; {{.User.Email}}
+  </span>
+  {{end}}
+</div>
+
+<div class="dashboard-layout" hx-trigger="every 60s" hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML">
+  <!-- Status Tree -->
+  <div>
+    {{if .Sectors}}
+    <div class="card">
+      <div class="card-header">
+        National Cyber Status
+        <span class="htmx-indicator"><span class="spinner"></span></span>
+      </div>
+      <div class="card-body">
+        <div class="tree">
+          {{range .Sectors}}
+          <div class="tree-node">
+            <div class="tree-node-header"
+                 hx-get="/api/v1/sectors/{{.ID}}/children"
+                 hx-target="#sector-children-{{.ID}}"
+                 hx-swap="innerHTML"
+                 onclick="this.querySelector('.tree-expand').classList.toggle('open');this.closest('.tree-node').querySelector('.tree-children').classList.toggle('collapsed');">
+              <span class="tree-expand">&#9654;</span>
+              <span class="tree-node-name">{{.Name}}</span>
+              <span class="tree-node-meta">
+                {{if .AssessedStatus}}
+                <span class="badge badge-assessed-{{.AssessedStatus | lower}}">{{.AssessedStatus}}</span>
+                {{end}}
+                {{if .OpenEvents}}<span class="text-xs text-muted">{{.OpenEvents}} open</span>{{end}}
+              </span>
+            </div>
+            <div id="sector-children-{{.ID}}" class="tree-children collapsed">
+              {{range .Organizations}}
+              <div class="tree-leaf"
+                   hx-get="/api/v1/status-reports?scope_type=ORG&scope_ref={{.ID}}"
+                   hx-target="#side-panel-body"
+                   hx-swap="innerHTML">
+                <span class="tree-node-name">{{.Name}}</span>
+                <span class="tree-node-meta">
+                  {{if .AssessedStatus}}
+                  <span class="badge badge-assessed-{{.AssessedStatus | lower}}">{{.AssessedStatus}}</span>
+                  {{end}}
+                </span>
+              </div>
+              {{end}}
+            </div>
+          </div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+    {{end}}
+
+    <!-- Recent Events -->
+    {{if .RecentEvents}}
+    <div class="card">
+      <div class="card-header">
+        Recent Events
+        <a class="btn btn-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML" hx-push-url="/events">View All</a>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="table-header">Title</th>
+              <th class="table-header">Status</th>
+              <th class="table-header">Impact</th>
+              <th class="table-header">TLP</th>
+              <th class="table-header">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .RecentEvents}}
+            <tr class="table-row clickable"
+                hx-get="/api/v1/events/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
+                hx-push-url="/events/{{.ID}}">
+              <td class="table-cell truncate">{{.Title}}</td>
+              <td class="table-cell"><span class="badge badge-status-{{.Status | lower}}">{{.Status}}</span></td>
+              <td class="table-cell"><span class="badge badge-impact-{{.Impact | lower}}">{{.Impact}}</span></td>
+              <td class="table-cell"><span class="badge badge-tlp-{{.TLP | lower}}">TLP:{{.TLP}}</span></td>
+              <td class="table-cell text-muted text-sm">{{.CreatedAt | fmtTime}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{end}}
+
+    <!-- Active Campaigns -->
+    {{if .ActiveCampaigns}}
+    <div class="card">
+      <div class="card-header">
+        Active Campaigns
+        <a class="btn btn-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML" hx-push-url="/campaigns">View All</a>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="table-header">Title</th>
+              <th class="table-header">TLP</th>
+              <th class="table-header">Events</th>
+              <th class="table-header">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .ActiveCampaigns}}
+            <tr class="table-row clickable"
+                hx-get="/api/v1/campaigns/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
+                hx-push-url="/campaigns/{{.ID}}">
+              <td class="table-cell">{{.Title}}</td>
+              <td class="table-cell"><span class="badge badge-tlp-{{.TLP | lower}}">TLP:{{.TLP}}</span></td>
+              <td class="table-cell text-muted">{{.EventCount}}</td>
+              <td class="table-cell text-muted text-sm">{{.CreatedAt | fmtTime}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Side Panel: Timeline / Status Detail -->
+  <div class="side-panel">
+    <div class="side-panel-header">Status Timeline</div>
+    <div id="side-panel-body" class="side-panel-body">
+      <div class="side-panel-empty">Select a sector or organization to view its status timeline.</div>
+    </div>
+  </div>
+</div>
 {{end}}

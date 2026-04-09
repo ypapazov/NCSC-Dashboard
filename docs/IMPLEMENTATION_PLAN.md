@@ -80,9 +80,8 @@ fresnel/
 │       ├── server.go                  # Server setup, graceful shutdown
 │       ├── router.go                  # Route registration
 │       ├── middleware/
-│       │   ├── auth.go                # OIDC token validation → AuthContext
+│       │   ├── auth.go                # Bearer JWT validation → AuthContext from DB
 │       │   ├── cedar_gate.go          # Tier 1 coarse-grained authz
-│       │   ├── csrf.go                # CSRF token validation
 │       │   ├── content_neg.go         # Accept header → renderer selection
 │       │   └── logging.go             # Request/response structured logging
 │       └── handlers/
@@ -96,7 +95,7 @@ fresnel/
 │           ├── user.go
 │           ├── audit.go
 │           ├── attachment.go
-│           ├── auth.go                # Login callback, logout, CSRF token
+│           ├── auth.go                # App shell handler (keycloak-js bootstrap)
 │           ├── health.go
 │           └── federation.go          # 501 stubs
 ├── migrations/
@@ -107,7 +106,7 @@ fresnel/
 │   └── 005_seed_platform_config.sql
 ├── templates/                         # Go html/template files
 │   ├── layouts/
-│   │   └── base.html                  # Shell: nav, sidebar, HTMX bootstrap
+│   │   └── base.html                  # App shell: keycloak-js bootstrap, nav, HTMX
 │   ├── dashboard/
 │   │   ├── index.html                 # Hierarchical tree
 │   │   └── timeline.html              # Side panel fragment
@@ -146,6 +145,7 @@ fresnel/
 │       └── 500.html
 ├── static/
 │   ├── htmx.min.js                    # Vendored
+│   ├── app.js                         # keycloak-js init + HTMX Bearer integration
 │   ├── milkdown/                      # Vendored bundle
 │   └── css/
 │       └── fresnel.css                # Application styles
@@ -208,10 +208,10 @@ fresnel/
 | M0.1 | Initialize Go module | `go mod init`, add core dependencies (pgx, uuid, goldmark, bluemonday). Don't add cedar-go or starlark yet — resolve version compatibility first. |
 | M0.2 | Create Dockerfile | Multi-stage build: Go build stage → minimal runtime image. |
 | M0.3 | Create Docker Compose | PostgreSQL (pgvector), Keycloak, ClamAV, nginx, API server. Dev compose overlay with debug ports. |
-| M0.4 | Configure Keycloak realm | Create `fresnel-realm.json`: realm name, OIDC client (confidential, authorization code flow), required TOTP, brute-force protection. Export as JSON for idempotent import. |
+| M0.4 | Configure Keycloak realm | Create `fresnel-realm.json`: realm name, OIDC **public** client (Authorization Code + PKCE), required TOTP, brute-force protection. No client secret. Export as JSON for idempotent import. |
 | M0.5 | Write SQL migrations | All tables from Architecture Section 5.2 as migration files. Include schema creation (`CREATE SCHEMA`), pgvector extension, and seed `platform_config` row. |
 | M0.6 | Implement migration runner | On API server startup, apply pending migrations (use `golang-migrate` or manual version tracking in a `schema_migrations` table). |
-| M0.7 | Implement config loader | Environment-variable-based config struct: `DATABASE_URL`, `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `CLAMAV_SOCKET`, `SMTP_HOST`, `HMAC_SECRET` (for CSRF), `LISTEN_ADDR`. |
+| M0.7 | Implement config loader | Environment-variable-based config struct: `DATABASE_URL`, `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_EXTERNAL_URL`, `CLAMAV_SOCKET`, `SMTP_HOST`, `LISTEN_ADDR`. No client secret (public client). No HMAC secret (no CSRF needed with Bearer auth). |
 | M0.8 | Implement health endpoint | `GET /api/v1/health` — unauthenticated, returns DB connectivity and Keycloak reachability status. |
 | M0.9 | Write nginx config | TLS termination (self-signed cert for dev), proxy_pass to API server, all security headers from Requirements Section 9.2. Rate limiting rules. |
 | M0.10 | Create Makefile | Targets: `build`, `test`, `lint`, `compose-up`, `compose-down`, `migrate`, `seed`, `run`. |
@@ -222,24 +222,23 @@ fresnel/
 
 ### M1: Authentication
 
-**Goal**: Browser login flow works end-to-end. AuthContext is populated. Protected endpoints return 401/302 for unauthenticated requests.
+**Goal**: Browser login flow works end-to-end with Authorization Code + PKCE. AuthContext is populated. Protected API endpoints return 401 for unauthenticated requests.
 
 **Depends on**: M0
 
 | ID | Task | Details |
 |---|---|---|
-| M1.1 | Implement OIDC callback handler | `GET /auth/callback` — receives auth code from Keycloak, exchanges for tokens, sets httpOnly/Secure/SameSite=Strict cookies (access_token, refresh_token). Redirects to original URL. |
-| M1.2 | Implement OIDC token validator middleware | Reads access_token cookie, validates JWT signature against Keycloak JWKS (cached), checks expiry. On expired token: uses refresh_token to get new access_token from Keycloak, sets updated cookie. On refresh failure: 302 to Keycloak authorize endpoint. |
-| M1.3 | Implement AuthContext builder | Extracts `sub` claim from validated token. Queries app DB for user record, org memberships, role assignments, root designations. Builds `AuthContext` struct, attaches to request context. **Implementation note**: the architecture says "derived from token claims" — we derive the identity from the token, then enrich from the DB. This avoids complex Keycloak custom mappers and sync logic while maintaining the stateless property (no server-side session, all state is reconstructed per request). The DB lookup is lightweight (single query with JOINs) and the user record is small. |
-| M1.4 | Create Keycloak test users | In `fresnel-realm.json` or via seed script: platform root, sector root, org root, org admin, contributor, viewer. Each with TOTP configured. |
-| M1.5 | Implement logout handler | `GET /auth/logout` — clears token cookies, redirects to Keycloak `end_session_endpoint` with ID token hint. |
-| M1.6 | Implement CSRF middleware | For state-changing requests with `Accept: text/html`: validate `X-CSRF-Token` header. Token = HMAC(access_token, HMAC_SECRET). Expose a `GET /auth/csrf` endpoint (or embed in HTML templates) for HTMX to read. |
-| M1.7 | Implement content negotiation middleware | Inspect `Accept` header. Set renderer on context: `text/html` → template renderer, `application/json` → JSON encoder. Default to HTML for browser requests. |
-| M1.8 | Implement request logging middleware | Structured JSON logs: timestamp, method, path, user_id (from AuthContext, if present), status code, latency, IP. |
-| M1.9 | Implement base HTML layout template | `base.html`: HTML shell with nav bar, user info (from AuthContext), org context selector (placeholder), HTMX script tag, CSS link. Content block for page-specific content. |
-| M1.10 | Wire router | Register all middleware in order: logging → OIDC validator → CSRF → content negotiation. Register health (unauthenticated), auth callbacks, and a placeholder dashboard route. |
+| M1.1 | Implement app shell page | `GET /{path...}` catch-all — serves the bootstrap HTML page with `keycloak-js` configuration (Keycloak URL, realm, client ID injected via `<meta>` tags). This is the single unauthenticated HTML entry point. |
+| M1.2 | Implement `app.js` (keycloak-js bootstrap) | Client-side JS that: (1) loads `keycloak-js` from the Keycloak instance, (2) initializes with `onLoad: 'login-required'` and `pkceMethod: 'S256'`, (3) attaches `Authorization: Bearer <token>` to all HTMX requests via `htmx:configRequest`, (4) refreshes the token periodically (every 30s, refresh if expiring within 60s), (5) handles 401 responses with token refresh or re-login, (6) loads initial content for the current URL path. |
+| M1.3 | Implement Bearer token validation middleware | Reads `Authorization: Bearer <jwt>` header. Validates JWT signature against Keycloak JWKS (cached, 15-minute TTL). Checks expiry (60s grace). For `/api/` routes without a valid Bearer: 401 JSON. For non-API routes without Bearer: pass through (shell handler serves the bootstrap page). No cookies, no refresh, no token exchange on the server side. |
+| M1.4 | Implement AuthContext builder | Extracts `sub` claim from validated JWT. Queries app DB for user record, org memberships, role assignments, root designations. Builds `AuthContext` struct, attaches to request context. The token provides identity; the database provides authorization data. This avoids Keycloak custom mappers and keeps Keycloak config minimal. The DB lookup is lightweight (three queries in a transaction) and the user record is small. |
+| M1.5 | Create Keycloak test users | In `fresnel-realm.json` or via seed script: platform root, sector root, org root, org admin, contributor, viewer. Each with TOTP configured. |
+| M1.6 | Implement content negotiation middleware | Inspect `Accept` header. Set renderer on context: `text/html` → template renderer, `application/json` → JSON encoder. Default to HTML for browser requests. |
+| M1.7 | Implement request logging middleware | Structured JSON logs: timestamp, method, path, user_id (from AuthContext, if present), status code, latency, IP. |
+| M1.8 | Implement base HTML shell template | `base.html`: static HTML shell with nav bar (user info populated by JS after auth), Keycloak config `<meta>` tags, HTMX + `app.js` script tags. No server-side auth rendering — this page is always served unauthenticated. |
+| M1.9 | Wire router | Register middleware: logging → OIDC validator → content negotiation. Register routes: health (public), static files (public), API routes (authenticated), catch-all shell (public). No CSRF middleware (Bearer tokens eliminate CSRF). |
 
-**Acceptance**: Navigate to `https://localhost/` → redirected to Keycloak → login with test credentials + TOTP → see base layout with user info. `curl -H "Authorization: Bearer <token>" https://localhost/api/v1/health` works. Logout clears session.
+**Acceptance**: Navigate to `https://localhost/` → keycloak-js redirects to Keycloak → login with test credentials + TOTP → redirected back → keycloak-js exchanges code with PKCE → HTMX loads dashboard via Bearer token → user info displayed. `curl -H "Authorization: Bearer <token>" https://localhost/api/v1/dashboard` returns JSON. Token refresh works silently. Logout via keycloak-js clears session.
 
 ---
 
@@ -559,14 +558,17 @@ The `fresnel-realm.json` export file configures:
 |---|---|
 | Realm name | `fresnel` |
 | OIDC client ID | `fresnel-app` |
-| Client type | Confidential |
-| Valid redirect URIs | `https://localhost/auth/callback` (dev), configurable for prod |
+| Client type | **Public** (no client secret) |
+| PKCE | **Required** (`pkce.code.challenge.method: S256`) |
+| Valid redirect URIs | `https://localhost/*`, `http://localhost:8080/*` (dev), configurable for prod |
+| Web origins | `https://localhost`, `http://localhost:8080` (CORS for keycloak-js) |
 | Access token TTL | 10 minutes |
-| Refresh token TTL | 8 hours |
-| SSO session idle | 8 hours |
+| SSO session idle | 8 hours (effective session length) |
+| SSO session max | 8 hours |
 | Required actions | Configure OTP (TOTP) |
 | Brute force protection | Enabled: lock after 5 failures, wait 30s, exponential backoff |
-| Token claims | Standard: `sub`, `email`, `name`. No custom claims needed — app enriches from DB. |
+| Token claims | Standard: `sub`, `email`, `name`, `preferred_username`. No custom claims — app enriches from DB. |
+| Direct access grants | Disabled (no password grant for the public client) |
 
 **Dev test users** (created by seed script via Keycloak Admin API):
 

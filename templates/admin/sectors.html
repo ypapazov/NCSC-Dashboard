@@ -1,0 +1,106 @@
+{{define "admin_sectors"}}
+<div class="page-header">
+  <h1>Sector Management</h1>
+  <button class="btn btn-primary"
+          onclick="document.getElementById('sector-create-form').style.display='block';">
+    + New Sector
+  </button>
+</div>
+
+<!-- Create form (hidden) -->
+<div id="sector-create-form" class="card" style="display:none;">
+  <div class="card-header">
+    Create Sector
+    <button class="btn btn-sm btn-icon"
+            onclick="this.closest('.card').style.display='none';">&times;</button>
+  </div>
+  <div class="card-body">
+    <form hx-post="/api/v1/admin/sectors" hx-target="#sector-tree" hx-swap="innerHTML">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="new-sector-name">Name</label>
+          <input type="text" id="new-sector-name" name="name" class="form-input" required maxlength="255"
+                 placeholder="Sector name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="new-sector-parent">Parent Sector (optional)</label>
+          <select id="new-sector-parent" name="parent_sector_id" class="form-select">
+            <option value="">None (top-level)</option>
+            {{range .AllSectors}}
+            <option value="{{.ID}}">{{.AncestryPath}}</option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Create</button>
+        <button type="button" class="btn btn-sm"
+                onclick="this.closest('.card').style.display='none';">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Sector tree -->
+<div id="sector-tree">
+  {{if .Sectors}}
+  <div class="card">
+    <div class="card-body">
+      <div class="tree">
+        {{range .Sectors}}
+        <div class="tree-node">
+          <div class="tree-node-header"
+               onclick="this.querySelector('.tree-expand').classList.toggle('open');var ch=this.closest('.tree-node').querySelector('.tree-children');if(ch)ch.classList.toggle('collapsed');">
+            <span class="tree-expand{{if .Children}} open{{end}}">&#9654;</span>
+            <span class="tree-node-name">{{.Name}}</span>
+            <span class="tree-node-meta">
+              <span class="text-xs text-dim">depth {{.Depth}}</span>
+              <span class="text-xs font-mono text-dim">{{.ID}}</span>
+              <button class="btn btn-sm"
+                      hx-get="/api/v1/admin/sectors/{{.ID}}/edit" hx-target="#app" hx-swap="innerHTML"
+                      onclick="event.stopPropagation();">
+                Edit
+              </button>
+              <button class="btn btn-sm btn-danger"
+                      hx-delete="/api/v1/admin/sectors/{{.ID}}" hx-target="#sector-tree" hx-swap="innerHTML"
+                      hx-confirm="Delete sector '{{.Name}}'? This cannot be undone."
+                      onclick="event.stopPropagation();">
+                Delete
+              </button>
+            </span>
+          </div>
+          {{if .Children}}
+          <div class="tree-children">
+            {{range .Children}}
+            <div class="tree-leaf">
+              <span class="tree-node-name">{{.Name}}</span>
+              <span class="tree-node-meta">
+                <span class="text-xs font-mono text-dim">{{.ID}}</span>
+                <button class="btn btn-sm"
+                        hx-get="/api/v1/admin/sectors/{{.ID}}/edit" hx-target="#app" hx-swap="innerHTML">
+                  Edit
+                </button>
+                <button class="btn btn-sm btn-danger"
+                        hx-delete="/api/v1/admin/sectors/{{.ID}}" hx-target="#sector-tree" hx-swap="innerHTML"
+                        hx-confirm="Delete sector '{{.Name}}'?">
+                  Delete
+                </button>
+              </span>
+            </div>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{else}}
+  <div class="card">
+    <div class="card-body" style="text-align:center;padding:3rem;">
+      <p class="text-muted">No sectors defined yet. Create the first one above.</p>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

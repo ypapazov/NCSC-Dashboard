@@ -1,0 +1,70 @@
+{{define "event_updates"}}
+<div class="card-body">
+  {{if .Updates}}
+  <ul class="timeline">
+    {{range .Updates}}
+    <li class="timeline-entry">
+      <div class="flex justify-between items-center">
+        <strong class="text-sm">{{.AuthorName}}</strong>
+        <span class="timeline-date">{{.CreatedAt | fmtTime}}</span>
+      </div>
+      <div class="timeline-body">{{.Body}}</div>
+      {{if or .ImpactChange .StatusChange}}
+      <div class="flex gap-sm mt-sm">
+        {{if .StatusChange}}
+        <span class="badge badge-status-{{.StatusChange | lower}}">Status &rarr; {{.StatusChange}}</span>
+        {{end}}
+        {{if .ImpactChange}}
+        <span class="badge badge-impact-{{.ImpactChange | lower}}">Impact &rarr; {{.ImpactChange}}</span>
+        {{end}}
+      </div>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="text-muted text-sm">No updates yet.</p>
+  {{end}}
+
+  {{if .CanUpdate}}
+  <div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.75rem;">
+    <form hx-post="/api/v1/events/{{.EventID}}/updates"
+          hx-target="#event-updates" hx-swap="innerHTML">
+      <div class="form-group">
+        <label class="form-label" for="update-body">Add Update</label>
+        <textarea id="update-body" name="body" class="form-textarea" required
+                  placeholder="Describe the update&hellip;" style="min-height:80px;"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="status-change">Change Status (optional)</label>
+          <select id="status-change" name="status_change" class="form-select">
+            <option value="">No change</option>
+            {{range .AllowedTransitions}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="impact-change">Change Impact (optional)</label>
+          <select id="impact-change" name="impact_change" class="form-select">
+            <option value="">No change</option>
+            <option value="INFO">Info</option>
+            <option value="LOW">Low</option>
+            <option value="MODERATE">Moderate</option>
+            <option value="HIGH">High</option>
+            <option value="CRITICAL">Critical</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Post Update</button>
+        <span class="htmx-indicator"><span class="spinner"></span></span>
+      </div>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{end}}

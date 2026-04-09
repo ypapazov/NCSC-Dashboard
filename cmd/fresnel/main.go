@@ -8,9 +8,15 @@ import (
 	"syscall"
 	"time"
 
+	"fresnel/internal/authz"
+	"fresnel/internal/clamav"
 	"fresnel/internal/config"
 	apphttp "fresnel/internal/httpserver"
+	"fresnel/internal/mail"
+	"fresnel/internal/service"
 	"fresnel/internal/storage/postgres"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -43,7 +49,77 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler, err := apphttp.NewRouter(log, cfg, pool)
+	// --- Stores ---
+	sectorStore := postgres.NewSectorStore(pool)
+	orgStore := postgres.NewOrganizationStore(pool)
+	userStore := postgres.NewUserStore(pool)
+	roleStore := postgres.NewRoleStore(pool)
+	eventStore := postgres.NewEventStore(pool)
+	eventUpdateStore := postgres.NewEventUpdateStore(pool)
+	statusReportStore := postgres.NewStatusReportStore(pool)
+	campaignStore := postgres.NewCampaignStore(pool)
+	correlationStore := postgres.NewCorrelationStore(pool)
+	relationshipStore := postgres.NewEventRelationshipStore(pool)
+	attachmentStore := postgres.NewAttachmentStore(pool)
+	tlpRedStore := postgres.NewTLPRedStore(pool)
+	auditStore := postgres.NewAuditStore(pool)
+
+	// --- Authorizer ---
+	// The authz SectorAncestryFunc has no context parameter; use the store directly.
+	az := authz.NewCedarAuthorizer(func(sectorID uuid.UUID) string {
+		sec, err := sectorStore.GetByID(context.Background(), sectorID)
+		if err != nil || sec == nil {
+			return ""
+		}
+		return sec.AncestryPath
+	})
+
+	// --- Services ---
+	auditSvc := service.NewAuditService(auditStore, log)
+	smtpFrom := os.Getenv("SMTP_FROM")
+	if smtpFrom == "" {
+		smtpFrom = "noreply@fresnel.local"
+	}
+	mailer := mail.NewMailer(cfg.SMTPHost, cfg.SMTPPort, smtpFrom, log)
+	nudgeStore := postgres.NewNudgeStore(pool)
+	nudgeSvc := service.NewNudgeService(
+		nudgeStore, eventStore, eventUpdateStore, userStore, roleStore, orgStore, sectorStore,
+		mailer, auditSvc, log, cfg.AppPublicURL,
+	)
+	nudgeSvc.Start(context.Background())
+	defer nudgeSvc.Stop()
+
+	sectorSvc := service.NewSectorService(sectorStore, az, auditSvc)
+	eventSvc := service.NewEventService(eventStore, eventUpdateStore, sectorStore, tlpRedStore, az, auditSvc, nudgeSvc)
+	statusReportSvc := service.NewStatusReportService(statusReportStore, sectorStore, tlpRedStore, az, auditSvc)
+	campaignSvc := service.NewCampaignService(campaignStore, eventStore, sectorStore, tlpRedStore, az, auditSvc)
+	orgSvc := service.NewOrganizationService(orgStore, sectorStore, az, auditSvc)
+	userSvc := service.NewUserService(userStore, roleStore, az, auditSvc)
+	corrSvc := service.NewCorrelationService(correlationStore, relationshipStore, eventStore, sectorStore, tlpRedStore, az, auditSvc)
+	var scanner *clamav.Client
+	if cfg.ClamAVAddress != "" {
+		scanner = clamav.NewTCPClient(cfg.ClamAVAddress)
+		log.Info("ClamAV enabled", "address", cfg.ClamAVAddress)
+	} else {
+		log.Warn("ClamAV disabled (CLAMAV_ADDRESS not set)")
+	}
+	attachSvc := service.NewAttachmentService(attachmentStore, eventStore, sectorStore, tlpRedStore, scanner, az, auditSvc, cfg.AttachmentDir)
+	dashboardSvc := service.NewDashboardService(sectorStore, orgStore, statusReportStore, az, cfg.DashboardCacheTTL)
+
+	svc := apphttp.Services{
+		Events:        eventSvc,
+		StatusReports: statusReportSvc,
+		Campaigns:     campaignSvc,
+		Sectors:       sectorSvc,
+		Orgs:          orgSvc,
+		Users:         userSvc,
+		Correlations:  corrSvc,
+		Attachments:   attachSvc,
+		Audit:         auditSvc,
+		Dashboard:     dashboardSvc,
+	}
+
+	handler, err := apphttp.NewRouter(log, cfg, pool, svc)
 	if err != nil {
 		log.Error("router", "err", err)
 		os.Exit(1)

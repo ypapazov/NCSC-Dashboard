@@ -77,7 +77,7 @@
 | nginx | TLS termination, security headers (CSP etc.), rate limiting, WAF (ModSecurity + OWASP CRS), reverse proxy, fail2ban integration | Single nginx container with static config |
 | Fresnel API Server | All application logic: routing, authentication, authorization, business rules, content negotiation, template rendering, Starlark execution | Single Go binary |
 | PostgreSQL | Primary data store for all domain objects, audit log, Cedar policies | Single PostgreSQL 16 instance with pgvector extension |
-| Keycloak | Identity provider: OIDC/SAML, user store, TOTP MFA, brute-force protection, session management | Single Keycloak container, single realm |
+| Keycloak | Identity provider: OIDC/SAML (Authorization Code + PKCE, public client), user store, TOTP MFA, brute-force protection, SSO session management, token issuance | Single Keycloak container, single realm |
 | ClamAV | Virus scanning for file uploads | clamd daemon, API server connects via socket |
 | Ollama | LLM inference for AI agents (Phase 2) | Container present in compose file, no application integration |
 
@@ -91,10 +91,9 @@ The API server has three layers with distinct responsibilities and a strict depe
 
 Responsibilities:
 - Route registration and request dispatch.
-- Authentication: validate OIDC Bearer token from Keycloak, extract user identity and claims.
+- Authentication: validate OIDC Bearer token (JWT) from the `Authorization` header, extract user identity and claims, build AuthContext from DB.
 - **Coarse-grained authorization (Cedar Gate)**: evaluate "Can this principal perform this action on this resource type?" This is a binary allow/deny check *before* any business logic executes.
 - Content negotiation: inspect `Accept` header, select renderer (HTML template or JSON serializer).
-- CSRF validation on state-changing HTML requests.
 - Request/response logging.
 - Input deserialization and basic validation (field types, required fields, size limits).
 
@@ -108,9 +107,8 @@ It does **not** answer: "Which specific events can User X see?" That requires kn
 ```go
 // Middleware chain (conceptual)
 router.Use(RequestLogger)
-router.Use(OIDCTokenValidator)    // validate access token (JWKS), refresh if expired → AuthContext
+router.Use(OIDCTokenValidator)    // validate Bearer JWT (JWKS) → AuthContext from DB
 router.Use(CedarGate)             // AuthContext + route → permit/deny
-router.Use(CSRFValidator)         // state-changing HTML only
 router.Use(ContentNegotiator)     // sets renderer on context
 ```
 
@@ -129,7 +127,7 @@ type AuthContext struct {
 }
 ```
 
-This struct is **derived from Keycloak token claims on every request**. Because access tokens are short-lived (10 min), changes to a user's roles or memberships in Keycloak propagate within one token lifetime without any application-side cache invalidation. The `ActiveOrgContext` is read from a request header or cookie set by the UI's org context selector.
+This struct is **derived from the JWT `sub` claim and a DB lookup on every request**. The token provides identity; the database provides roles, memberships, and root designations. Because access tokens are short-lived (10 min), changes to a user's roles or memberships propagate within one token lifetime. The `ActiveOrgContext` is read from an `X-Fresnel-Org` request header set by the UI's org context selector.
 
 ### 3.2 Service Layer
 
@@ -662,75 +660,114 @@ CREATE INDEX idx_embeddings_ivfflat ON event_embeddings
 
 ### 6.1 Model
 
-The Fresnel API server is a **stateless OIDC Relying Party**. Keycloak is a black box identity provider — the same integration pattern as Auth0, Okta, or any other OIDC provider. The application stores no authentication state.
+The Fresnel API server is a **pure resource server**. Keycloak is a black box identity provider — the same integration pattern as Auth0, Okta, or any other OIDC provider. The browser handles the entire OIDC lifecycle via `keycloak-js`; the server only validates JWT access tokens.
 
 | Parameter | Value | Managed By |
 |---|---|---|
+| OIDC flow | Authorization Code + PKCE (public client) | keycloak-js (browser) |
 | Access token TTL | 10 minutes | Keycloak realm config |
-| Refresh token TTL | 8 hours (= effective session length) | Keycloak realm config |
-| Token storage | httpOnly, Secure, SameSite=Strict cookies on the client | Browser |
-| Session expiry | Refresh token expiry → redirect to Keycloak login | Keycloak |
-| Logout | Keycloak OIDC logout endpoint revokes refresh token | Keycloak |
-| Role/membership changes | Propagate on next token refresh (≤ 10 minutes) | Keycloak claims |
-| Server-side auth state | **None.** | — |
+| SSO session | 8 hours (= effective session length) | Keycloak |
+| Token storage | In-memory (JS), never persisted to disk | keycloak-js |
+| Token refresh | Silent refresh via Keycloak SSO session | keycloak-js |
+| Session expiry | SSO session timeout → redirect to Keycloak login | keycloak-js |
+| Logout | `keycloak.logout()` → Keycloak revokes session | keycloak-js |
+| Role/membership changes | Propagate on next token refresh (≤ 10 minutes) | Keycloak + AuthContext DB lookup |
+| Server-side auth state | **None.** Server validates Bearer JWTs and builds AuthContext from DB per request. | — |
+| Client secret | **None.** Public client with PKCE replaces confidential client. | — |
 
-### 6.2 Request Flow
-
-```
-On each request:
-  1. Read access_token from httpOnly cookie
-  2. Validate locally (Keycloak JWKS, expiry check)
-  3. If valid → extract claims → build AuthContext → proceed to Cedar Gate
-  4. If expired → read refresh_token from httpOnly cookie
-     → call Keycloak token endpoint → get new access_token
-     → set updated cookie → proceed
-  5. If refresh fails (expired/revoked) → 302 to Keycloak login
-```
-
-The server is **fully stateless** with respect to authentication. The AuthContext is derived from token claims on every request. No server-side session store, no cache, no state to replicate for HA. The cookies are the session.
-
-### 6.3 Login Flow
+### 6.2 Architecture
 
 ```
-User                Browser              nginx             API Server           Keycloak
- │                    │                    │                    │                    │
- │  navigate to /     │                    │                    │                    │
- │───────────────────►│───────────────────►│───────────────────►│                    │
- │                    │                    │   no valid token   │                    │
- │                    │                    │   302 → Keycloak   │                    │
- │                    │◄───────────────────│◄───────────────────│                    │
- │                    │                    │                    │                    │
- │  Keycloak login (TOTP MFA)             │                    │                    │
- │◄───────────────────│────────────────────│────────────────────│───────────────────►│
- │                    │                    │                    │                    │
- │  credentials+TOTP  │                    │                    │                    │
- │───────────────────►│────────────────────│────────────────────│───────────────────►│
- │                    │                    │                    │                    │
- │                    │  302 + auth code   │                    │                    │
- │                    │◄───────────────────│────────────────────│◄───────────────────│
- │                    │                    │                    │                    │
- │                    │  code → tokens     │                    │                    │
- │                    │───────────────────►│───────────────────►│ ──── token req ───►│
- │                    │                    │                    │ ◄── access+refresh─│
- │                    │                    │                    │                    │
- │                    │  Set-Cookie:       │                    │                    │
- │                    │  access_token      │                    │                    │
- │                    │  refresh_token     │                    │                    │
- │                    │  (httpOnly,Secure,  │                    │                    │
- │                    │   SameSite=Strict) │                    │                    │
- │                    │◄───────────────────│◄───────────────────│                    │
- │                    │                    │                    │                    │
- │  subsequent: cookies sent automatically │                    │                    │
- │───────────────────►│───────────────────►│───────────────────►│  validate token,  │
- │                    │                    │                    │  build AuthContext │
- │                    │                    │                    │  from claims       │
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Browser                                                                 │
+│                                                                          │
+│  ┌─────────────┐    ┌──────────┐    ┌────────────────────────────────┐  │
+│  │ keycloak-js  │    │  HTMX    │    │  App Shell (base.html)         │  │
+│  │              │    │          │    │  Served once, unauthenticated  │  │
+│  │ OIDC + PKCE  │    │ Bearer   │    │  Bootstraps keycloak-js        │  │
+│  │ Token mgmt   │───►│ header   │───►│  + HTMX content loading        │  │
+│  │ Silent renew │    │ on every │    └────────────────────────────────┘  │
+│  └──────┬───────┘    │ request  │                                        │
+│         │            └────┬─────┘                                        │
+└─────────┼─────────────────┼──────────────────────────────────────────────┘
+          │ OIDC            │ Authorization: Bearer <jwt>
+          │ authz+token     │
+          ▼                 ▼
+┌─────────────────┐  ┌──────────────────────────────────┐
+│    Keycloak      │  │   Fresnel API Server (Go)         │
+│    (IdP)         │  │                                    │
+│                  │  │  JWKS validation → AuthContext     │
+│  Login, MFA,     │  │  (from DB, per request)            │
+│  SSO session,    │  │                                    │
+│  token issuance  │  │  No code exchange, no refresh,     │
+│                  │  │  no cookies, no CSRF, no session   │
+└─────────────────┘  └──────────────────────────────────┘
 ```
 
-### 6.4 Logout
+### 6.3 Request Flow
 
-User clicks logout → API server redirects to Keycloak's OIDC end_session_endpoint with the ID token hint. Keycloak revokes the refresh token and destroys the SSO session. API server clears the token cookies. Done.
+```
+On each API request:
+  1. Read Authorization: Bearer <jwt> header
+  2. Validate JWT signature locally (Keycloak JWKS, cached)
+  3. Check expiry (with 60s grace)
+  4. Extract `sub` claim → query app DB for user, memberships, roles, root designations
+  5. Build AuthContext → proceed to Cedar Gate
+  6. If no Bearer or invalid → 401 JSON response
+     (keycloak-js handles re-login or token refresh client-side)
+```
 
-### 6.5 External SSO
+The server is **fully stateless**. No cookies, no session store, no token cache, no refresh logic. All authentication state lives in the browser (managed by keycloak-js) and Keycloak (SSO session).
+
+### 6.4 Login Flow
+
+```
+User                Browser (keycloak-js)     nginx         API Server        Keycloak
+ │                    │                         │               │                │
+ │  navigate to /     │                         │               │                │
+ │───────────────────►│                         │               │                │
+ │                    │  GET / (unauthenticated) │               │                │
+ │                    │─────────────────────────►│──────────────►│                │
+ │                    │  ◄── app shell HTML ─────│◄──────────────│                │
+ │                    │                         │               │                │
+ │                    │  keycloak.init()         │               │                │
+ │                    │  PKCE: generate          │               │                │
+ │                    │  code_verifier +         │               │                │
+ │                    │  code_challenge          │               │                │
+ │                    │─────────────────────────────────────────────────────────►│
+ │                    │  302 → /auth?code_challenge=...&code_challenge_method=S256
+ │                    │                         │               │                │
+ │  Keycloak login (TOTP MFA)                  │               │                │
+ │◄───────────────────│─────────────────────────────────────────────────────────►│
+ │  credentials+TOTP  │                         │               │                │
+ │───────────────────►│─────────────────────────────────────────────────────────►│
+ │                    │                         │               │                │
+ │                    │  302 + auth code         │               │                │
+ │                    │◄────────────────────────────────────────────────────────│
+ │                    │                         │               │                │
+ │                    │  POST /token             │               │                │
+ │                    │  code + code_verifier    │               │                │
+ │                    │  (no client_secret)      │               │                │
+ │                    │─────────────────────────────────────────────────────────►│
+ │                    │  ◄── access_token ──────────────────────────────────────│
+ │                    │  (stored in JS memory)   │               │                │
+ │                    │                         │               │                │
+ │                    │  HTMX GET /api/v1/dashboard              │                │
+ │                    │  Authorization: Bearer <jwt>             │                │
+ │                    │─────────────────────────►│──────────────►│                │
+ │                    │                         │  validate JWT  │                │
+ │                    │                         │  build AuthCtx │                │
+ │                    │  ◄── HTML fragment ──────│◄──────────────│                │
+ │                    │                         │               │                │
+ │  rendered page     │                         │               │                │
+ │◄───────────────────│                         │               │                │
+```
+
+### 6.5 Logout
+
+User clicks logout → `keycloak.logout({ redirectUri: origin })` → browser redirects to Keycloak's end_session_endpoint → Keycloak destroys SSO session → browser redirected back to app → keycloak-js sees no session → redirects to login. The server has no logout endpoint and performs no action.
+
+### 6.6 External SSO
 
 External SSO is **entirely a Keycloak configuration concern**. The Fresnel application is unaware of upstream identity providers.
 
@@ -738,13 +775,13 @@ Keycloak supports identity brokering: an upstream OIDC or SAML IdP is configured
 
 Adding or removing an external SSO provider is a Keycloak admin configuration change — zero application code, zero deployment, zero downtime.
 
-### 6.6 API (JSON) Authentication
+### 6.7 API (JSON) Authentication
 
-API consumers (automation, agents) obtain tokens directly from Keycloak's token endpoint (client credentials or resource owner password grant, depending on use case) and send the access token as a Bearer header. Same validation path — JWKS, claims extraction, AuthContext. The API consumer manages its own token lifecycle.
+API consumers (automation, agents) obtain tokens directly from Keycloak's token endpoint (client credentials grant with a separate confidential client, or resource owner password grant for service accounts) and send the access token as a Bearer header. Same validation path — JWKS, claims extraction, AuthContext. The API consumer manages its own token lifecycle.
 
-### 6.7 CSRF Protection
+### 6.8 CSRF
 
-SameSite=Strict cookies prevent cross-origin cookie attachment. As defense in depth, state-changing HTML requests also carry a CSRF token in a custom header, validated by the API server. The CSRF token is derived from the access token (HMAC) so it requires no server-side state either.
+Not applicable. The server does not use cookies for authentication. All authenticated requests carry an `Authorization: Bearer` header, which is not automatically attached by the browser. This eliminates CSRF as a threat class — no CSRF middleware is needed.
 
 ---
 
@@ -784,12 +821,13 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 
 ### 7.2 HTMX Integration
 
-The UI is server-rendered HTML enhanced with HTMX for partial page updates:
+The UI is an app shell served once (unauthenticated), with `keycloak-js` handling OIDC login (Authorization Code + PKCE). After authentication, all content is loaded and navigated via HTMX. A `htmx:configRequest` listener attaches `Authorization: Bearer <token>` to every request automatically.
 
 - Navigation: `hx-get` with `hx-push-url` for URL updates without full reloads.
 - Forms: `hx-post` / `hx-put` with `hx-target` for inline feedback.
 - Dashboard updates: `hx-trigger="every 60s"` for periodic refresh of status tree (or manual refresh button).
 - Side panel: `hx-get="/api/v1/dashboard/{type}/{id}/timeline" hx-target="#side-panel"` for timeline loading on node selection.
+- Token refresh: `keycloak-js` silently refreshes the access token via the Keycloak SSO session. A 401 response triggers a token refresh attempt, falling back to re-login.
 
 ### 7.3 Markdown Editor
 
@@ -896,7 +934,9 @@ services:
     build: ./                          # Fresnel API server (Go)
     environment:
       DATABASE_URL: postgres://...
-      KEYCLOAK_ISSUER: https://...
+      KEYCLOAK_ISSUER: https://...            # internal (JWKS validation)
+      KEYCLOAK_EXTERNAL_URL: https://...      # browser-facing (keycloak-js config)
+      KEYCLOAK_CLIENT_ID: fresnel-app         # public OIDC client
       CLAMAV_SOCKET: /var/run/clamav/clamd.sock
     depends_on: [postgres, keycloak, clamav]
 
@@ -906,7 +946,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0  # pinned
-    # Configured with Fresnel realm, OIDC client, TOTP enforcement
+    # Configured with Fresnel realm, OIDC public client (PKCE), TOTP enforcement
 
   clamav:
     image: clamav/clamav:1.4           # pinned
@@ -952,9 +992,10 @@ All dependencies pinned to specific versions in `go.mod`. Key dependencies:
 | `github.com/microcosm-cc/bluemonday` | HTML sanitization (post-Markdown render) | Pin to latest stable |
 | `github.com/google/uuid` | UUID generation | Pin to latest stable |
 | HTMX | Frontend interactivity | Vendored JS file (not CDN), pinned version |
+| keycloak-js | OIDC Authorization Code + PKCE client | Loaded from the Keycloak instance (`/js/keycloak.min.js`); vendor for air-gapped deploy |
 | Milkdown | Markdown WYSIWYG editor | Vendored JS bundle, pinned version |
 
-**No CDN dependencies.** All frontend JS/CSS is vendored into the binary or served from the nginx container. Sovereign deployment means no external runtime dependencies.
+**No external CDN dependencies.** HTMX and Milkdown are vendored into the binary. `keycloak-js` is served by the Keycloak instance (part of the deployment). For fully air-gapped deployment, vendor `keycloak.min.js` into the static directory.
 
 ---
 

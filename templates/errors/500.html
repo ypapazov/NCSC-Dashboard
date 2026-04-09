@@ -1,0 +1,16 @@
+{{define "error_500"}}
+<div class="error-page">
+  <div class="error-code">500</div>
+  <div class="error-message">Something went wrong on our end. Please try again later.</div>
+  <div class="flex gap-md" style="margin-top:.5rem;">
+    <a class="btn btn-primary"
+       hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML"
+       hx-push-url="/dashboard">
+      Return to Dashboard
+    </a>
+    <button class="btn btn-secondary" onclick="location.reload();">
+      Refresh Page
+    </button>
+  </div>
+</div>
+{{end}}

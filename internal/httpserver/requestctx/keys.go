@@ -5,7 +5,6 @@ type ctxKey int
 const (
 	KeyAuth ctxKey = iota
 	KeyRender
-	KeyRawAccessToken
 )
 
 // RenderKind selects response representation.

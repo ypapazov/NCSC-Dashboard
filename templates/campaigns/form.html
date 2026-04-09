@@ -1,0 +1,69 @@
+{{define "campaign_form"}}
+<div class="page-header">
+  <div>
+    <a class="text-muted text-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
+       hx-push-url="/campaigns">&larr; Back to Campaigns</a>
+    <h1 style="margin-top:.25rem;">{{if .Campaign.ID}}Edit Campaign{{else}}New Campaign{{end}}</h1>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form id="campaign-form"
+          {{if .Campaign.ID}}
+          hx-put="/api/v1/campaigns/{{.Campaign.ID}}" hx-target="#app" hx-swap="innerHTML"
+          {{else}}
+          hx-post="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
+          {{end}}>
+
+      <div class="form-group">
+        <label class="form-label" for="title">Title</label>
+        <input type="text" id="title" name="title" class="form-input" required
+               maxlength="500" value="{{.Campaign.Title}}"
+               placeholder="Campaign title">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" name="description" class="form-textarea"
+                  maxlength="50000" placeholder="Campaign description (Markdown supported)">{{.Campaign.Description}}</textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="tlp">TLP</label>
+          <select id="tlp" name="tlp" class="form-select" required>
+            <option value="">Select TLP&hellip;</option>
+            <option value="CLEAR"{{if eq .Campaign.TLP "CLEAR"}} selected{{end}}>TLP:CLEAR</option>
+            <option value="GREEN"{{if eq .Campaign.TLP "GREEN"}} selected{{end}}>TLP:GREEN</option>
+            <option value="AMBER"{{if eq .Campaign.TLP "AMBER"}} selected{{end}}>TLP:AMBER</option>
+            <option value="AMBER_STRICT"{{if eq .Campaign.TLP "AMBER_STRICT"}} selected{{end}}>TLP:AMBER+STRICT</option>
+            <option value="RED"{{if eq .Campaign.TLP "RED"}} selected{{end}}>TLP:RED</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <!-- reserved for future fields -->
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          {{if .Campaign.ID}}Save Changes{{else}}Create Campaign{{end}}
+        </button>
+        <button type="button" class="btn"
+                {{if .Campaign.ID}}
+                hx-get="/api/v1/campaigns/{{.Campaign.ID}}" hx-target="#app" hx-swap="innerHTML"
+                hx-push-url="/campaigns/{{.Campaign.ID}}"
+                {{else}}
+                hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
+                hx-push-url="/campaigns"
+                {{end}}>
+          Cancel
+        </button>
+        <span class="htmx-indicator"><span class="spinner"></span></span>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,11 @@
+{{define "error_404"}}
+<div class="error-page">
+  <div class="error-code">404</div>
+  <div class="error-message">The page you're looking for doesn't exist or has been moved.</div>
+  <a class="btn btn-primary"
+     hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML"
+     hx-push-url="/dashboard">
+    Return to Dashboard
+  </a>
+</div>
+{{end}}

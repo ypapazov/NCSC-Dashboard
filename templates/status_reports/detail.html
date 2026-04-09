@@ -1,0 +1,113 @@
+{{define "report_detail"}}
+<div class="page-header">
+  <div>
+    <a class="text-muted text-sm" hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+       hx-push-url="/status-reports">&larr; Back to Reports</a>
+    <h1 style="margin-top:.25rem;">{{.Report.Title}}</h1>
+  </div>
+  <div class="flex gap-md items-center">
+    {{if .CanEdit}}
+    <button class="btn btn-secondary"
+            hx-get="/api/v1/status-reports/{{.Report.ID}}/edit" hx-target="#app" hx-swap="innerHTML"
+            hx-push-url="/status-reports/{{.Report.ID}}/edit">
+      Edit
+    </button>
+    {{end}}
+  </div>
+</div>
+
+<div class="flex gap-md items-center mb-md">
+  <span class="badge badge-assessed-{{.Report.AssessedStatus | lower}}">{{.Report.AssessedStatus}}</span>
+  <span class="badge badge-impact-{{.Report.Impact | lower}}">{{.Report.Impact}}</span>
+  <span class="badge badge-tlp-{{.Report.TLP | lower}}">TLP:{{.Report.TLP}}</span>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Scope</div>
+        <div class="meta-value">{{.Report.ScopeType}}: {{.ScopeName}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Author</div>
+        <div class="meta-value">{{.AuthorName}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Period Covered</div>
+        <div class="meta-value">{{.Report.PeriodCoveredStart | fmtDate}} &ndash; {{.Report.PeriodCoveredEnd | fmtDate}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">As Of</div>
+        <div class="meta-value">{{.Report.AsOf | fmtTime}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Published</div>
+        <div class="meta-value">{{.Report.PublishedAt | fmtTime}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Report ID</div>
+        <div class="meta-value font-mono text-sm">{{.Report.ID}}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Body</div>
+  <div class="card-body rendered-body">
+    {{.BodyHTML}}
+  </div>
+</div>
+
+{{if .LinkedEvents}}
+<div class="card">
+  <div class="card-header">Linked Events</div>
+  <div class="card-body" style="padding:0;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="table-header">Title</th>
+          <th class="table-header">Status</th>
+          <th class="table-header">Impact</th>
+          <th class="table-header">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .LinkedEvents}}
+        <tr class="table-row clickable"
+            hx-get="/api/v1/events/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
+            hx-push-url="/events/{{.ID}}">
+          <td class="table-cell truncate">{{.Title}}</td>
+          <td class="table-cell"><span class="badge badge-status-{{.Status | lower}}">{{.Status}}</span></td>
+          <td class="table-cell"><span class="badge badge-impact-{{.Impact | lower}}">{{.Impact}}</span></td>
+          <td class="table-cell text-sm text-muted">{{.CreatedAt | fmtTime}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{end}}
+
+<div class="card">
+  <div class="card-header">Revision History</div>
+  <div class="card-body">
+    <details>
+      <summary class="revision-toggle">Show {{len .Revisions}} revision(s)</summary>
+      <ul class="revision-list mt-sm">
+        {{range .Revisions}}
+        <li class="revision-item">
+          <span class="revision-number">#{{.RevisionNumber}}</span>
+          <span>{{.ChangedBy | fmtUser}} &middot; {{.ChangedAt | fmtTime}}</span>
+          <span class="flex gap-sm">
+            <span class="badge badge-assessed-{{.AssessedStatus | lower}}">{{.AssessedStatus}}</span>
+            <span class="badge badge-impact-{{.Impact | lower}}">{{.Impact}}</span>
+          </span>
+        </li>
+        {{end}}
+      </ul>
+    </details>
+  </div>
+</div>
+{{end}}

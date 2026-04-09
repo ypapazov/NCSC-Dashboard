@@ -1,0 +1,88 @@
+{{define "event_list"}}
+<div class="page-header">
+  <h1>Events</h1>
+  <button class="btn btn-primary"
+          hx-get="/api/v1/events/new" hx-target="#app" hx-swap="innerHTML"
+          hx-push-url="/events/new">
+    + New Event
+  </button>
+</div>
+
+<form class="filter-bar" hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
+      hx-trigger="change, submit" hx-push-url="true">
+  <input type="search" name="search" class="form-input" placeholder="Search events&hellip;"
+         value="{{.Filter.Search}}" style="flex:1;min-width:200px;">
+
+  <select name="status" class="form-select">
+    <option value="">All Statuses</option>
+    <option value="OPEN"{{if eq (deref .Filter.Status) "OPEN"}} selected{{end}}>Open</option>
+    <option value="INVESTIGATING"{{if eq (deref .Filter.Status) "INVESTIGATING"}} selected{{end}}>Investigating</option>
+    <option value="MITIGATING"{{if eq (deref .Filter.Status) "MITIGATING"}} selected{{end}}>Mitigating</option>
+    <option value="RESOLVED"{{if eq (deref .Filter.Status) "RESOLVED"}} selected{{end}}>Resolved</option>
+    <option value="CLOSED"{{if eq (deref .Filter.Status) "CLOSED"}} selected{{end}}>Closed</option>
+  </select>
+
+  <select name="impact" class="form-select">
+    <option value="">All Impacts</option>
+    <option value="CRITICAL"{{if eq (deref .Filter.Impact) "CRITICAL"}} selected{{end}}>Critical</option>
+    <option value="HIGH"{{if eq (deref .Filter.Impact) "HIGH"}} selected{{end}}>High</option>
+    <option value="MODERATE"{{if eq (deref .Filter.Impact) "MODERATE"}} selected{{end}}>Moderate</option>
+    <option value="LOW"{{if eq (deref .Filter.Impact) "LOW"}} selected{{end}}>Low</option>
+    <option value="INFO"{{if eq (deref .Filter.Impact) "INFO"}} selected{{end}}>Info</option>
+  </select>
+
+  <select name="tlp" class="form-select">
+    <option value="">All TLP</option>
+    <option value="RED"{{if eq (deref .Filter.TLP) "RED"}} selected{{end}}>TLP:RED</option>
+    <option value="AMBER"{{if eq (deref .Filter.TLP) "AMBER"}} selected{{end}}>TLP:AMBER</option>
+    <option value="GREEN"{{if eq (deref .Filter.TLP) "GREEN"}} selected{{end}}>TLP:GREEN</option>
+    <option value="CLEAR"{{if eq (deref .Filter.TLP) "CLEAR"}} selected{{end}}>TLP:CLEAR</option>
+  </select>
+
+  <button type="submit" class="btn btn-secondary">Filter</button>
+  <span class="htmx-indicator"><span class="spinner"></span></span>
+</form>
+
+<div id="event-results">
+  {{if .Items}}
+  <div class="card" style="overflow:hidden;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="table-header">Title</th>
+          <th class="table-header">Type</th>
+          <th class="table-header">Impact</th>
+          <th class="table-header">Status</th>
+          <th class="table-header">TLP</th>
+          <th class="table-header">Organization</th>
+          <th class="table-header">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Items}}
+        <tr class="table-row clickable"
+            hx-get="/api/v1/events/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
+            hx-push-url="/events/{{.ID}}">
+          <td class="table-cell truncate">{{.Title}}</td>
+          <td class="table-cell text-sm">{{.EventType}}</td>
+          <td class="table-cell"><span class="badge badge-impact-{{.Impact | lower}}">{{.Impact}}</span></td>
+          <td class="table-cell"><span class="badge badge-status-{{.Status | lower}}">{{.Status}}</span></td>
+          <td class="table-cell"><span class="badge badge-tlp-{{.TLP | lower}}">TLP:{{.TLP}}</span></td>
+          <td class="table-cell text-sm text-muted">{{.OrgName}}</td>
+          <td class="table-cell text-sm text-muted">{{.CreatedAt | fmtTime}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+
+  {{template "pagination" .Pagination}}
+  {{else}}
+  <div class="card">
+    <div class="card-body" style="text-align:center;padding:3rem;">
+      <p class="text-muted">No events found matching your criteria.</p>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

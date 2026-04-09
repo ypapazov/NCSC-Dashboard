@@ -32,14 +32,17 @@ services:
     platform: linux/amd64
     volumes:
       - clamdata:/var/lib/clamav
-    # Default image exposes clamd on 3310 TCP; app uses socket in full deploy — optional for M0.
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   fresnel:
     build:
       context: ..
       dockerfile: Dockerfile
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: on-failure
     depends_on:
       postgres:
@@ -51,13 +54,9 @@ services:
       DATABASE_URL: postgres://fresnel:fresnel@postgres:5432/fresnel?sslmode=disable
       KEYCLOAK_ISSUER: http://keycloak:8080/realms/fresnel
       KEYCLOAK_CLIENT_ID: fresnel-app
-      KEYCLOAK_CLIENT_SECRET: fresnel-client-secret-change-me
       KEYCLOAK_EXTERNAL_URL: http://localhost:8081/realms/fresnel
-      # Token POST must match issuer embedded in tokens (browser uses localhost:8081). JWKS still uses KEYCLOAK_ISSUER.
-      KEYCLOAK_TOKEN_URL: http://host.docker.internal:8081/realms/fresnel/protocol/openid-connect/token
       APP_PUBLIC_URL: https://localhost
-      HMAC_SECRET: devsecretdevsecretdevsecretdev12must_be_32b
-      CLAMAV_SOCKET: ""
+      CLAMAV_ADDRESS: clamav:3310
       ATTACHMENT_DIR: /tmp/fresnel-attachments
     ports:
       - "8080:8080"

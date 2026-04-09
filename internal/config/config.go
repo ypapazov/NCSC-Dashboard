@@ -10,29 +10,26 @@ import (
 
 // Config holds server and integration settings loaded from the environment.
 type Config struct {
-	ListenAddr       string
-	DatabaseURL      string
+	ListenAddr  string
+	DatabaseURL string
+
+	// KeycloakIssuer is the internal issuer URL for server-to-server
+	// communication (JWKS fetch, token validation).
 	KeycloakIssuer   string
 	KeycloakClientID string
-	KeycloakClientSecret string
-	// KeycloakExternalURL is the realm URL reachable by the browser (e.g. http://localhost:8081/realms/fresnel).
-	// Used for authorize and logout redirects. Falls back to KeycloakIssuer if not set
-	// (appropriate when the same URL is reachable by both the app and the browser, e.g. production).
+
+	// KeycloakExternalURL is the realm URL reachable by the browser
+	// (e.g. http://localhost:8081/realms/fresnel). Used to configure
+	// keycloak-js on the client. Falls back to KeycloakIssuer when not set.
 	KeycloakExternalURL string
-	// KeycloakTokenURL is the full OIDC token endpoint URL for POST (code exchange, refresh).
-	// Optional. If empty, derived from KeycloakIssuer. In Docker, set to the same host the browser
-	// uses for Keycloak (e.g. http://host.docker.internal:8081/.../token) so refresh matches token iss.
-	KeycloakTokenURL string
-	AppPublicURL    string // e.g. https://localhost — for redirects and cookie domain hints
-	ClamAVSocket    string
-	SMTPHost        string
-	SMTPPort        int
-	HMACSecret      []byte
-	AttachmentDir   string
+
+	AppPublicURL   string // e.g. https://localhost
+	ClamAVAddress  string // TCP address (host:port) for clamd; empty disables scanning
+	SMTPHost       string
+	SMTPPort      int
+	AttachmentDir string
 	// DashboardCacheTTL is the default TTL for computed dashboard node status.
 	DashboardCacheTTL time.Duration
-	// CookieSecure sets the Secure flag on auth cookies (use true behind HTTPS).
-	CookieSecure bool
 }
 
 func getenv(key, def string) string {
@@ -43,23 +40,8 @@ func getenv(key, def string) string {
 	return v
 }
 
-func mustSecret(key string) ([]byte, error) {
-	s := os.Getenv(key)
-	if s == "" {
-		return nil, fmt.Errorf("%s must be set to a non-empty secret", key)
-	}
-	if len(s) < 32 {
-		return nil, fmt.Errorf("%s must be at least 32 bytes", key)
-	}
-	return []byte(s), nil
-}
-
 // Load reads configuration from environment variables.
 func Load() (*Config, error) {
-	hmac, err := mustSecret("HMAC_SECRET")
-	if err != nil {
-		return nil, err
-	}
 	smtpPort := 587
 	if p := os.Getenv("SMTP_PORT"); p != "" {
 		n, err := strconv.Atoi(p)
@@ -76,26 +58,18 @@ func Load() (*Config, error) {
 		}
 		cacheTTL = time.Duration(n) * time.Second
 	}
-	cookieSecure := strings.HasPrefix(getenv("APP_PUBLIC_URL", "https://localhost"), "https://")
-	if v := os.Getenv("COOKIE_SECURE"); v != "" {
-		cookieSecure = v == "1" || v == "true"
-	}
 	return &Config{
-		ListenAddr:           getenv("LISTEN_ADDR", ":8080"),
-		DatabaseURL:          getenv("DATABASE_URL", ""),
-		KeycloakIssuer:       getenv("KEYCLOAK_ISSUER", ""),
-		KeycloakClientID:     getenv("KEYCLOAK_CLIENT_ID", ""),
-		KeycloakClientSecret: getenv("KEYCLOAK_CLIENT_SECRET", ""),
-		KeycloakExternalURL:  getenv("KEYCLOAK_EXTERNAL_URL", ""),
-		KeycloakTokenURL:     getenv("KEYCLOAK_TOKEN_URL", ""),
-		AppPublicURL:         getenv("APP_PUBLIC_URL", "https://localhost"),
-		ClamAVSocket:         getenv("CLAMAV_SOCKET", "/var/run/clamav/clamd.sock"),
-		SMTPHost:               getenv("SMTP_HOST", ""),
-		SMTPPort:               smtpPort,
-		HMACSecret:             hmac,
-		AttachmentDir:          getenv("ATTACHMENT_DIR", "/var/lib/fresnel/attachments"),
-		DashboardCacheTTL:      cacheTTL,
-		CookieSecure:           cookieSecure,
+		ListenAddr:          getenv("LISTEN_ADDR", ":8080"),
+		DatabaseURL:         getenv("DATABASE_URL", ""),
+		KeycloakIssuer:      getenv("KEYCLOAK_ISSUER", ""),
+		KeycloakClientID:    getenv("KEYCLOAK_CLIENT_ID", ""),
+		KeycloakExternalURL: getenv("KEYCLOAK_EXTERNAL_URL", ""),
+		AppPublicURL:        getenv("APP_PUBLIC_URL", "https://localhost"),
+		ClamAVAddress:       getenv("CLAMAV_ADDRESS", ""),
+		SMTPHost:            getenv("SMTP_HOST", ""),
+		SMTPPort:            smtpPort,
+		AttachmentDir:       getenv("ATTACHMENT_DIR", "/var/lib/fresnel/attachments"),
+		DashboardCacheTTL:   cacheTTL,
 	}, nil
 }
 
@@ -108,25 +82,18 @@ func (c *Config) keycloakBrowserBase() string {
 	return strings.TrimSuffix(c.KeycloakIssuer, "/")
 }
 
-// AuthEndpoint returns the OIDC authorization URL (browser-facing).
-func (c *Config) AuthEndpoint() string {
-	return c.keycloakBrowserBase() + "/protocol/openid-connect/auth"
-}
-
-// LogoutEndpoint returns the RP-initiated logout URL (browser-facing).
-func (c *Config) LogoutEndpoint() string {
-	return c.keycloakBrowserBase() + "/protocol/openid-connect/logout"
-}
-
-// TokenEndpoint returns the token POST URL (code exchange, refresh).
-func (c *Config) TokenEndpoint() string {
-	if c.KeycloakTokenURL != "" {
-		return c.KeycloakTokenURL
+// KeycloakBrowserURL returns the Keycloak base URL (without /realms/...)
+// for configuring keycloak-js on the client side.
+func (c *Config) KeycloakBrowserURL() string {
+	base := c.keycloakBrowserBase()
+	if idx := strings.Index(base, "/realms/"); idx != -1 {
+		return base[:idx]
 	}
-	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/token"
+	return base
 }
 
-// AllowedTokenIssuers lists issuer values Keycloak may put in JWT `iss` (browser vs internal Docker URL).
+// AllowedTokenIssuers lists issuer values Keycloak may put in JWT `iss`
+// (browser vs internal Docker URL).
 func (c *Config) AllowedTokenIssuers() []string {
 	seen := map[string]bool{}
 	var out []string
@@ -148,11 +115,6 @@ func (c *Config) JWKSURL() string {
 	return strings.TrimSuffix(c.KeycloakIssuer, "/") + "/protocol/openid-connect/certs"
 }
 
-// RedirectURI is the registered OIDC redirect URI for this app.
-func (c *Config) RedirectURI() string {
-	return strings.TrimSuffix(c.AppPublicURL, "/") + "/auth/callback"
-}
-
 func (c *Config) Validate() error {
 	if c.DatabaseURL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
@@ -162,9 +124,6 @@ func (c *Config) Validate() error {
 	}
 	if c.KeycloakClientID == "" {
 		return fmt.Errorf("KEYCLOAK_CLIENT_ID is required")
-	}
-	if c.KeycloakClientSecret == "" {
-		return fmt.Errorf("KEYCLOAK_CLIENT_SECRET is required")
 	}
 	return nil
 }

@@ -1,0 +1,129 @@
+{{define "report_form"}}
+<div class="page-header">
+  <div>
+    <a class="text-muted text-sm" hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+       hx-push-url="/status-reports">&larr; Back to Reports</a>
+    <h1 style="margin-top:.25rem;">{{if .Report.ID}}Edit Status Report{{else}}New Status Report{{end}}</h1>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form id="report-form"
+          {{if .Report.ID}}
+          hx-put="/api/v1/status-reports/{{.Report.ID}}" hx-target="#app" hx-swap="innerHTML"
+          {{else}}
+          hx-post="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+          {{end}}>
+
+      <div class="form-group">
+        <label class="form-label" for="title">Title</label>
+        <input type="text" id="title" name="title" class="form-input" required
+               maxlength="500" value="{{.Report.Title}}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="body">Body</label>
+        <textarea id="body" name="body" class="form-textarea" required
+                  maxlength="50000" placeholder="Status report content (Markdown supported)">{{.Report.Body}}</textarea>
+        <span class="form-hint">Markdown formatting is supported.</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="scope_type">Scope Type</label>
+          <select id="scope_type" name="scope_type" class="form-select" required>
+            <option value="">Select scope&hellip;</option>
+            <option value="ORG"{{if eq .Report.ScopeType "ORG"}} selected{{end}}>Organization</option>
+            <option value="SECTOR"{{if eq .Report.ScopeType "SECTOR"}} selected{{end}}>Sector</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="scope_ref">Scope Reference</label>
+          <select id="scope_ref" name="scope_ref" class="form-select" required>
+            <option value="">Select scope target&hellip;</option>
+            {{range .ScopeOptions}}
+            <option value="{{.ID}}"{{if eq .ID $.Report.ScopeRef}} selected{{end}}>{{.Name}} ({{.Type}})</option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="assessed_status">Assessed Status</label>
+          <select id="assessed_status" name="assessed_status" class="form-select" required>
+            <option value="">Select status&hellip;</option>
+            <option value="NORMAL"{{if eq .Report.AssessedStatus "NORMAL"}} selected{{end}}>Normal</option>
+            <option value="DEGRADED"{{if eq .Report.AssessedStatus "DEGRADED"}} selected{{end}}>Degraded</option>
+            <option value="IMPAIRED"{{if eq .Report.AssessedStatus "IMPAIRED"}} selected{{end}}>Impaired</option>
+            <option value="CRITICAL"{{if eq .Report.AssessedStatus "CRITICAL"}} selected{{end}}>Critical</option>
+            <option value="UNKNOWN"{{if eq .Report.AssessedStatus "UNKNOWN"}} selected{{end}}>Unknown</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="impact">Impact</label>
+          <select id="impact" name="impact" class="form-select" required>
+            <option value="">Select impact&hellip;</option>
+            <option value="INFO"{{if eq .Report.Impact "INFO"}} selected{{end}}>Info</option>
+            <option value="LOW"{{if eq .Report.Impact "LOW"}} selected{{end}}>Low</option>
+            <option value="MODERATE"{{if eq .Report.Impact "MODERATE"}} selected{{end}}>Moderate</option>
+            <option value="HIGH"{{if eq .Report.Impact "HIGH"}} selected{{end}}>High</option>
+            <option value="CRITICAL"{{if eq .Report.Impact "CRITICAL"}} selected{{end}}>Critical</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="tlp">TLP</label>
+          <select id="tlp" name="tlp" class="form-select" required>
+            <option value="">Select TLP&hellip;</option>
+            <option value="CLEAR"{{if eq .Report.TLP "CLEAR"}} selected{{end}}>TLP:CLEAR</option>
+            <option value="GREEN"{{if eq .Report.TLP "GREEN"}} selected{{end}}>TLP:GREEN</option>
+            <option value="AMBER"{{if eq .Report.TLP "AMBER"}} selected{{end}}>TLP:AMBER</option>
+            <option value="AMBER_STRICT"{{if eq .Report.TLP "AMBER_STRICT"}} selected{{end}}>TLP:AMBER+STRICT</option>
+            <option value="RED"{{if eq .Report.TLP "RED"}} selected{{end}}>TLP:RED</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <!-- spacer -->
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="period_start">Period Start</label>
+          <input type="date" id="period_start" name="period_covered_start" class="form-input" required
+                 value="{{.Report.PeriodCoveredStart | fmtDate}}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="period_end">Period End</label>
+          <input type="date" id="period_end" name="period_covered_end" class="form-input" required
+                 value="{{.Report.PeriodCoveredEnd | fmtDate}}">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          {{if .Report.ID}}Save Changes{{else}}Create Report{{end}}
+        </button>
+        <button type="button" class="btn"
+                {{if .Report.ID}}
+                hx-get="/api/v1/status-reports/{{.Report.ID}}" hx-target="#app" hx-swap="innerHTML"
+                hx-push-url="/status-reports/{{.Report.ID}}"
+                {{else}}
+                hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+                hx-push-url="/status-reports"
+                {{end}}>
+          Cancel
+        </button>
+        <span class="htmx-indicator"><span class="spinner"></span></span>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

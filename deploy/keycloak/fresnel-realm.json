@@ -22,38 +22,158 @@
       "clientId": "fresnel-app",
       "name": "Fresnel",
       "enabled": true,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "fresnel-client-secret-change-me",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
       "redirectUris": [
         "https://localhost/*",
-        "https://127.0.0.1/*"
+        "https://127.0.0.1/*",
+        "http://localhost:8080/*"
       ],
       "webOrigins": [
         "https://localhost",
-        "https://127.0.0.1"
+        "https://127.0.0.1",
+        "http://localhost:8080"
       ],
       "protocol": "openid-connect",
-      "publicClient": false,
-      "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false,
       "attributes": {
-        "post.logout.redirect.uris": "https://localhost/*##https://127.0.0.1/*"
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://localhost/*##https://127.0.0.1/*##http://localhost:8080/*"
       }
     }
   ],
   "users": [
     {
-      "username": "platform-admin",
+      "username": "platform-root",
       "enabled": true,
       "emailVerified": true,
       "email": "admin@fresnel.local",
       "firstName": "Platform",
-      "lastName": "Administrator",
+      "lastName": "Root",
       "credentials": [
         {
           "type": "password",
-          "value": "ChangeMe_PlatformAdmin!",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "gov-sector-root",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "gov-root@fresnel.local",
+      "firstName": "Government",
+      "lastName": "Sector Root",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "fed-sector-root",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "fed-root@fresnel.local",
+      "firstName": "Federal",
+      "lastName": "Sector Root",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "orgA-root",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "orga-root@fresnel.local",
+      "firstName": "Org A",
+      "lastName": "Root",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "orgA-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "orga-admin@fresnel.local",
+      "firstName": "Org A",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "orgA-contributor",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "orga-contrib@fresnel.local",
+      "firstName": "Org A",
+      "lastName": "Contributor",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "orgA-viewer",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "orga-viewer@fresnel.local",
+      "firstName": "Org A",
+      "lastName": "Viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    },
+    {
+      "username": "orgB-root",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "orgb-root@fresnel.local",
+      "firstName": "Org B",
+      "lastName": "Root",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Fresnel_Test_1!",
           "temporary": false
         }
       ],

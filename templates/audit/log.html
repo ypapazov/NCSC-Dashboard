@@ -1,0 +1,87 @@
+{{define "audit_log"}}
+<div class="page-header">
+  <h1>Audit Log</h1>
+</div>
+
+<form class="filter-bar" hx-get="/api/v1/audit/log" hx-target="#audit-results" hx-swap="innerHTML"
+      hx-trigger="change, submit" hx-push-url="true">
+  <select name="severity" class="form-select">
+    <option value="">All Severities</option>
+    <option value="INFO"{{if eq (deref .Filter.Severity) "INFO"}} selected{{end}}>Info</option>
+    <option value="MEDIUM"{{if eq (deref .Filter.Severity) "MEDIUM"}} selected{{end}}>Medium</option>
+    <option value="HIGH"{{if eq (deref .Filter.Severity) "HIGH"}} selected{{end}}>High</option>
+  </select>
+
+  <select name="resource_type" class="form-select">
+    <option value="">All Resources</option>
+    <option value="event"{{if eq .Filter.ResourceType "event"}} selected{{end}}>Event</option>
+    <option value="status_report"{{if eq .Filter.ResourceType "status_report"}} selected{{end}}>Status Report</option>
+    <option value="campaign"{{if eq .Filter.ResourceType "campaign"}} selected{{end}}>Campaign</option>
+    <option value="user"{{if eq .Filter.ResourceType "user"}} selected{{end}}>User</option>
+    <option value="organization"{{if eq .Filter.ResourceType "organization"}} selected{{end}}>Organization</option>
+    <option value="sector"{{if eq .Filter.ResourceType "sector"}} selected{{end}}>Sector</option>
+    <option value="role"{{if eq .Filter.ResourceType "role"}} selected{{end}}>Role</option>
+  </select>
+
+  <input type="date" name="date_from" class="form-input" style="width:auto;"
+         value="{{.Filter.DateFrom | fmtDate}}" placeholder="From">
+  <input type="date" name="date_to" class="form-input" style="width:auto;"
+         value="{{.Filter.DateTo | fmtDate}}" placeholder="To">
+
+  <button type="submit" class="btn btn-secondary">Filter</button>
+  <span class="htmx-indicator"><span class="spinner"></span></span>
+</form>
+
+<div id="audit-results">
+  {{if .Items}}
+  <div class="card" style="overflow:hidden;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="table-header">Timestamp</th>
+          <th class="table-header">Actor</th>
+          <th class="table-header">Action</th>
+          <th class="table-header">Resource</th>
+          <th class="table-header">Severity</th>
+          <th class="table-header">Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Items}}
+        <tr class="table-row audit-row">
+          <td class="table-cell text-sm font-mono">{{.Timestamp | fmtTimestamp}}</td>
+          <td class="table-cell text-sm">{{.ActorName}}</td>
+          <td class="table-cell text-sm">{{.Action}}</td>
+          <td class="table-cell text-sm">
+            {{.ResourceType}}
+            {{if .ResourceID}}
+            <span class="font-mono text-xs text-dim">{{.ResourceID}}</span>
+            {{end}}
+          </td>
+          <td class="table-cell">
+            <span class="badge badge-severity-{{.Severity | lower}}">{{.Severity}}</span>
+          </td>
+          <td class="table-cell">
+            {{if .Detail}}
+            <details>
+              <summary class="text-xs text-muted" style="cursor:pointer;">show</summary>
+              <pre class="audit-detail" style="margin:.25rem 0 0;white-space:pre-wrap;">{{.Detail | fmtJSON}}</pre>
+            </details>
+            {{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+
+  {{template "pagination" .Pagination}}
+  {{else}}
+  <div class="card">
+    <div class="card-body" style="text-align:center;padding:3rem;">
+      <p class="text-muted">No audit entries found.</p>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

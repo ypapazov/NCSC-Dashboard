@@ -1,25 +1,29 @@
-{{define "base"}}
+{{define "shell"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fresnel</title>
-  <script src="/static/htmx.min.js" defer></script>
+  <meta name="keycloak-url" content="{{.KeycloakURL}}">
+  <meta name="keycloak-realm" content="{{.KeycloakRealm}}">
+  <meta name="keycloak-client-id" content="{{.KeycloakClientID}}">
   <link rel="stylesheet" href="/static/css/fresnel.css">
 </head>
 <body>
-  <nav>
-    <strong>Fresnel</strong>
-    {{if .User}}
-    <span>{{.User.DisplayName}}</span>
-    <span class="muted">{{.User.Email}}</span>
-    <a href="/auth/logout">Log out</a>
-    {{end}}
+  <nav id="topnav">
+    <span class="brand">Fresnel</span>
+    <div class="nav-spacer"></div>
+    <select id="org-context-selector" style="display:none;"></select>
+    <span id="user-info"></span>
   </nav>
-  <main>
-    {{template "content" .}}
+  <aside id="sidebar"></aside>
+  <main id="app">
+    <p>Authenticating&hellip;</p>
   </main>
+  <script src="/static/keycloak.min.js"></script>
+  <script src="/static/htmx.min.js"></script>
+  <script src="/static/app.js"></script>
 </body>
 </html>
 {{end}}

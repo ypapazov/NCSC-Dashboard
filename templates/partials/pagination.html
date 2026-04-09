@@ -1,0 +1,27 @@
+{{define "pagination"}}
+<div class="pagination">
+  <span class="pagination-info">
+    Showing {{.From}}&ndash;{{.To}} of {{.Total}}
+  </span>
+  <div class="pagination-controls">
+    {{if .HasPrev}}
+    <button class="btn btn-sm"
+            hx-get="{{.BaseURL}}?offset={{.PrevOffset}}&limit={{.Limit}}"
+            hx-target="{{.Target}}" hx-swap="innerHTML">
+      &larr; Previous
+    </button>
+    {{else}}
+    <button class="btn btn-sm" disabled>&larr; Previous</button>
+    {{end}}
+    {{if .HasNext}}
+    <button class="btn btn-sm"
+            hx-get="{{.BaseURL}}?offset={{.NextOffset}}&limit={{.Limit}}"
+            hx-target="{{.Target}}" hx-swap="innerHTML">
+      Next &rarr;
+    </button>
+    {{else}}
+    <button class="btn btn-sm" disabled>Next &rarr;</button>
+    {{end}}
+  </div>
+</div>
+{{end}}

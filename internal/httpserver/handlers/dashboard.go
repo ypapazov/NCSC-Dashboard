@@ -1,40 +1,34 @@
 package handlers
 
 import (
-	"encoding/json"
 	"html/template"
 	"net/http"
 
-	"fresnel/internal/httpserver/requestctx"
+	"fresnel/internal/service"
 )
 
-// Dashboard is a placeholder home page (HTML or JSON).
-func Dashboard(tmpl *template.Template) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" && r.URL.Path != "/dashboard" {
-			http.NotFound(w, r)
-			return
-		}
-		auth := requestctx.AuthFrom(r.Context())
-		if requestctx.RenderFrom(r.Context()) == requestctx.RenderJSON {
-			w.Header().Set("Content-Type", "application/json")
-			if auth == nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
-				return
-			}
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"page":       "dashboard",
-				"user_id":    auth.UserID.String(),
-				"email":      auth.Email,
-				"display_name": auth.DisplayName,
-			})
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		data := PageData{User: auth}
-		if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
-			http.Error(w, "template error", http.StatusInternalServerError)
-		}
+type DashboardHandler struct {
+	dashboard *service.DashboardService
+	tmpl      *template.Template
+}
+
+func NewDashboardHandler(dashboard *service.DashboardService, tmpl *template.Template) *DashboardHandler {
+	return &DashboardHandler{dashboard: dashboard, tmpl: tmpl}
+}
+
+func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
+	auth := getAuth(r)
+	if auth == nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
 	}
+	tree, err := h.dashboard.GetTree(r.Context(), auth)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respond(w, r, h.tmpl, "dashboard", http.StatusOK, DashboardData{
+		User: auth,
+		Tree: tree,
+	})
 }

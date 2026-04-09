@@ -35,18 +35,3 @@ func RenderFrom(ctx context.Context) RenderKind {
 	k, _ := v.(RenderKind)
 	return k
 }
-
-// WithRawAccessToken stores the validated bearer/cookie token string for CSRF.
-func WithRawAccessToken(ctx context.Context, raw string) context.Context {
-	return context.WithValue(ctx, KeyRawAccessToken, raw)
-}
-
-// RawAccessTokenFrom returns the raw access token if set.
-func RawAccessTokenFrom(ctx context.Context) string {
-	v := ctx.Value(KeyRawAccessToken)
-	if v == nil {
-		return ""
-	}
-	s, _ := v.(string)
-	return s
-}

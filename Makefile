@@ -32,5 +32,7 @@ run:
 	LISTEN_ADDR=:8080 \
 	DATABASE_URL=$${DATABASE_URL:-postgres://fresnel:fresnel@127.0.0.1:5432/fresnel?sslmode=disable} \
 	KEYCLOAK_ISSUER=$${KEYCLOAK_ISSUER:-http://127.0.0.1:8081/realms/fresnel} \
-	HMAC_SECRET=$${HMAC_SECRET:-devsecretdevsecretdevsecretdev12must_be_32b} \
+	KEYCLOAK_CLIENT_ID=$${KEYCLOAK_CLIENT_ID:-fresnel-app} \
+	KEYCLOAK_EXTERNAL_URL=$${KEYCLOAK_EXTERNAL_URL:-http://localhost:8081/realms/fresnel} \
+	APP_PUBLIC_URL=$${APP_PUBLIC_URL:-https://localhost} \
 	go run ./cmd/fresnel
