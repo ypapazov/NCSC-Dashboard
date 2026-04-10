@@ -1,0 +1,412 @@
+package views
+
+import (
+	"fmt"
+	"strings"
+	"fresnel/internal/domain"
+)
+
+templ EventList(events []*domain.Event, total int) {
+	<div class="page-header">
+		<h1>Events</h1>
+		<button class="btn btn-primary"
+			hx-get="/api/v1/events/new" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/events/new">
+			+ New Event
+		</button>
+	</div>
+	<div id="event-results">
+		if len(events) > 0 {
+			<div class="card" style="overflow:hidden;">
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Title</th>
+							<th class="table-header">Type</th>
+							<th class="table-header">Impact</th>
+							<th class="table-header">Status</th>
+							<th class="table-header">TLP</th>
+							<th class="table-header">Date</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, e := range events {
+							<tr class="table-row clickable"
+								hx-get={ "/api/v1/events/" + e.ID.String() } hx-target="#app" hx-swap="innerHTML"
+								hx-push-url={ "/events/" + e.ID.String() }>
+								<td class="table-cell truncate">{ e.Title }</td>
+								<td class="table-cell text-sm">{ string(e.EventType) }</td>
+								<td class="table-cell">
+									@ImpactBadge(e.Impact)
+								</td>
+								<td class="table-cell">
+									@StatusBadge(e.Status)
+								</td>
+								<td class="table-cell">
+									@TLPBadge(e.TLP)
+								</td>
+								<td class="table-cell text-sm text-muted">{ FmtTime(e.CreatedAt) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d event(s) total", total) }</p>
+		} else {
+			<div class="card">
+				<div class="card-body" style="text-align:center;padding:3rem;">
+					<p class="text-muted">No events found.</p>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ EventDetail(data EventDetailData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/events">&larr; Back to Events</a>
+			<h1 style="margin-top:.25rem;">{ data.Event.Title }</h1>
+		</div>
+		<div class="flex gap-md items-center">
+			if data.CanEdit {
+				<button class="btn btn-secondary"
+					hx-get={ "/api/v1/events/" + data.Event.ID.String() + "/edit" } hx-target="#app" hx-swap="innerHTML"
+					hx-push-url={ "/events/" + data.Event.ID.String() + "/edit" }>
+					Edit
+				</button>
+			}
+			if data.CanDelete {
+				<button class="btn btn-danger"
+					hx-delete={ "/api/v1/events/" + data.Event.ID.String() } hx-target="#app" hx-swap="innerHTML"
+					hx-confirm="Are you sure you want to delete this event?">
+					Delete
+				</button>
+			}
+		</div>
+	</div>
+	<div class="flex gap-md items-center mb-md">
+		@StatusBadge(data.Event.Status)
+		@ImpactBadge(data.Event.Impact)
+		@TLPBadge(data.Event.TLP)
+		<span class="text-sm text-muted">{ string(data.Event.EventType) }</span>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="meta-grid">
+				<div class="meta-item">
+					<div class="meta-label">Organization</div>
+					<div class="meta-value">{ data.OrgName }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Sector</div>
+					<div class="meta-value">{ data.SectorName }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Submitter</div>
+					<div class="meta-value">{ data.SubmitterName }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Created</div>
+					<div class="meta-value">{ FmtTime(data.Event.CreatedAt) }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Last Updated</div>
+					<div class="meta-value">{ FmtTime(data.Event.UpdatedAt) }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Event ID</div>
+					<div class="meta-value font-mono text-sm">{ data.Event.ID.String() }</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Description</div>
+		<div class="card-body rendered-body">
+			@templ.Raw(data.DescriptionHTML)
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">
+			Updates
+			<span class="htmx-indicator"><span class="spinner"></span></span>
+		</div>
+		<div id="event-updates"
+			hx-get={ "/api/v1/events/" + data.Event.ID.String() + "/updates" } hx-target="#event-updates" hx-swap="innerHTML"
+			hx-trigger="load">
+			<div class="card-body text-muted text-sm">Loading updates&hellip;</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Attachments</div>
+		<div class="card-body">
+			if len(data.Attachments) > 0 {
+				<ul class="attachment-list">
+					for _, att := range data.Attachments {
+						<li class="attachment-item">
+							<span class="attachment-icon">&#128206;</span>
+							<a class="attachment-name" href={ templ.SafeURL("/api/v1/events/" + data.Event.ID.String() + "/attachments/" + att.ID.String()) }>{ att.Filename }</a>
+							<span class="attachment-size">{ FmtBytes(att.SizeBytes) }</span>
+							<span class={ "badge badge-severity-" + attachmentSeverityClass(att.ScanStatus) }>{ string(att.ScanStatus) }</span>
+						</li>
+					}
+				</ul>
+			} else {
+				<p class="text-muted text-sm">No attachments.</p>
+			}
+			if data.CanEdit {
+				<form class="upload-area mt-md"
+					hx-post={ "/api/v1/events/" + data.Event.ID.String() + "/attachments" }
+					hx-target="#app" hx-swap="innerHTML"
+					hx-encoding="multipart/form-data">
+					<input type="file" name="file" required/>
+					<button type="submit" class="btn btn-sm btn-secondary mt-sm">Upload</button>
+				</form>
+			}
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Correlations</div>
+		<div class="card-body">
+			if len(data.Correlations) > 0 {
+				for _, corr := range data.Correlations {
+					<div class="linked-event">
+						<span class="badge badge-severity-info">{ string(corr.CorrelationType) }</span>
+						<a class="event-title"
+							hx-get={ "/api/v1/events/" + corr.RelatedEventID.String() } hx-target="#app" hx-swap="innerHTML"
+							hx-push-url={ "/events/" + corr.RelatedEventID.String() }>
+							{ corr.RelatedEventTitle }
+						</a>
+						<span class="text-xs text-muted">{ corr.Label }</span>
+					</div>
+				}
+			} else {
+				<p class="text-muted text-sm">No correlated events.</p>
+			}
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Revision History</div>
+		<div class="card-body">
+			<details>
+				<summary class="revision-toggle">Show { fmt.Sprintf("%d", len(data.Revisions)) } revision(s)</summary>
+				<ul class="revision-list mt-sm">
+					for _, rev := range data.Revisions {
+						<li class="revision-item">
+							<span class="revision-number">#{ fmt.Sprintf("%d", rev.RevisionNumber) }</span>
+							<span>{ FmtUser(rev.ChangedBy) } &middot; { FmtTime(rev.ChangedAt) }</span>
+							<span class="flex gap-sm">
+								if rev.Title != "" {
+									<span class="text-xs">title changed</span>
+								}
+								@ImpactBadge(rev.Impact)
+								@StatusBadge(rev.Status)
+							</span>
+						</li>
+					}
+				</ul>
+			</details>
+		</div>
+	</div>
+}
+
+templ EventForm(data EventFormData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/events">&larr; Back to Events</a>
+			if data.Event != nil && data.Event.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				<h1 style="margin-top:.25rem;">Edit Event</h1>
+			} else {
+				<h1 style="margin-top:.25rem;">New Event</h1>
+			}
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			if data.Event != nil && data.Event.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				<form id="event-form"
+					hx-put={ "/api/v1/events/" + data.Event.ID.String() } hx-target="#app" hx-swap="innerHTML">
+					@eventFormFields(data)
+				</form>
+			} else {
+				<form id="event-form"
+					hx-post="/api/v1/events" hx-target="#app" hx-swap="innerHTML">
+					@eventFormFields(data)
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ eventFormFields(data EventFormData) {
+	<div class="form-group">
+		<label class="form-label" for="title">Title</label>
+		<input type="text" id="title" name="title" class="form-input" required
+			maxlength="500" value={ safeEventField(data.Event, func(e *domain.Event) string { return e.Title }) }
+			placeholder="Brief description of the incident"/>
+	</div>
+	<div class="form-group">
+		<label class="form-label" for="description">Description</label>
+		<textarea id="description" name="description" class="form-textarea" required
+			maxlength="50000" placeholder="Detailed description (Markdown supported)">{ safeEventField(data.Event, func(e *domain.Event) string { return e.Description }) }</textarea>
+		<span class="form-hint">Markdown formatting is supported.</span>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="event_type">Event Type</label>
+			<select id="event_type" name="event_type" class="form-select" required>
+				<option value="">Select type&hellip;</option>
+				for _, et := range data.EventTypes {
+					<option value={ string(et) } selected?={ data.Event != nil && data.Event.EventType == et }>{ string(et) }</option>
+				}
+			</select>
+		</div>
+		<div class="form-group">
+			<label class="form-label" for="sector_context">Sector Context</label>
+			<select id="sector_context" name="sector_context" class="form-select" required>
+				<option value="">Select sector&hellip;</option>
+				for _, s := range data.Sectors {
+					<option value={ s.ID.String() } selected?={ data.Event != nil && data.Event.SectorContext == s.ID }>{ s.Name }</option>
+				}
+			</select>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="tlp">TLP</label>
+			<select id="tlp" name="tlp" class="form-select" required
+				onchange="document.getElementById('tlp-red-recipients').style.display=this.value==='RED'?'block':'none';">
+				<option value="">Select TLP&hellip;</option>
+				<option value="CLEAR" selected?={ data.Event != nil && data.Event.TLP == "CLEAR" }>TLP:CLEAR</option>
+				<option value="GREEN" selected?={ data.Event != nil && data.Event.TLP == "GREEN" }>TLP:GREEN</option>
+				<option value="AMBER" selected?={ data.Event != nil && data.Event.TLP == "AMBER" }>TLP:AMBER</option>
+				<option value="AMBER_STRICT" selected?={ data.Event != nil && data.Event.TLP == "AMBER_STRICT" }>TLP:AMBER+STRICT</option>
+				<option value="RED" selected?={ data.Event != nil && data.Event.TLP == "RED" }>TLP:RED</option>
+			</select>
+		</div>
+		<div class="form-group">
+			<label class="form-label" for="impact">Impact</label>
+			<select id="impact" name="impact" class="form-select" required>
+				<option value="">Select impact&hellip;</option>
+				<option value="INFO" selected?={ data.Event != nil && data.Event.Impact == "INFO" }>Info</option>
+				<option value="LOW" selected?={ data.Event != nil && data.Event.Impact == "LOW" }>Low</option>
+				<option value="MODERATE" selected?={ data.Event != nil && data.Event.Impact == "MODERATE" }>Moderate</option>
+				<option value="HIGH" selected?={ data.Event != nil && data.Event.Impact == "HIGH" }>High</option>
+				<option value="CRITICAL" selected?={ data.Event != nil && data.Event.Impact == "CRITICAL" }>Critical</option>
+			</select>
+		</div>
+	</div>
+	if data.Event != nil && data.Event.TLP == domain.TLPRed {
+		<div id="tlp-red-recipients" class="form-group">
+			@tlpRedRecipients(data.AvailableRecipients)
+		</div>
+	} else {
+		<div id="tlp-red-recipients" class="form-group" style="display:none;">
+			@tlpRedRecipients(data.AvailableRecipients)
+		</div>
+	}
+	<div class="form-actions">
+		if data.Event != nil && data.Event.ID.String() != "00000000-0000-0000-0000-000000000000" {
+			<button type="submit" class="btn btn-primary">Save Changes</button>
+			<button type="button" class="btn"
+				hx-get={ "/api/v1/events/" + data.Event.ID.String() } hx-target="#app" hx-swap="innerHTML"
+				hx-push-url={ "/events/" + data.Event.ID.String() }>
+				Cancel
+			</button>
+		} else {
+			<button type="submit" class="btn btn-primary">Create Event</button>
+			<button type="button" class="btn"
+				hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/events">
+				Cancel
+			</button>
+		}
+		<span class="htmx-indicator"><span class="spinner"></span></span>
+	</div>
+}
+
+templ tlpRedRecipients(recipients []RecipientOption) {
+	<label class="form-label">TLP:RED Recipients</label>
+	<div class="form-hint mb-sm">Select users who should have access to this TLP:RED content.</div>
+	if len(recipients) > 0 {
+		for _, r := range recipients {
+			<label style="display:flex;align-items:center;gap:.5rem;padding:.25rem 0;font-size:.85rem;">
+				<input type="checkbox" name="recipients" value={ r.ID.String() } checked?={ r.Selected }/>
+				{ r.DisplayName } ({ r.Email })
+			</label>
+		}
+	} else {
+		<p class="text-muted text-sm">No recipients available for selection.</p>
+	}
+}
+
+templ EventUpdates(data EventUpdatesData) {
+	<div class="card-body">
+		if len(data.Updates) > 0 {
+			<ul class="timeline">
+				for _, u := range data.Updates {
+					<li class="timeline-entry">
+						<div class="flex justify-between items-center">
+							<strong class="text-sm">{ u.AuthorName }</strong>
+							<span class="timeline-date">{ FmtTime(u.CreatedAt) }</span>
+						</div>
+						<div class="timeline-body">{ u.Body }</div>
+						if u.ImpactChange != nil || u.StatusChange != nil {
+							<div class="flex gap-sm mt-sm">
+								if u.StatusChange != nil {
+									<span class={ "badge badge-status-" + strings.ToLower(string(*u.StatusChange)) }>Status &rarr; { string(*u.StatusChange) }</span>
+								}
+								if u.ImpactChange != nil {
+									<span class={ "badge badge-impact-" + strings.ToLower(string(*u.ImpactChange)) }>Impact &rarr; { string(*u.ImpactChange) }</span>
+								}
+							</div>
+						}
+					</li>
+				}
+			</ul>
+		} else {
+			<p class="text-muted text-sm">No updates yet.</p>
+		}
+		if data.CanUpdate {
+			<div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.75rem;">
+				<form hx-post={ "/api/v1/events/" + data.EventID.String() + "/updates" }
+					hx-target="#event-updates" hx-swap="innerHTML">
+					<div class="form-group">
+						<label class="form-label" for="update-body">Add Update</label>
+						<textarea id="update-body" name="body" class="form-textarea" required
+							placeholder="Describe the update&hellip;" style="min-height:80px;"></textarea>
+					</div>
+					<div class="form-row">
+						<div class="form-group">
+							<label class="form-label" for="status-change">Change Status (optional)</label>
+							<select id="status-change" name="status_change" class="form-select">
+								<option value="">No change</option>
+								for _, t := range data.AllowedTransitions {
+									<option value={ string(t) }>{ string(t) }</option>
+								}
+							</select>
+						</div>
+						<div class="form-group">
+							<label class="form-label" for="impact-change">Change Impact (optional)</label>
+							<select id="impact-change" name="impact_change" class="form-select">
+								<option value="">No change</option>
+								<option value="INFO">Info</option>
+								<option value="LOW">Low</option>
+								<option value="MODERATE">Moderate</option>
+								<option value="HIGH">High</option>
+								<option value="CRITICAL">Critical</option>
+							</select>
+						</div>
+					</div>
+					<div class="form-actions">
+						<button type="submit" class="btn btn-primary btn-sm">Post Update</button>
+						<span class="htmx-indicator"><span class="spinner"></span></span>
+					</div>
+				</form>
+			</div>
+		}
+	</div>
+}

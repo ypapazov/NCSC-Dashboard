@@ -1,0 +1,35 @@
+package views
+
+import "fmt"
+
+templ Pagination(p PaginationData) {
+	<div class="pagination">
+		<span class="pagination-info">
+			Showing { fmt.Sprintf("%d", p.From) }&ndash;{ fmt.Sprintf("%d", p.To) } of { fmt.Sprintf("%d", p.Total) }
+		</span>
+		<div class="pagination-controls">
+			if p.HasPrev {
+				<button class="btn btn-sm"
+					hx-get={ fmt.Sprintf("%s?offset=%d&limit=%d", p.BaseURL, p.PrevOffset, p.Limit) }
+					hx-target={ p.Target } hx-swap="innerHTML">
+					&larr; Previous
+				</button>
+			} else {
+				<button class="btn btn-sm" disabled>
+					&larr; Previous
+				</button>
+			}
+			if p.HasNext {
+				<button class="btn btn-sm"
+					hx-get={ fmt.Sprintf("%s?offset=%d&limit=%d", p.BaseURL, p.NextOffset, p.Limit) }
+					hx-target={ p.Target } hx-swap="innerHTML">
+					Next &rarr;
+				</button>
+			} else {
+				<button class="btn btn-sm" disabled>
+					Next &rarr;
+				</button>
+			}
+		</div>
+	</div>
+}

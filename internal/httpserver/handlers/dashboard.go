@@ -1,19 +1,19 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 )
 
 type DashboardHandler struct {
 	dashboard *service.DashboardService
-	tmpl      *template.Template
 }
 
-func NewDashboardHandler(dashboard *service.DashboardService, tmpl *template.Template) *DashboardHandler {
-	return &DashboardHandler{dashboard: dashboard, tmpl: tmpl}
+func NewDashboardHandler(dashboard *service.DashboardService) *DashboardHandler {
+	return &DashboardHandler{dashboard: dashboard}
 }
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -31,9 +31,19 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if tree != nil {
 		sectors = tree.Children
 	}
-	respond(w, r, h.tmpl, "dashboard", http.StatusOK, DashboardData{
+
+	data := views.DashboardData{
 		User:    auth,
-		Tree:    tree,
 		Sectors: sectors,
-	})
+	}
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, DashboardData{
+			User:    auth,
+			Tree:    tree,
+			Sectors: sectors,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.Dashboard(data))
 }

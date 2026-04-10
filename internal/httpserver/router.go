@@ -11,7 +11,6 @@ import (
 	"fresnel/internal/config"
 	httphandlers "fresnel/internal/httpserver/handlers"
 	"fresnel/internal/httpserver/middleware"
-	apptemplates "fresnel/internal/httpserver/templates"
 	"fresnel/internal/oauth"
 	"fresnel/internal/service"
 	"fresnel/static"
@@ -34,11 +33,6 @@ type Services struct {
 // NewRouter registers routes and applies the middleware chain:
 // logging → audit context → OIDC → cedar gate → content negotiation → mux.
 func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Services) (http.Handler, error) {
-	tmpl, err := apptemplates.Parse()
-	if err != nil {
-		return nil, err
-	}
-
 	jwks := &oauth.JWKS{
 		URL:    cfg.JWKSURL(),
 		Client: http.DefaultClient,
@@ -47,16 +41,16 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	oidc := &middleware.OIDC{Cfg: cfg, Pool: pool, JWKS: jwks}
 
 	// --- Handlers ---
-	dashboardH := httphandlers.NewDashboardHandler(svc.Dashboard, tmpl)
-	eventH := httphandlers.NewEventHandler(svc.Events, tmpl)
-	statusReportH := httphandlers.NewStatusReportHandler(svc.StatusReports, tmpl)
-	campaignH := httphandlers.NewCampaignHandler(svc.Campaigns, tmpl)
-	sectorH := httphandlers.NewSectorHandler(svc.Sectors, tmpl)
-	orgH := httphandlers.NewOrgHandler(svc.Orgs, tmpl)
-	userH := httphandlers.NewUserHandler(svc.Users, tmpl)
-	corrH := httphandlers.NewCorrelationHandler(svc.Correlations, tmpl)
+	dashboardH := httphandlers.NewDashboardHandler(svc.Dashboard)
+	eventH := httphandlers.NewEventHandler(svc.Events)
+	statusReportH := httphandlers.NewStatusReportHandler(svc.StatusReports)
+	campaignH := httphandlers.NewCampaignHandler(svc.Campaigns)
+	sectorH := httphandlers.NewSectorHandler(svc.Sectors)
+	orgH := httphandlers.NewOrgHandler(svc.Orgs)
+	userH := httphandlers.NewUserHandler(svc.Users)
+	corrH := httphandlers.NewCorrelationHandler(svc.Correlations)
 	attachH := httphandlers.NewAttachmentHandler(svc.Attachments)
-	auditH := httphandlers.NewAuditHandler(svc.Audit, tmpl)
+	auditH := httphandlers.NewAuditHandler(svc.Audit)
 
 	mux := http.NewServeMux()
 
@@ -70,7 +64,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(st))))
 
 	// --- Nav ---
-	mux.Handle("GET /api/v1/nav", httphandlers.Nav(tmpl))
+	mux.Handle("GET /api/v1/nav", httphandlers.Nav())
 
 	// --- Dashboard ---
 	mux.HandleFunc("GET /api/v1/dashboard", dashboardH.Get)
@@ -147,7 +141,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	mux.HandleFunc("POST /api/v1/federation/", httphandlers.FederationStub)
 
 	// --- Catch-all: app shell ---
-	mux.Handle("GET /{path...}", httphandlers.Shell(tmpl, cfg))
+	mux.Handle("GET /{path...}", httphandlers.Shell(cfg))
 
 	// Middleware chain: outermost wraps first
 	auditCtx := func(next http.Handler) http.Handler {

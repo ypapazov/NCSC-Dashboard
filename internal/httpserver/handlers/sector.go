@@ -1,22 +1,22 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
 	"github.com/google/uuid"
 )
 
 type SectorHandler struct {
 	sectors *service.SectorService
-	tmpl    *template.Template
 }
 
-func NewSectorHandler(sectors *service.SectorService, tmpl *template.Template) *SectorHandler {
-	return &SectorHandler{sectors: sectors, tmpl: tmpl}
+func NewSectorHandler(sectors *service.SectorService) *SectorHandler {
+	return &SectorHandler{sectors: sectors}
 }
 
 func (h *SectorHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -26,10 +26,15 @@ func (h *SectorHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "admin_sectors", http.StatusOK, SectorListData{
-		User:    auth,
-		Sectors: sectors,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, SectorListData{
+			User:    auth,
+			Sectors: sectors,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.AdminSectors(sectors))
 }
 
 func (h *SectorHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -44,10 +49,15 @@ func (h *SectorHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "sector_detail", http.StatusOK, SectorDetailData{
-		User:   auth,
-		Sector: sector,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, SectorDetailData{
+			User:   auth,
+			Sector: sector,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.SectorDetail(sector))
 }
 
 func (h *SectorHandler) GetChildren(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +72,7 @@ func (h *SectorHandler) GetChildren(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, children)
+	respondJSON(w, http.StatusOK, children)
 }
 
 func (h *SectorHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +86,7 @@ func (h *SectorHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &sector)
+	respondJSON(w, http.StatusCreated, &sector)
 }
 
 func (h *SectorHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +106,7 @@ func (h *SectorHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, &sector)
+	respondJSON(w, http.StatusOK, &sector)
 }
 
 func (h *SectorHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +125,7 @@ func (h *SectorHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *SectorHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	data := SectorFormData{User: auth}
+	var sector *domain.Sector
 
 	if idStr := r.PathValue("id"); idStr != "" {
 		id, err := uuid.Parse(idStr)
@@ -123,12 +133,16 @@ func (h *SectorHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		sector, err := h.sectors.GetByID(r.Context(), auth, id)
+		sector, err = h.sectors.GetByID(r.Context(), auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return
 		}
-		data.Sector = sector
 	}
-	respond(w, r, h.tmpl, "sector_form", http.StatusOK, data)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, SectorFormData{User: auth, Sector: sector})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.SectorForm(sector))
 }

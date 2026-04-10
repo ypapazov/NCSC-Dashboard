@@ -1,0 +1,229 @@
+package views
+
+import (
+	"fmt"
+	"fresnel/internal/domain"
+)
+
+templ CampaignList(campaigns []*domain.Campaign, total int) {
+	<div class="page-header">
+		<h1>Campaigns</h1>
+		<button class="btn btn-primary"
+			hx-get="/api/v1/campaigns/new" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/campaigns/new">
+			+ New Campaign
+		</button>
+	</div>
+	<div id="campaign-results">
+		if len(campaigns) > 0 {
+			<div class="card" style="overflow:hidden;">
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Title</th>
+							<th class="table-header">Status</th>
+							<th class="table-header">TLP</th>
+							<th class="table-header">Created</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, c := range campaigns {
+							<tr class="table-row clickable"
+								hx-get={ "/api/v1/campaigns/" + c.ID.String() } hx-target="#app" hx-swap="innerHTML"
+								hx-push-url={ "/campaigns/" + c.ID.String() }>
+								<td class="table-cell truncate">{ c.Title }</td>
+								<td class="table-cell">
+									@CampaignStatusBadge(c.Status)
+								</td>
+								<td class="table-cell">
+									@TLPBadge(c.TLP)
+								</td>
+								<td class="table-cell text-sm text-muted">{ FmtTime(c.CreatedAt) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d campaign(s) total", total) }</p>
+		} else {
+			<div class="card">
+				<div class="card-body" style="text-align:center;padding:3rem;">
+					<p class="text-muted">No campaigns found.</p>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ CampaignDetail(data CampaignDetailData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/campaigns">&larr; Back to Campaigns</a>
+			<h1 style="margin-top:.25rem;">{ data.Campaign.Title }</h1>
+		</div>
+		<div class="flex gap-md items-center">
+			if data.CanEdit {
+				<button class="btn btn-secondary"
+					hx-get={ "/api/v1/campaigns/" + data.Campaign.ID.String() + "/edit" } hx-target="#app" hx-swap="innerHTML"
+					hx-push-url={ "/campaigns/" + data.Campaign.ID.String() + "/edit" }>
+					Edit
+				</button>
+			}
+			if data.CanDelete {
+				<button class="btn btn-danger"
+					hx-delete={ "/api/v1/campaigns/" + data.Campaign.ID.String() } hx-target="#app" hx-swap="innerHTML"
+					hx-confirm="Are you sure you want to delete this campaign?">
+					Delete
+				</button>
+			}
+		</div>
+	</div>
+	<div class="flex gap-md items-center mb-md">
+		@CampaignStatusBadge(data.Campaign.Status)
+		@TLPBadge(data.Campaign.TLP)
+		<span class="text-sm text-muted">Created { FmtTime(data.Campaign.CreatedAt) }</span>
+	</div>
+	<div class="card">
+		<div class="card-header">Description</div>
+		<div class="card-body rendered-body">
+			@templ.Raw(data.DescriptionHTML)
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">
+			Linked Events ({ fmt.Sprintf("%d", len(data.LinkedEvents)) })
+			if data.CanEdit {
+				<button class="btn btn-sm btn-secondary"
+					onclick="document.getElementById('link-event-form').style.display='block';">
+					+ Link Event
+				</button>
+			}
+		</div>
+		<div class="card-body" style="padding:0;">
+			if len(data.LinkedEvents) > 0 {
+				for _, le := range data.LinkedEvents {
+					<div class="linked-event">
+						if le.Restricted {
+							<span class="restricted-content">Content restricted by TLP policy</span>
+						} else {
+							@StatusBadge(le.Status)
+							<a class="event-title"
+								hx-get={ "/api/v1/events/" + le.ID.String() } hx-target="#app" hx-swap="innerHTML"
+								hx-push-url={ "/events/" + le.ID.String() }>
+								{ le.Title }
+							</a>
+							@ImpactBadge(le.Impact)
+							@TLPBadge(le.TLP)
+						}
+						if data.CanEdit {
+							<button class="btn btn-sm btn-danger unlink-btn"
+								hx-delete={ "/api/v1/campaigns/" + data.Campaign.ID.String() + "/events/" + le.ID.String() }
+								hx-target="#app" hx-swap="innerHTML"
+								hx-confirm="Unlink this event from the campaign?">
+								Unlink
+							</button>
+						}
+					</div>
+				}
+			} else {
+				<div style="padding:1rem;" class="text-muted text-sm">No events linked to this campaign.</div>
+			}
+		</div>
+	</div>
+	if data.CanEdit {
+		<div id="link-event-form" class="card" style="display:none;">
+			<div class="card-header">Link an Event</div>
+			<div class="card-body">
+				<form hx-post={ "/api/v1/campaigns/" + data.Campaign.ID.String() + "/events" }
+					hx-target="#app" hx-swap="innerHTML">
+					<div class="form-group">
+						<label class="form-label" for="event_id">Event ID</label>
+						<input type="text" id="event_id" name="event_id" class="form-input" required
+							placeholder="Paste the event UUID"/>
+					</div>
+					<div class="form-actions">
+						<button type="submit" class="btn btn-primary btn-sm">Link Event</button>
+						<button type="button" class="btn btn-sm"
+							onclick="this.closest('.card').style.display='none';">Cancel</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ CampaignForm(data CampaignFormData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/campaigns">&larr; Back to Campaigns</a>
+			if data.Campaign != nil && data.Campaign.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				<h1 style="margin-top:.25rem;">Edit Campaign</h1>
+			} else {
+				<h1 style="margin-top:.25rem;">New Campaign</h1>
+			}
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			if data.Campaign != nil && data.Campaign.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				<form id="campaign-form"
+					hx-put={ "/api/v1/campaigns/" + data.Campaign.ID.String() } hx-target="#app" hx-swap="innerHTML">
+					@campaignFormFields(data)
+				</form>
+			} else {
+				<form id="campaign-form"
+					hx-post="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML">
+					@campaignFormFields(data)
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ campaignFormFields(data CampaignFormData) {
+	<div class="form-group">
+		<label class="form-label" for="title">Title</label>
+		<input type="text" id="title" name="title" class="form-input" required
+			maxlength="500" value={ safeCampaignField(data.Campaign, func(c *domain.Campaign) string { return c.Title }) }
+			placeholder="Campaign title"/>
+	</div>
+	<div class="form-group">
+		<label class="form-label" for="description">Description</label>
+		<textarea id="description" name="description" class="form-textarea"
+			maxlength="50000" placeholder="Campaign description (Markdown supported)">{ safeCampaignField(data.Campaign, func(c *domain.Campaign) string { return c.Description }) }</textarea>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="tlp">TLP</label>
+			<select id="tlp" name="tlp" class="form-select" required>
+				<option value="">Select TLP&hellip;</option>
+				<option value="CLEAR" selected?={ data.Campaign != nil && data.Campaign.TLP == "CLEAR" }>TLP:CLEAR</option>
+				<option value="GREEN" selected?={ data.Campaign != nil && data.Campaign.TLP == "GREEN" }>TLP:GREEN</option>
+				<option value="AMBER" selected?={ data.Campaign != nil && data.Campaign.TLP == "AMBER" }>TLP:AMBER</option>
+				<option value="AMBER_STRICT" selected?={ data.Campaign != nil && data.Campaign.TLP == "AMBER_STRICT" }>TLP:AMBER+STRICT</option>
+				<option value="RED" selected?={ data.Campaign != nil && data.Campaign.TLP == "RED" }>TLP:RED</option>
+			</select>
+		</div>
+		<div class="form-group"></div>
+	</div>
+	<div class="form-actions">
+		if data.Campaign != nil && data.Campaign.ID.String() != "00000000-0000-0000-0000-000000000000" {
+			<button type="submit" class="btn btn-primary">Save Changes</button>
+			<button type="button" class="btn"
+				hx-get={ "/api/v1/campaigns/" + data.Campaign.ID.String() } hx-target="#app" hx-swap="innerHTML"
+				hx-push-url={ "/campaigns/" + data.Campaign.ID.String() }>
+				Cancel
+			</button>
+		} else {
+			<button type="submit" class="btn btn-primary">Create Campaign</button>
+			<button type="button" class="btn"
+				hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/campaigns">
+				Cancel
+			</button>
+		}
+		<span class="htmx-indicator"><span class="spinner"></span></span>
+	</div>
+}

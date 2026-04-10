@@ -1,0 +1,163 @@
+package views
+
+import (
+	"fmt"
+	"strings"
+	"fresnel/internal/domain"
+	"fresnel/internal/service"
+)
+
+templ Dashboard(data DashboardData) {
+	<div class="page-header">
+		<h1>Dashboard</h1>
+		if data.User != nil {
+			<span class="text-muted text-sm">
+				{ data.User.DisplayName } &middot; { data.User.Email }
+			</span>
+		}
+	</div>
+	<div class="dashboard-layout" hx-trigger="every 60s" hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML">
+		<div>
+			if len(data.Sectors) > 0 {
+				<div class="card">
+					<div class="card-header">
+						National Cyber Status
+						<span class="htmx-indicator"><span class="spinner"></span></span>
+					</div>
+					<div class="card-body">
+						<div class="tree">
+							for _, sector := range data.Sectors {
+								@dashboardSectorNode(sector)
+							}
+						</div>
+					</div>
+				</div>
+			}
+			if len(data.RecentEvents) > 0 {
+				@dashboardRecentEvents(data.RecentEvents)
+			}
+			if len(data.ActiveCampaigns) > 0 {
+				@dashboardActiveCampaigns(data.ActiveCampaigns)
+			}
+		</div>
+		<div class="side-panel">
+			<div class="side-panel-header">Status Timeline</div>
+			<div id="side-panel-body" class="side-panel-body">
+				<div class="side-panel-empty">Select a sector or organization to view its status timeline.</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ dashboardSectorNode(node *service.DashboardNode) {
+	<div class="tree-node">
+		<div class="tree-node-header"
+			hx-get={ "/api/v1/sectors/" + node.ID.String() + "/children" }
+			hx-target={ "#sector-children-" + node.ID.String() }
+			hx-swap="innerHTML"
+			onclick="this.querySelector('.tree-expand').classList.toggle('open');this.closest('.tree-node').querySelector('.tree-children').classList.toggle('collapsed');">
+			<span class="tree-expand">&#9654;</span>
+			<span class="tree-node-name">{ node.Name }</span>
+			<span class="tree-node-meta">
+				if node.AssessedStatus != "" {
+					<span class={ "badge badge-assessed-" + strings.ToLower(string(node.AssessedStatus)) }>{ string(node.AssessedStatus) }</span>
+				}
+			</span>
+		</div>
+		<div id={ "sector-children-" + node.ID.String() } class="tree-children collapsed">
+			for _, child := range node.Children {
+				@dashboardChildNode(child)
+			}
+		</div>
+	</div>
+}
+
+templ dashboardChildNode(node *service.DashboardNode) {
+	<div class="tree-leaf"
+		hx-get={ "/api/v1/status-reports?scope_type=ORG&scope_ref=" + node.ID.String() }
+		hx-target="#side-panel-body"
+		hx-swap="innerHTML">
+		<span class="tree-node-name">{ node.Name }</span>
+		<span class="tree-node-meta">
+			if node.AssessedStatus != "" {
+				<span class={ "badge badge-assessed-" + strings.ToLower(string(node.AssessedStatus)) }>{ string(node.AssessedStatus) }</span>
+			}
+		</span>
+	</div>
+}
+
+templ dashboardRecentEvents(events []*domain.Event) {
+	<div class="card">
+		<div class="card-header">
+			Recent Events
+			<a class="btn btn-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML" hx-push-url="/events">View All</a>
+		</div>
+		<div class="card-body" style="padding:0;">
+			<table class="table">
+				<thead>
+					<tr>
+						<th class="table-header">Title</th>
+						<th class="table-header">Status</th>
+						<th class="table-header">Impact</th>
+						<th class="table-header">TLP</th>
+						<th class="table-header">Date</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, e := range events {
+						<tr class="table-row clickable"
+							hx-get={ "/api/v1/events/" + e.ID.String() } hx-target="#app" hx-swap="innerHTML"
+							hx-push-url={ "/events/" + e.ID.String() }>
+							<td class="table-cell truncate">{ e.Title }</td>
+							<td class="table-cell">
+								@StatusBadge(e.Status)
+							</td>
+							<td class="table-cell">
+								@ImpactBadge(e.Impact)
+							</td>
+							<td class="table-cell">
+								@TLPBadge(e.TLP)
+							</td>
+							<td class="table-cell text-muted text-sm">{ FmtTime(e.CreatedAt) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+templ dashboardActiveCampaigns(campaigns []*domain.Campaign) {
+	<div class="card">
+		<div class="card-header">
+			Active Campaigns
+			<a class="btn btn-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML" hx-push-url="/campaigns">View All</a>
+		</div>
+		<div class="card-body" style="padding:0;">
+			<table class="table">
+				<thead>
+					<tr>
+						<th class="table-header">Title</th>
+						<th class="table-header">TLP</th>
+						<th class="table-header">Events</th>
+						<th class="table-header">Created</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, c := range campaigns {
+						<tr class="table-row clickable"
+							hx-get={ "/api/v1/campaigns/" + c.ID.String() } hx-target="#app" hx-swap="innerHTML"
+							hx-push-url={ "/campaigns/" + c.ID.String() }>
+							<td class="table-cell">{ c.Title }</td>
+							<td class="table-cell">
+								@TLPBadge(c.TLP)
+							</td>
+							<td class="table-cell text-muted">{ fmt.Sprintf("%d", c.EventCount) }</td>
+							<td class="table-cell text-muted text-sm">{ FmtTime(c.CreatedAt) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}

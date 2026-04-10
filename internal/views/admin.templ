@@ -1,0 +1,401 @@
+package views
+
+import (
+	"fmt"
+	"fresnel/internal/domain"
+)
+
+templ AdminSectors(sectors []*domain.Sector) {
+	<div class="page-header">
+		<h1>Sector Management</h1>
+	</div>
+	<div id="sector-tree">
+		if len(sectors) > 0 {
+			<div class="card">
+				<div class="card-body">
+					<div class="tree">
+						for _, s := range sectors {
+							<div class="tree-node">
+								<div class="tree-node-header">
+									<span class="tree-node-name">{ s.Name }</span>
+									<span class="tree-node-meta">
+										<span class="text-xs text-dim">depth { fmt.Sprintf("%d", s.Depth) }</span>
+										<span class="text-xs font-mono text-dim">{ s.AncestryPath }</span>
+										<button class="btn btn-sm"
+											hx-get={ "/api/v1/sectors/" + s.ID.String() } hx-target="#app" hx-swap="innerHTML"
+											hx-push-url={ "/sectors/" + s.ID.String() }>
+											View
+										</button>
+									</span>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		} else {
+			<div class="card">
+				<div class="card-body" style="text-align:center;padding:3rem;">
+					<p class="text-muted">No sectors defined yet.</p>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ SectorDetail(sector *domain.Sector) {
+	<div class="page-header">
+		<h1>{ sector.Name }</h1>
+	</div>
+	<div class="card">
+		<div class="card-header">Sector Details</div>
+		<div class="card-body">
+			<div class="meta-grid">
+				<div class="meta-item">
+					<div class="meta-label">ID</div>
+					<div class="meta-value font-mono text-sm">{ sector.ID.String() }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Name</div>
+					<div class="meta-value">{ sector.Name }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Depth</div>
+					<div class="meta-value">{ fmt.Sprintf("%d", sector.Depth) }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Ancestry Path</div>
+					<div class="meta-value font-mono text-sm">{ sector.AncestryPath }</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ SectorForm(sector *domain.Sector) {
+	<div class="page-header">
+		if sector != nil {
+			<h1>Edit Sector</h1>
+		} else {
+			<h1>Create Sector</h1>
+		}
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<form hx-post="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML">
+				<div class="form-group">
+					<label class="form-label">Name</label>
+					if sector != nil {
+						<input type="text" name="name" class="form-input" required value={ sector.Name }/>
+					} else {
+						<input type="text" name="name" class="form-input" required value=""/>
+					}
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary">Save</button>
+					<a class="btn" hx-get="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML" hx-push-url="/sectors">Cancel</a>
+				</div>
+			</form>
+		</div>
+	</div>
+}
+
+templ AdminOrgs(orgs []*domain.Organization) {
+	<div class="page-header">
+		<h1>Organization Management</h1>
+	</div>
+	<div id="org-list">
+		if len(orgs) > 0 {
+			<div class="card" style="overflow:hidden;">
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Name</th>
+							<th class="table-header">Sector</th>
+							<th class="table-header">Created</th>
+							<th class="table-header">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, o := range orgs {
+							<tr class="table-row">
+								<td class="table-cell">{ o.Name }</td>
+								<td class="table-cell text-sm font-mono">{ o.SectorID.String() }</td>
+								<td class="table-cell text-sm text-muted">{ FmtTime(o.CreatedAt) }</td>
+								<td class="table-cell">
+									<button class="btn btn-sm"
+										hx-get={ "/api/v1/orgs/" + o.ID.String() } hx-target="#app" hx-swap="innerHTML"
+										hx-push-url={ "/orgs/" + o.ID.String() }>
+										View
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		} else {
+			<div class="card">
+				<div class="card-body" style="text-align:center;padding:3rem;">
+					<p class="text-muted">No organizations found.</p>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ OrgDetail(org *domain.Organization) {
+	<div class="page-header">
+		<h1>{ org.Name }</h1>
+	</div>
+	<div class="card">
+		<div class="card-header">Organization Details</div>
+		<div class="card-body">
+			<div class="meta-grid">
+				<div class="meta-item">
+					<div class="meta-label">ID</div>
+					<div class="meta-value font-mono text-sm">{ org.ID.String() }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Name</div>
+					<div class="meta-value">{ org.Name }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Sector</div>
+					<div class="meta-value font-mono text-sm">{ org.SectorID.String() }</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ OrgForm(org *domain.Organization) {
+	<div class="page-header">
+		if org != nil {
+			<h1>Edit Organization</h1>
+		} else {
+			<h1>Create Organization</h1>
+		}
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<form hx-post="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML">
+				<div class="form-group">
+					<label class="form-label">Name</label>
+					if org != nil {
+						<input type="text" name="name" class="form-input" required value={ org.Name }/>
+					} else {
+						<input type="text" name="name" class="form-input" required value=""/>
+					}
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary">Save</button>
+					<a class="btn" hx-get="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML" hx-push-url="/orgs">Cancel</a>
+				</div>
+			</form>
+		</div>
+	</div>
+}
+
+templ AdminUsers(users []*domain.User, total int) {
+	<div class="page-header">
+		<h1>User Management</h1>
+	</div>
+	<div id="user-list">
+		if len(users) > 0 {
+			<div class="card" style="overflow:hidden;">
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Name</th>
+							<th class="table-header">Email</th>
+							<th class="table-header">Primary Org</th>
+							<th class="table-header">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, u := range users {
+							<tr class="table-row">
+								<td class="table-cell">{ u.DisplayName }</td>
+								<td class="table-cell text-sm">{ u.Email }</td>
+								<td class="table-cell text-sm font-mono">{ u.PrimaryOrgID.String() }</td>
+								<td class="table-cell">
+									<button class="btn btn-sm"
+										hx-get={ "/api/v1/users/" + u.ID.String() } hx-target="#app" hx-swap="innerHTML"
+										hx-push-url={ "/users/" + u.ID.String() }>
+										View
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d user(s) total", total) }</p>
+		} else {
+			<div class="card">
+				<div class="card-body" style="text-align:center;padding:3rem;">
+					<p class="text-muted">No users found.</p>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ UserDetail(user *domain.User) {
+	<div class="page-header">
+		<h1>{ user.DisplayName }</h1>
+		<span class="text-muted text-sm">{ user.Email }</span>
+	</div>
+	<div class="card">
+		<div class="card-header">Profile</div>
+		<div class="card-body">
+			<div class="meta-grid">
+				<div class="meta-item">
+					<div class="meta-label">ID</div>
+					<div class="meta-value text-sm font-mono">{ user.ID.String() }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Display Name</div>
+					<div class="meta-value">{ user.DisplayName }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Email</div>
+					<div class="meta-value">{ user.Email }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Primary Organization</div>
+					<div class="meta-value font-mono text-sm">{ user.PrimaryOrgID.String() }</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ UserForm(user *domain.User) {
+	<div class="page-header">
+		if user != nil {
+			<h1>Edit User</h1>
+		} else {
+			<h1>Create User</h1>
+		}
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<form hx-post="/api/v1/users" hx-target="#app" hx-swap="innerHTML">
+				<div class="form-group">
+					<label class="form-label">Display Name</label>
+					if user != nil {
+						<input type="text" name="display_name" class="form-input" required value={ user.DisplayName }/>
+					} else {
+						<input type="text" name="display_name" class="form-input" required value=""/>
+					}
+				</div>
+				<div class="form-group">
+					<label class="form-label">Email</label>
+					if user != nil {
+						<input type="email" name="email" class="form-input" required value={ user.Email }/>
+					} else {
+						<input type="email" name="email" class="form-input" required value=""/>
+					}
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary">Save</button>
+					<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/users">Cancel</a>
+				</div>
+			</form>
+		</div>
+	</div>
+}
+
+templ AdminRoles(data AdminRolesData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/admin/users" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/admin/users">&larr; Back to Users</a>
+			<h1 style="margin-top:.25rem;">Roles for { data.UserName }</h1>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Assigned Roles</div>
+		<div class="card-body">
+			if len(data.Roles) > 0 {
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Role</th>
+							<th class="table-header">Scope Type</th>
+							<th class="table-header">Scope</th>
+							<th class="table-header">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, role := range data.Roles {
+							<tr class="table-row">
+								<td class="table-cell"><span class="badge badge-severity-info">{ role.Role }</span></td>
+								<td class="table-cell text-sm">{ role.ScopeType }</td>
+								<td class="table-cell text-sm">{ role.ScopeName }</td>
+								<td class="table-cell">
+									<button class="btn btn-sm btn-danger"
+										hx-delete={ fmt.Sprintf("/api/v1/admin/users/%s/roles/%s?scope_type=%s&scope_id=%s", data.UserID.String(), role.Role, role.ScopeType, role.ScopeID.String()) }
+										hx-target="#app" hx-swap="innerHTML"
+										hx-confirm={ "Revoke role " + role.Role + "?" }>
+										Revoke
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			} else {
+				<p class="text-muted text-sm">No roles assigned.</p>
+			}
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Assign Role</div>
+		<div class="card-body">
+			<form hx-post={ "/api/v1/admin/users/" + data.UserID.String() + "/roles" }
+				hx-target="#app" hx-swap="innerHTML">
+				<div class="form-row">
+					<div class="form-group">
+						<label class="form-label" for="role">Role</label>
+						<select id="role" name="role" class="form-select" required>
+							<option value="">Select role&hellip;</option>
+							<option value="PLATFORM_ROOT">Platform Root</option>
+							<option value="SECTOR_ROOT">Sector Root</option>
+							<option value="ORG_ROOT">Org Root</option>
+							<option value="ORG_ADMIN">Org Admin</option>
+							<option value="CONTENT_ADMIN">Content Admin</option>
+							<option value="CONTRIBUTOR">Contributor</option>
+							<option value="VIEWER">Viewer</option>
+							<option value="LIAISON">Liaison</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label class="form-label" for="scope_type">Scope Type</label>
+						<select id="scope_type" name="scope_type" class="form-select" required>
+							<option value="">Select scope&hellip;</option>
+							<option value="PLATFORM">Platform</option>
+							<option value="SECTOR">Sector</option>
+							<option value="ORG">Organization</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="form-label" for="scope_id">Scope Target</label>
+					<select id="scope_id" name="scope_id" class="form-select">
+						<option value="">Platform-wide (no specific target)</option>
+						for _, opt := range data.ScopeOptions {
+							<option value={ opt.ID.String() }>{ opt.Name } ({ opt.Type })</option>
+						}
+					</select>
+					<span class="form-hint">For PLATFORM scope, leave target empty. For SECTOR or ORG, select the target.</span>
+				</div>
+				<div class="form-actions">
+					<button type="submit" class="btn btn-primary btn-sm">Assign Role</button>
+				</div>
+			</form>
+		</div>
+	</div>
+}

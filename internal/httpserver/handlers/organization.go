@@ -1,22 +1,22 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
 	"github.com/google/uuid"
 )
 
 type OrgHandler struct {
 	orgs *service.OrganizationService
-	tmpl *template.Template
 }
 
-func NewOrgHandler(orgs *service.OrganizationService, tmpl *template.Template) *OrgHandler {
-	return &OrgHandler{orgs: orgs, tmpl: tmpl}
+func NewOrgHandler(orgs *service.OrganizationService) *OrgHandler {
+	return &OrgHandler{orgs: orgs}
 }
 
 func (h *OrgHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -35,10 +35,15 @@ func (h *OrgHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "admin_orgs", http.StatusOK, OrgListData{
-		User: auth,
-		Orgs: orgs,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, OrgListData{
+			User: auth,
+			Orgs: orgs,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.AdminOrgs(orgs))
 }
 
 func (h *OrgHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -53,10 +58,15 @@ func (h *OrgHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "org_detail", http.StatusOK, OrgDetailData{
-		User: auth,
-		Org:  org,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, OrgDetailData{
+			User: auth,
+			Org:  org,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.OrgDetail(org))
 }
 
 func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +80,7 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &org)
+	respondJSON(w, http.StatusCreated, &org)
 }
 
 func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +100,7 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, &org)
+	respondJSON(w, http.StatusOK, &org)
 }
 
 func (h *OrgHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +119,7 @@ func (h *OrgHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrgHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	data := OrgFormData{User: auth}
+	var org *domain.Organization
 
 	if idStr := r.PathValue("id"); idStr != "" {
 		id, err := uuid.Parse(idStr)
@@ -117,12 +127,16 @@ func (h *OrgHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		org, err := h.orgs.GetByID(r.Context(), auth, id)
+		org, err = h.orgs.GetByID(r.Context(), auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return
 		}
-		data.Org = org
 	}
-	respond(w, r, h.tmpl, "org_form", http.StatusOK, data)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, OrgFormData{User: auth, Org: org})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.OrgForm(org))
 }

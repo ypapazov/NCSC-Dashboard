@@ -2,6 +2,9 @@
 /bin/
 *.exe
 
+# Templ generated files
+*_templ.go
+
 # Go
 vendor/
 coverage.out

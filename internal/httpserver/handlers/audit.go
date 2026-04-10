@@ -1,23 +1,23 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 	"time"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
 	"github.com/google/uuid"
 )
 
 type AuditHandler struct {
 	audit *service.AuditService
-	tmpl  *template.Template
 }
 
-func NewAuditHandler(audit *service.AuditService, tmpl *template.Template) *AuditHandler {
-	return &AuditHandler{audit: audit, tmpl: tmpl}
+func NewAuditHandler(audit *service.AuditService) *AuditHandler {
+	return &AuditHandler{audit: audit}
 }
 
 func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -64,9 +64,14 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "audit_log", http.StatusOK, AuditListData{
-		User:    auth,
-		Entries: result.Items,
-		Total:   result.TotalCount,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, AuditListData{
+			User:    auth,
+			Entries: result.Items,
+			Total:   result.TotalCount,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.AuditLog(result.Items, result.TotalCount))
 }

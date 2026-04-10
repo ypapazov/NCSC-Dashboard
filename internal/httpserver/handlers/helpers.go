@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,7 +10,9 @@ import (
 	"fresnel/internal/domain"
 	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
+	"github.com/a-h/templ"
 	"github.com/google/uuid"
 )
 
@@ -50,11 +51,11 @@ func respondJSON(w http.ResponseWriter, status int, data any) {
 	}
 }
 
-func respondHTML(w http.ResponseWriter, tmpl *template.Template, name string, data any) {
+func respondView(w http.ResponseWriter, r *http.Request, status int, component templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
-		slog.Error("template render", "template", name, "err", err)
-		http.Error(w, "template error", http.StatusInternalServerError)
+	w.WriteHeader(status)
+	if err := component.Render(r.Context(), w); err != nil {
+		slog.Error("templ render", "err", err)
 	}
 }
 
@@ -84,19 +85,15 @@ func respondError(w http.ResponseWriter, r *http.Request, err error) {
 		respondJSON(w, code, map[string]string{"error": msg})
 		return
 	}
-	http.Error(w, msg, code)
-}
 
-// respond writes either JSON or HTML based on content negotiation.
-func respond(w http.ResponseWriter, r *http.Request, tmpl *template.Template, templateName string, status int, data any) {
-	if getRenderKind(r) == requestctx.RenderJSON {
-		respondJSON(w, status, data)
-		return
+	var component templ.Component
+	switch code {
+	case http.StatusForbidden:
+		component = views.Error403()
+	case http.StatusNotFound:
+		component = views.Error404()
+	default:
+		component = views.Error500()
 	}
-	if tmpl != nil && templateName != "" {
-		w.WriteHeader(status)
-		respondHTML(w, tmpl, templateName, data)
-		return
-	}
-	respondJSON(w, status, data)
+	respondView(w, r, code, component)
 }

@@ -1,6 +1,9 @@
-.PHONY: build test lint compose-up compose-down migrate seed run certs
+.PHONY: build test lint compose-up compose-down migrate seed run certs generate
 
-build:
+generate:
+	templ generate
+
+build: generate
 	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/fresnel ./cmd/fresnel
 
 test:
@@ -28,7 +31,7 @@ migrate:
 seed:
 	./scripts/seed-dev-data.sh
 
-run:
+run: generate
 	LISTEN_ADDR=:8080 \
 	DATABASE_URL=$${DATABASE_URL:-postgres://fresnel:fresnel@127.0.0.1:5432/fresnel?sslmode=disable} \
 	KEYCLOAK_ISSUER=$${KEYCLOAK_ISSUER:-http://127.0.0.1:8081/realms/fresnel} \

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 
 	"fresnel/internal/domain"
@@ -12,11 +11,10 @@ import (
 
 type CorrelationHandler struct {
 	corrs *service.CorrelationService
-	tmpl  *template.Template
 }
 
-func NewCorrelationHandler(corrs *service.CorrelationService, tmpl *template.Template) *CorrelationHandler {
-	return &CorrelationHandler{corrs: corrs, tmpl: tmpl}
+func NewCorrelationHandler(corrs *service.CorrelationService) *CorrelationHandler {
+	return &CorrelationHandler{corrs: corrs}
 }
 
 func (h *CorrelationHandler) ListByEvent(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +29,7 @@ func (h *CorrelationHandler) ListByEvent(w http.ResponseWriter, r *http.Request)
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, correlations)
+	respondJSON(w, http.StatusOK, correlations)
 }
 
 func (h *CorrelationHandler) CreateCorrelation(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +44,6 @@ func (h *CorrelationHandler) CreateCorrelation(w http.ResponseWriter, r *http.Re
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	// Ensure event_a_id is the path event
 	if corr.EventAID == uuid.Nil {
 		corr.EventAID = eventID
 	}
@@ -54,7 +51,7 @@ func (h *CorrelationHandler) CreateCorrelation(w http.ResponseWriter, r *http.Re
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &corr)
+	respondJSON(w, http.StatusCreated, &corr)
 }
 
 func (h *CorrelationHandler) ConfirmCorrelation(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +65,7 @@ func (h *CorrelationHandler) ConfirmCorrelation(w http.ResponseWriter, r *http.R
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, map[string]string{"status": "confirmed"})
+	respondJSON(w, http.StatusOK, map[string]string{"status": "confirmed"})
 }
 
 func (h *CorrelationHandler) DeleteCorrelation(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +101,7 @@ func (h *CorrelationHandler) CreateRelationship(w http.ResponseWriter, r *http.R
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &rel)
+	respondJSON(w, http.StatusCreated, &rel)
 }
 
 func (h *CorrelationHandler) ListRelationships(w http.ResponseWriter, r *http.Request) {
@@ -119,5 +116,5 @@ func (h *CorrelationHandler) ListRelationships(w http.ResponseWriter, r *http.Re
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, rels)
+	respondJSON(w, http.StatusOK, rels)
 }

@@ -1,23 +1,23 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 	"time"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
 	"github.com/google/uuid"
 )
 
 type EventHandler struct {
 	events *service.EventService
-	tmpl   *template.Template
 }
 
-func NewEventHandler(events *service.EventService, tmpl *template.Template) *EventHandler {
-	return &EventHandler{events: events, tmpl: tmpl}
+func NewEventHandler(events *service.EventService) *EventHandler {
+	return &EventHandler{events: events}
 }
 
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -71,12 +71,17 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "event_list", http.StatusOK, EventListData{
-		User:   auth,
-		Events: result.Items,
-		Total:  result.TotalCount,
-		Filter: filter,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, EventListData{
+			User:   auth,
+			Events: result.Items,
+			Total:  result.TotalCount,
+			Filter: filter,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.EventList(result.Items, result.TotalCount))
 }
 
 func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -91,10 +96,17 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "event_detail", http.StatusOK, EventDetailData{
-		User:  auth,
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, EventDetailData{
+			User:  auth,
+			Event: event,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.EventDetail(views.EventDetailData{
 		Event: event,
-	})
+	}))
 }
 
 type eventCreateRequest struct {
@@ -113,7 +125,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &req.Event)
+	respondJSON(w, http.StatusCreated, &req.Event)
 }
 
 type eventUpdateRequest struct {
@@ -138,7 +150,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, &req.Event)
+	respondJSON(w, http.StatusOK, &req.Event)
 }
 
 func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +184,7 @@ func (h *EventHandler) CreateUpdate(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &update)
+	respondJSON(w, http.StatusCreated, &update)
 }
 
 func (h *EventHandler) ListUpdates(w http.ResponseWriter, r *http.Request) {
@@ -187,11 +199,26 @@ func (h *EventHandler) ListUpdates(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "event_updates", http.StatusOK, map[string]any{
-		"User":    auth,
-		"Updates": updates,
-		"EventID": eventID,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, map[string]any{
+			"User":    auth,
+			"Updates": updates,
+			"EventID": eventID,
+		})
+		return
+	}
+
+	viewUpdates := make([]views.EventUpdateView, len(updates))
+	for i, u := range updates {
+		viewUpdates[i] = views.EventUpdateView{
+			EventUpdate: *u,
+		}
+	}
+	respondView(w, r, http.StatusOK, views.EventUpdates(views.EventUpdatesData{
+		Updates: viewUpdates,
+		EventID: eventID,
+	}))
 }
 
 func (h *EventHandler) ListRevisions(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +233,7 @@ func (h *EventHandler) ListRevisions(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, map[string]any{
+	respondJSON(w, http.StatusOK, map[string]any{
 		"User":      auth,
 		"Revisions": revisions,
 		"EventID":   eventID,
@@ -215,7 +242,7 @@ func (h *EventHandler) ListRevisions(w http.ResponseWriter, r *http.Request) {
 
 func (h *EventHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	data := EventFormData{User: auth}
+	var event *domain.Event
 
 	if idStr := r.PathValue("id"); idStr != "" {
 		id, err := uuid.Parse(idStr)
@@ -223,12 +250,18 @@ func (h *EventHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		event, err := h.events.GetByID(r.Context(), auth, id)
+		event, err = h.events.GetByID(r.Context(), auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return
 		}
-		data.Event = event
 	}
-	respond(w, r, h.tmpl, "event_form", http.StatusOK, data)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, EventFormData{User: auth, Event: event})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.EventForm(views.EventFormData{
+		Event: event,
+	}))
 }

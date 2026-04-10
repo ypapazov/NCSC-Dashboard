@@ -1,0 +1,30 @@
+package views
+
+import (
+	"strings"
+	"fresnel/internal/domain"
+)
+
+templ TLPBadge(tlp domain.TLP) {
+	<span class={ "badge badge-tlp-" + strings.ToLower(string(tlp)) }>TLP:{ string(tlp) }</span>
+}
+
+templ ImpactBadge(impact domain.Impact) {
+	<span class={ "badge badge-impact-" + strings.ToLower(string(impact)) }>{ string(impact) }</span>
+}
+
+templ StatusBadge(status domain.EventStatus) {
+	<span class={ "badge badge-status-" + strings.ToLower(string(status)) }>{ string(status) }</span>
+}
+
+templ AssessedBadge(status domain.AssessedStatus) {
+	<span class={ "badge badge-assessed-" + strings.ToLower(string(status)) }>{ string(status) }</span>
+}
+
+templ CampaignStatusBadge(status domain.CampaignStatus) {
+	<span class={ "badge badge-campaign-" + strings.ToLower(string(status)) }>{ string(status) }</span>
+}
+
+templ SeverityBadge(severity domain.AuditSeverity) {
+	<span class={ "badge badge-severity-" + strings.ToLower(string(severity)) }>{ string(severity) }</span>
+}

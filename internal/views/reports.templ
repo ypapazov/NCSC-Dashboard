@@ -1,0 +1,305 @@
+package views
+
+import (
+	"fmt"
+	"fresnel/internal/domain"
+)
+
+templ ReportList(reports []*domain.StatusReport, total int) {
+	<div class="page-header">
+		<h1>Status Reports</h1>
+		<button class="btn btn-primary"
+			hx-get="/api/v1/status-reports/new" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/status-reports/new">
+			+ New Report
+		</button>
+	</div>
+	<div id="report-results">
+		if len(reports) > 0 {
+			<div class="card" style="overflow:hidden;">
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Title</th>
+							<th class="table-header">Scope</th>
+							<th class="table-header">Assessed Status</th>
+							<th class="table-header">Impact</th>
+							<th class="table-header">TLP</th>
+							<th class="table-header">Published</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range reports {
+							<tr class="table-row clickable"
+								hx-get={ "/api/v1/status-reports/" + r.ID.String() } hx-target="#app" hx-swap="innerHTML"
+								hx-push-url={ "/status-reports/" + r.ID.String() }>
+								<td class="table-cell truncate">{ r.Title }</td>
+								<td class="table-cell text-sm">{ r.ScopeType }</td>
+								<td class="table-cell">
+									@AssessedBadge(r.AssessedStatus)
+								</td>
+								<td class="table-cell">
+									@ImpactBadge(r.Impact)
+								</td>
+								<td class="table-cell">
+									@TLPBadge(r.TLP)
+								</td>
+								<td class="table-cell text-sm text-muted">{ FmtTime(r.PublishedAt) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d report(s) total", total) }</p>
+		} else {
+			<div class="card">
+				<div class="card-body" style="text-align:center;padding:3rem;">
+					<p class="text-muted">No status reports found.</p>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ ReportDetail(data ReportDetailData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/status-reports">&larr; Back to Reports</a>
+			<h1 style="margin-top:.25rem;">{ data.Report.Title }</h1>
+		</div>
+		<div class="flex gap-md items-center">
+			if data.CanEdit {
+				<button class="btn btn-secondary"
+					hx-get={ "/api/v1/status-reports/" + data.Report.ID.String() + "/edit" } hx-target="#app" hx-swap="innerHTML"
+					hx-push-url={ "/status-reports/" + data.Report.ID.String() + "/edit" }>
+					Edit
+				</button>
+			}
+		</div>
+	</div>
+	<div class="flex gap-md items-center mb-md">
+		@AssessedBadge(data.Report.AssessedStatus)
+		@ImpactBadge(data.Report.Impact)
+		@TLPBadge(data.Report.TLP)
+	</div>
+	<div class="card">
+		<div class="card-body">
+			<div class="meta-grid">
+				<div class="meta-item">
+					<div class="meta-label">Scope</div>
+					<div class="meta-value">{ data.Report.ScopeType }: { data.ScopeName }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Author</div>
+					<div class="meta-value">{ data.AuthorName }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Period Covered</div>
+					<div class="meta-value">{ FmtDate(data.Report.PeriodCoveredStart) } &ndash; { FmtDate(data.Report.PeriodCoveredEnd) }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">As Of</div>
+					<div class="meta-value">{ FmtTime(data.Report.AsOf) }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Published</div>
+					<div class="meta-value">{ FmtTime(data.Report.PublishedAt) }</div>
+				</div>
+				<div class="meta-item">
+					<div class="meta-label">Report ID</div>
+					<div class="meta-value font-mono text-sm">{ data.Report.ID.String() }</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-header">Body</div>
+		<div class="card-body rendered-body">
+			@templ.Raw(data.BodyHTML)
+		</div>
+	</div>
+	if len(data.LinkedEvents) > 0 {
+		<div class="card">
+			<div class="card-header">Linked Events</div>
+			<div class="card-body" style="padding:0;">
+				<table class="table">
+					<thead>
+						<tr>
+							<th class="table-header">Title</th>
+							<th class="table-header">Status</th>
+							<th class="table-header">Impact</th>
+							<th class="table-header">Date</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, e := range data.LinkedEvents {
+							<tr class="table-row clickable"
+								hx-get={ "/api/v1/events/" + e.ID.String() } hx-target="#app" hx-swap="innerHTML"
+								hx-push-url={ "/events/" + e.ID.String() }>
+								<td class="table-cell truncate">{ e.Title }</td>
+								<td class="table-cell">
+									@StatusBadge(e.Status)
+								</td>
+								<td class="table-cell">
+									@ImpactBadge(e.Impact)
+								</td>
+								<td class="table-cell text-sm text-muted">{ FmtTime(e.CreatedAt) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+	<div class="card">
+		<div class="card-header">Revision History</div>
+		<div class="card-body">
+			<details>
+				<summary class="revision-toggle">Show { fmt.Sprintf("%d", len(data.Revisions)) } revision(s)</summary>
+				<ul class="revision-list mt-sm">
+					for _, rev := range data.Revisions {
+						<li class="revision-item">
+							<span class="revision-number">#{ fmt.Sprintf("%d", rev.RevisionNumber) }</span>
+							<span>{ FmtUser(rev.ChangedBy) } &middot; { FmtTime(rev.ChangedAt) }</span>
+							<span class="flex gap-sm">
+								@AssessedBadge(rev.AssessedStatus)
+								@ImpactBadge(rev.Impact)
+							</span>
+						</li>
+					}
+				</ul>
+			</details>
+		</div>
+	</div>
+}
+
+templ ReportForm(data ReportFormData) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/status-reports">&larr; Back to Reports</a>
+			if data.Report != nil && data.Report.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				<h1 style="margin-top:.25rem;">Edit Status Report</h1>
+			} else {
+				<h1 style="margin-top:.25rem;">New Status Report</h1>
+			}
+		</div>
+	</div>
+	<div class="card">
+		<div class="card-body">
+			if data.Report != nil && data.Report.ID.String() != "00000000-0000-0000-0000-000000000000" {
+				<form id="report-form"
+					hx-put={ "/api/v1/status-reports/" + data.Report.ID.String() } hx-target="#app" hx-swap="innerHTML">
+					@reportFormFields(data)
+				</form>
+			} else {
+				<form id="report-form"
+					hx-post="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML">
+					@reportFormFields(data)
+				</form>
+			}
+		</div>
+	</div>
+}
+
+templ reportFormFields(data ReportFormData) {
+	<div class="form-group">
+		<label class="form-label" for="title">Title</label>
+		<input type="text" id="title" name="title" class="form-input" required
+			maxlength="500" value={ safeReportField(data.Report, func(r *domain.StatusReport) string { return r.Title }) }/>
+	</div>
+	<div class="form-group">
+		<label class="form-label" for="body">Body</label>
+		<textarea id="body" name="body" class="form-textarea" required
+			maxlength="50000" placeholder="Status report content (Markdown supported)">{ safeReportField(data.Report, func(r *domain.StatusReport) string { return r.Body }) }</textarea>
+		<span class="form-hint">Markdown formatting is supported.</span>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="scope_type">Scope Type</label>
+			<select id="scope_type" name="scope_type" class="form-select" required>
+				<option value="">Select scope&hellip;</option>
+				<option value="ORG" selected?={ data.Report != nil && data.Report.ScopeType == "ORG" }>Organization</option>
+				<option value="SECTOR" selected?={ data.Report != nil && data.Report.ScopeType == "SECTOR" }>Sector</option>
+			</select>
+		</div>
+		<div class="form-group">
+			<label class="form-label" for="scope_ref">Scope Reference</label>
+			<select id="scope_ref" name="scope_ref" class="form-select" required>
+				<option value="">Select scope target&hellip;</option>
+				for _, opt := range data.ScopeOptions {
+					<option value={ opt.ID.String() } selected?={ data.Report != nil && data.Report.ScopeRef == opt.ID }>{ opt.Name } ({ opt.Type })</option>
+				}
+			</select>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="assessed_status">Assessed Status</label>
+			<select id="assessed_status" name="assessed_status" class="form-select" required>
+				<option value="">Select status&hellip;</option>
+				<option value="NORMAL" selected?={ data.Report != nil && data.Report.AssessedStatus == "NORMAL" }>Normal</option>
+				<option value="DEGRADED" selected?={ data.Report != nil && data.Report.AssessedStatus == "DEGRADED" }>Degraded</option>
+				<option value="IMPAIRED" selected?={ data.Report != nil && data.Report.AssessedStatus == "IMPAIRED" }>Impaired</option>
+				<option value="CRITICAL" selected?={ data.Report != nil && data.Report.AssessedStatus == "CRITICAL" }>Critical</option>
+				<option value="UNKNOWN" selected?={ data.Report != nil && data.Report.AssessedStatus == "UNKNOWN" }>Unknown</option>
+			</select>
+		</div>
+		<div class="form-group">
+			<label class="form-label" for="impact">Impact</label>
+			<select id="impact" name="impact" class="form-select" required>
+				<option value="">Select impact&hellip;</option>
+				<option value="INFO" selected?={ data.Report != nil && data.Report.Impact == "INFO" }>Info</option>
+				<option value="LOW" selected?={ data.Report != nil && data.Report.Impact == "LOW" }>Low</option>
+				<option value="MODERATE" selected?={ data.Report != nil && data.Report.Impact == "MODERATE" }>Moderate</option>
+				<option value="HIGH" selected?={ data.Report != nil && data.Report.Impact == "HIGH" }>High</option>
+				<option value="CRITICAL" selected?={ data.Report != nil && data.Report.Impact == "CRITICAL" }>Critical</option>
+			</select>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="tlp">TLP</label>
+			<select id="tlp" name="tlp" class="form-select" required>
+				<option value="">Select TLP&hellip;</option>
+				<option value="CLEAR" selected?={ data.Report != nil && data.Report.TLP == "CLEAR" }>TLP:CLEAR</option>
+				<option value="GREEN" selected?={ data.Report != nil && data.Report.TLP == "GREEN" }>TLP:GREEN</option>
+				<option value="AMBER" selected?={ data.Report != nil && data.Report.TLP == "AMBER" }>TLP:AMBER</option>
+				<option value="AMBER_STRICT" selected?={ data.Report != nil && data.Report.TLP == "AMBER_STRICT" }>TLP:AMBER+STRICT</option>
+				<option value="RED" selected?={ data.Report != nil && data.Report.TLP == "RED" }>TLP:RED</option>
+			</select>
+		</div>
+		<div class="form-group"></div>
+	</div>
+	<div class="form-row">
+		<div class="form-group">
+			<label class="form-label" for="period_start">Period Start</label>
+			<input type="date" id="period_start" name="period_covered_start" class="form-input" required
+				value={ safeReportField(data.Report, func(r *domain.StatusReport) string { return FmtDate(r.PeriodCoveredStart) }) }/>
+		</div>
+		<div class="form-group">
+			<label class="form-label" for="period_end">Period End</label>
+			<input type="date" id="period_end" name="period_covered_end" class="form-input" required
+				value={ safeReportField(data.Report, func(r *domain.StatusReport) string { return FmtDate(r.PeriodCoveredEnd) }) }/>
+		</div>
+	</div>
+	<div class="form-actions">
+		if data.Report != nil && data.Report.ID.String() != "00000000-0000-0000-0000-000000000000" {
+			<button type="submit" class="btn btn-primary">Save Changes</button>
+			<button type="button" class="btn"
+				hx-get={ "/api/v1/status-reports/" + data.Report.ID.String() } hx-target="#app" hx-swap="innerHTML"
+				hx-push-url={ "/status-reports/" + data.Report.ID.String() }>
+				Cancel
+			</button>
+		} else {
+			<button type="submit" class="btn btn-primary">Create Report</button>
+			<button type="button" class="btn"
+				hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/status-reports">
+				Cancel
+			</button>
+		}
+		<span class="htmx-indicator"><span class="spinner"></span></span>
+	</div>
+}

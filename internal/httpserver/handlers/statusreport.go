@@ -1,23 +1,23 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 	"time"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
 	"github.com/google/uuid"
 )
 
 type StatusReportHandler struct {
 	reports *service.StatusReportService
-	tmpl    *template.Template
 }
 
-func NewStatusReportHandler(reports *service.StatusReportService, tmpl *template.Template) *StatusReportHandler {
-	return &StatusReportHandler{reports: reports, tmpl: tmpl}
+func NewStatusReportHandler(reports *service.StatusReportService) *StatusReportHandler {
+	return &StatusReportHandler{reports: reports}
 }
 
 func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -63,11 +63,16 @@ func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "report_list", http.StatusOK, StatusReportListData{
-		User:    auth,
-		Reports: result.Items,
-		Total:   result.TotalCount,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, StatusReportListData{
+			User:    auth,
+			Reports: result.Items,
+			Total:   result.TotalCount,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.ReportList(result.Items, result.TotalCount))
 }
 
 func (h *StatusReportHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -82,10 +87,17 @@ func (h *StatusReportHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "report_detail", http.StatusOK, StatusReportDetailData{
-		User:   auth,
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, StatusReportDetailData{
+			User:   auth,
+			Report: report,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.ReportDetail(views.ReportDetailData{
 		Report: report,
-	})
+	}))
 }
 
 type statusReportCreateRequest struct {
@@ -104,7 +116,7 @@ func (h *StatusReportHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &req.StatusReport)
+	respondJSON(w, http.StatusCreated, &req.StatusReport)
 }
 
 func (h *StatusReportHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +136,7 @@ func (h *StatusReportHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, &sr)
+	respondJSON(w, http.StatusOK, &sr)
 }
 
 func (h *StatusReportHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +155,7 @@ func (h *StatusReportHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *StatusReportHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	data := StatusReportFormData{User: auth}
+	var report *domain.StatusReport
 
 	if idStr := r.PathValue("id"); idStr != "" {
 		id, err := uuid.Parse(idStr)
@@ -151,12 +163,18 @@ func (h *StatusReportHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		report, err := h.reports.GetByID(r.Context(), auth, id)
+		report, err = h.reports.GetByID(r.Context(), auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return
 		}
-		data.Report = report
 	}
-	respond(w, r, h.tmpl, "report_form", http.StatusOK, data)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, StatusReportFormData{User: auth, Report: report})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.ReportForm(views.ReportFormData{
+		Report: report,
+	}))
 }

@@ -1,22 +1,22 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
+	"fresnel/internal/views"
 
 	"github.com/google/uuid"
 )
 
 type CampaignHandler struct {
 	campaigns *service.CampaignService
-	tmpl      *template.Template
 }
 
-func NewCampaignHandler(campaigns *service.CampaignService, tmpl *template.Template) *CampaignHandler {
-	return &CampaignHandler{campaigns: campaigns, tmpl: tmpl}
+func NewCampaignHandler(campaigns *service.CampaignService) *CampaignHandler {
+	return &CampaignHandler{campaigns: campaigns}
 }
 
 func (h *CampaignHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -45,11 +45,16 @@ func (h *CampaignHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "campaign_list", http.StatusOK, CampaignListData{
-		User:      auth,
-		Campaigns: result.Items,
-		Total:     result.TotalCount,
-	})
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, CampaignListData{
+			User:      auth,
+			Campaigns: result.Items,
+			Total:     result.TotalCount,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.CampaignList(result.Items, result.TotalCount))
 }
 
 func (h *CampaignHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -64,10 +69,17 @@ func (h *CampaignHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "campaign_detail", http.StatusOK, CampaignDetailData{
-		User:     auth,
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, CampaignDetailData{
+			User:     auth,
+			Campaign: campaign,
+		})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.CampaignDetail(views.CampaignDetailData{
 		Campaign: campaign,
-	})
+	}))
 }
 
 func (h *CampaignHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +93,7 @@ func (h *CampaignHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, &campaign)
+	respondJSON(w, http.StatusCreated, &campaign)
 }
 
 func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +113,7 @@ func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, &campaign)
+	respondJSON(w, http.StatusOK, &campaign)
 }
 
 type linkEventRequest struct {
@@ -124,7 +136,7 @@ func (h *CampaignHandler) LinkEvent(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusCreated, map[string]string{"status": "linked"})
+	respondJSON(w, http.StatusCreated, map[string]string{"status": "linked"})
 }
 
 func (h *CampaignHandler) UnlinkEvent(w http.ResponseWriter, r *http.Request) {
@@ -158,12 +170,12 @@ func (h *CampaignHandler) GetLinkedEvents(w http.ResponseWriter, r *http.Request
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, nil, "", http.StatusOK, events)
+	respondJSON(w, http.StatusOK, events)
 }
 
 func (h *CampaignHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	data := CampaignFormData{User: auth}
+	var campaign *domain.Campaign
 
 	if idStr := r.PathValue("id"); idStr != "" {
 		id, err := uuid.Parse(idStr)
@@ -171,12 +183,18 @@ func (h *CampaignHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		campaign, err := h.campaigns.GetByID(r.Context(), auth, id)
+		campaign, err = h.campaigns.GetByID(r.Context(), auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return
 		}
-		data.Campaign = campaign
 	}
-	respond(w, r, h.tmpl, "campaign_form", http.StatusOK, data)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, CampaignFormData{User: auth, Campaign: campaign})
+		return
+	}
+	respondView(w, r, http.StatusOK, views.CampaignForm(views.CampaignFormData{
+		Campaign: campaign,
+	}))
 }
