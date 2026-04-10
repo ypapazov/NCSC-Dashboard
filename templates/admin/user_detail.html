@@ -1,0 +1,30 @@
+{{define "user_detail"}}
+<div class="page-header">
+  <h1>{{.ProfileUser.DisplayName}}</h1>
+  <span class="text-muted text-sm">{{.ProfileUser.Email}}</span>
+</div>
+
+<div class="card">
+  <div class="card-header">Profile</div>
+  <div class="card-body">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">ID</div>
+        <div class="meta-value text-sm font-mono">{{.ProfileUser.ID}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Display Name</div>
+        <div class="meta-value">{{.ProfileUser.DisplayName}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Email</div>
+        <div class="meta-value">{{.ProfileUser.Email}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Primary Organization</div>
+        <div class="meta-value font-mono text-sm">{{.ProfileUser.PrimaryOrgID}}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

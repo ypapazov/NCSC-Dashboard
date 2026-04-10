@@ -9,7 +9,7 @@
 </div>
 
 <div id="campaign-results">
-  {{if .Items}}
+  {{if .Campaigns}}
   <div class="card" style="overflow:hidden;">
     <table class="table">
       <thead>
@@ -17,27 +17,24 @@
           <th class="table-header">Title</th>
           <th class="table-header">Status</th>
           <th class="table-header">TLP</th>
-          <th class="table-header">Events</th>
           <th class="table-header">Created</th>
         </tr>
       </thead>
       <tbody>
-        {{range .Items}}
+        {{range .Campaigns}}
         <tr class="table-row clickable"
             hx-get="/api/v1/campaigns/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
             hx-push-url="/campaigns/{{.ID}}">
           <td class="table-cell truncate">{{.Title}}</td>
           <td class="table-cell"><span class="badge badge-campaign-{{.Status | lower}}">{{.Status}}</span></td>
           <td class="table-cell"><span class="badge badge-tlp-{{.TLP | lower}}">TLP:{{.TLP}}</span></td>
-          <td class="table-cell text-muted">{{.EventCount}}</td>
           <td class="table-cell text-sm text-muted">{{.CreatedAt | fmtTime}}</td>
         </tr>
         {{end}}
       </tbody>
     </table>
   </div>
-
-  {{template "pagination" .Pagination}}
+  <p class="text-sm text-muted" style="margin-top:.5rem;">{{.Total}} campaign(s) total</p>
   {{else}}
   <div class="card">
     <div class="card-body" style="text-align:center;padding:3rem;">

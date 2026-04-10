@@ -63,7 +63,7 @@ func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "statusreport_list", http.StatusOK, StatusReportListData{
+	respond(w, r, h.tmpl, "report_list", http.StatusOK, StatusReportListData{
 		User:    auth,
 		Reports: result.Items,
 		Total:   result.TotalCount,
@@ -82,7 +82,7 @@ func (h *StatusReportHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "statusreport_detail", http.StatusOK, StatusReportDetailData{
+	respond(w, r, h.tmpl, "report_detail", http.StatusOK, StatusReportDetailData{
 		User:   auth,
 		Report: report,
 	})
@@ -158,5 +158,5 @@ func (h *StatusReportHandler) Form(w http.ResponseWriter, r *http.Request) {
 		}
 		data.Report = report
 	}
-	respond(w, r, h.tmpl, "statusreport_form", http.StatusOK, data)
+	respond(w, r, h.tmpl, "report_form", http.StatusOK, data)
 }

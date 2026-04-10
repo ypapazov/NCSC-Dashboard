@@ -20,8 +20,11 @@ type ShellData struct {
 // --- Dashboard ---
 
 type DashboardData struct {
-	User *domain.AuthContext
-	Tree *service.DashboardNode
+	User            *domain.AuthContext
+	Tree            *service.DashboardNode
+	Sectors         []*service.DashboardNode
+	RecentEvents    []*domain.Event
+	ActiveCampaigns []*domain.Campaign
 }
 
 // --- Events ---

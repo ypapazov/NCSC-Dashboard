@@ -27,8 +27,13 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
+	var sectors []*service.DashboardNode
+	if tree != nil {
+		sectors = tree.Children
+	}
 	respond(w, r, h.tmpl, "dashboard", http.StatusOK, DashboardData{
-		User: auth,
-		Tree: tree,
+		User:    auth,
+		Tree:    tree,
+		Sectors: sectors,
 	})
 }

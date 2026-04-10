@@ -1,108 +1,39 @@
 {{define "admin_users"}}
 <div class="page-header">
   <h1>User Management</h1>
-  <button class="btn btn-primary"
-          onclick="document.getElementById('user-create-form').style.display='block';">
-    + Create User
-  </button>
 </div>
 
-<!-- Create form (hidden) -->
-<div id="user-create-form" class="card" style="display:none;">
-  <div class="card-header">
-    Create User
-    <button class="btn btn-sm btn-icon"
-            onclick="this.closest('.card').style.display='none';">&times;</button>
-  </div>
-  <div class="card-body">
-    <form hx-post="/api/v1/admin/users" hx-target="#user-list" hx-swap="innerHTML">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="user-display-name">Display Name</label>
-          <input type="text" id="user-display-name" name="display_name" class="form-input" required maxlength="255">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="user-email">Email</label>
-          <input type="email" id="user-email" name="email" class="form-input" required maxlength="320">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="user-org">Primary Organization</label>
-          <select id="user-org" name="primary_org_id" class="form-select" required>
-            <option value="">Select org&hellip;</option>
-            {{range .Organizations}}
-            <option value="{{.ID}}">{{.Name}}</option>
-            {{end}}
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="user-kc-sub">Keycloak Subject (optional)</label>
-          <input type="text" id="user-kc-sub" name="keycloak_sub" class="form-input"
-                 placeholder="Will be set on first login if empty">
-        </div>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary btn-sm">Create User</button>
-        <button type="button" class="btn btn-sm"
-                onclick="this.closest('.card').style.display='none';">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- User list -->
 <div id="user-list">
-  {{if .Items}}
+  {{if .Users}}
   <div class="card" style="overflow:hidden;">
     <table class="table">
       <thead>
         <tr>
           <th class="table-header">Name</th>
           <th class="table-header">Email</th>
-          <th class="table-header">Organization</th>
-          <th class="table-header">Roles</th>
-          <th class="table-header">Status</th>
+          <th class="table-header">Primary Org</th>
           <th class="table-header">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {{range .Items}}
+        {{range .Users}}
         <tr class="table-row">
           <td class="table-cell">{{.DisplayName}}</td>
           <td class="table-cell text-sm">{{.Email}}</td>
-          <td class="table-cell text-sm">{{.OrgName}}</td>
+          <td class="table-cell text-sm font-mono">{{.PrimaryOrgID}}</td>
           <td class="table-cell">
-            {{range .Roles}}
-            <span class="badge badge-severity-info">{{.Role}}</span>
-            {{end}}
-          </td>
-          <td class="table-cell">
-            {{if eq .Status "active"}}
-            <span class="badge badge-assessed-normal">active</span>
-            {{else}}
-            <span class="badge badge-assessed-unknown">{{.Status}}</span>
-            {{end}}
-          </td>
-          <td class="table-cell">
-            <div class="flex gap-sm">
-              <button class="btn btn-sm"
-                      hx-get="/api/v1/admin/users/{{.ID}}/edit" hx-target="#app" hx-swap="innerHTML">
-                Edit
-              </button>
-              <button class="btn btn-sm btn-secondary"
-                      hx-get="/api/v1/admin/users/{{.ID}}/roles" hx-target="#app" hx-swap="innerHTML">
-                Roles
-              </button>
-            </div>
+            <button class="btn btn-sm"
+                    hx-get="/api/v1/users/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
+                    hx-push-url="/users/{{.ID}}">
+              View
+            </button>
           </td>
         </tr>
         {{end}}
       </tbody>
     </table>
   </div>
-
-  {{template "pagination" .Pagination}}
+  <p class="text-sm text-muted" style="margin-top:.5rem;">{{.Total}} user(s) total</p>
   {{else}}
   <div class="card">
     <div class="card-body" style="text-align:center;padding:3rem;">

@@ -69,6 +69,9 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	}
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(st))))
 
+	// --- Nav ---
+	mux.Handle("GET /api/v1/nav", httphandlers.Nav(tmpl))
+
 	// --- Dashboard ---
 	mux.HandleFunc("GET /api/v1/dashboard", dashboardH.Get)
 

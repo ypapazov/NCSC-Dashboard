@@ -35,7 +35,7 @@ func (h *OrgHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "org_list", http.StatusOK, OrgListData{
+	respond(w, r, h.tmpl, "admin_orgs", http.StatusOK, OrgListData{
 		User: auth,
 		Orgs: orgs,
 	})

@@ -34,9 +34,16 @@
     onLoad: "login-required",
     pkceMethod: "S256",
     checkLoginIframe: false,
+    responseMode: "fragment",
   })
     .then(function (authenticated) {
       if (!authenticated) return;
+
+      // Strip OIDC callback parameters from the URL fragment
+      if (window.location.hash && window.location.hash.indexOf("state=") !== -1) {
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+
       onAuthenticated(kc);
     })
     .catch(function () {
@@ -103,7 +110,10 @@
     if (!selector) return;
 
     fetch("/api/v1/users/me", {
-      headers: { Authorization: "Bearer " + kc.token },
+      headers: {
+        Authorization: "Bearer " + kc.token,
+        Accept: "application/json",
+      },
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {

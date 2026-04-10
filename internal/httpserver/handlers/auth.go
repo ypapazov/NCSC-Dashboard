@@ -24,3 +24,13 @@ func Shell(tmpl *template.Template, cfg *config.Config) http.HandlerFunc {
 		}
 	}
 }
+
+// Nav serves the sidebar navigation HTML fragment.
+func Nav(tmpl *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := tmpl.ExecuteTemplate(w, "nav", nil); err != nil {
+			http.Error(w, "template error", http.StatusInternalServerError)
+		}
+	}
+}

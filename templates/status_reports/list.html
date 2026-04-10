@@ -8,29 +8,8 @@
   </button>
 </div>
 
-<form class="filter-bar" hx-get="/api/v1/status-reports" hx-target="#report-results" hx-swap="innerHTML"
-      hx-trigger="change, submit" hx-push-url="true">
-  <select name="scope_type" class="form-select">
-    <option value="">All Scopes</option>
-    <option value="ORG"{{if eq .Filter.ScopeType "ORG"}} selected{{end}}>Organization</option>
-    <option value="SECTOR"{{if eq .Filter.ScopeType "SECTOR"}} selected{{end}}>Sector</option>
-  </select>
-
-  <select name="assessed_status" class="form-select">
-    <option value="">All Statuses</option>
-    <option value="NORMAL"{{if eq (deref .Filter.AssessedStatus) "NORMAL"}} selected{{end}}>Normal</option>
-    <option value="DEGRADED"{{if eq (deref .Filter.AssessedStatus) "DEGRADED"}} selected{{end}}>Degraded</option>
-    <option value="IMPAIRED"{{if eq (deref .Filter.AssessedStatus) "IMPAIRED"}} selected{{end}}>Impaired</option>
-    <option value="CRITICAL"{{if eq (deref .Filter.AssessedStatus) "CRITICAL"}} selected{{end}}>Critical</option>
-    <option value="UNKNOWN"{{if eq (deref .Filter.AssessedStatus) "UNKNOWN"}} selected{{end}}>Unknown</option>
-  </select>
-
-  <button type="submit" class="btn btn-secondary">Filter</button>
-  <span class="htmx-indicator"><span class="spinner"></span></span>
-</form>
-
 <div id="report-results">
-  {{if .Items}}
+  {{if .Reports}}
   <div class="card" style="overflow:hidden;">
     <table class="table">
       <thead>
@@ -44,12 +23,12 @@
         </tr>
       </thead>
       <tbody>
-        {{range .Items}}
+        {{range .Reports}}
         <tr class="table-row clickable"
             hx-get="/api/v1/status-reports/{{.ID}}" hx-target="#app" hx-swap="innerHTML"
             hx-push-url="/status-reports/{{.ID}}">
           <td class="table-cell truncate">{{.Title}}</td>
-          <td class="table-cell text-sm">{{.ScopeType}}: {{.ScopeName}}</td>
+          <td class="table-cell text-sm">{{.ScopeType}}</td>
           <td class="table-cell"><span class="badge badge-assessed-{{.AssessedStatus | lower}}">{{.AssessedStatus}}</span></td>
           <td class="table-cell"><span class="badge badge-impact-{{.Impact | lower}}">{{.Impact}}</span></td>
           <td class="table-cell"><span class="badge badge-tlp-{{.TLP | lower}}">TLP:{{.TLP}}</span></td>
@@ -59,8 +38,7 @@
       </tbody>
     </table>
   </div>
-
-  {{template "pagination" .Pagination}}
+  <p class="text-sm text-muted" style="margin-top:.5rem;">{{.Total}} report(s) total</p>
   {{else}}
   <div class="card">
     <div class="card-body" style="text-align:center;padding:3rem;">

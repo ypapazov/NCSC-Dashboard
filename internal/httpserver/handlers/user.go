@@ -36,7 +36,7 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "user_list", http.StatusOK, UserListData{
+	respond(w, r, h.tmpl, "admin_users", http.StatusOK, UserListData{
 		User:  auth,
 		Users: result.Items,
 		Total: result.TotalCount,

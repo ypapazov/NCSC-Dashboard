@@ -32,11 +32,10 @@
                 {{if .AssessedStatus}}
                 <span class="badge badge-assessed-{{.AssessedStatus | lower}}">{{.AssessedStatus}}</span>
                 {{end}}
-                {{if .OpenEvents}}<span class="text-xs text-muted">{{.OpenEvents}} open</span>{{end}}
               </span>
             </div>
             <div id="sector-children-{{.ID}}" class="tree-children collapsed">
-              {{range .Organizations}}
+              {{range .Children}}
               <div class="tree-leaf"
                    hx-get="/api/v1/status-reports?scope_type=ORG&scope_ref={{.ID}}"
                    hx-target="#side-panel-body"

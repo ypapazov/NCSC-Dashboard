@@ -1,0 +1,25 @@
+{{define "user_form"}}
+<div class="page-header">
+  <h1>{{if .ProfileUser}}Edit User{{else}}Create User{{end}}</h1>
+</div>
+<div class="card">
+  <div class="card-body">
+    <form hx-post="/api/v1/users" hx-target="#app" hx-swap="innerHTML">
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input type="text" name="display_name" class="form-input" required
+               value="{{if .ProfileUser}}{{.ProfileUser.DisplayName}}{{end}}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-input" required
+               value="{{if .ProfileUser}}{{.ProfileUser.Email}}{{end}}">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/users">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

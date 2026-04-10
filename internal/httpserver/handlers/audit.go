@@ -64,7 +64,7 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "audit_list", http.StatusOK, AuditListData{
+	respond(w, r, h.tmpl, "audit_log", http.StatusOK, AuditListData{
 		User:    auth,
 		Entries: result.Items,
 		Total:   result.TotalCount,

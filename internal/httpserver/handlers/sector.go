@@ -26,7 +26,7 @@ func (h *SectorHandler) List(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, h.tmpl, "sector_list", http.StatusOK, SectorListData{
+	respond(w, r, h.tmpl, "admin_sectors", http.StatusOK, SectorListData{
 		User:    auth,
 		Sectors: sectors,
 	})
