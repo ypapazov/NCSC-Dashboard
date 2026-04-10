@@ -75,6 +75,9 @@ func (o *OIDC) Handler(next http.Handler) http.Handler {
 		}
 
 		ctx := requestctx.WithAuth(r.Context(), auth)
+		if p, ok := ctx.Value(logUserIDKey{}).(*string); ok {
+			*p = auth.UserID.String()
+		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

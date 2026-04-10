@@ -29,6 +29,9 @@
   });
 
   window._fresnel = { keycloak: kc };
+  Object.defineProperty(window, '__fresnelToken', {
+    get: function () { return kc.token; }
+  });
 
   kc.init({
     onLoad: "login-required",
@@ -85,19 +88,26 @@
     });
   }
 
-  function pathToAPI(path) {
-    if (path === "/" || path === "") return "/api/v1/dashboard";
-    return "/api/v1" + path.replace(/\/$/, "");
+  function pathToAPI(path, search) {
+    var base;
+    if (path === "/" || path === "") {
+      base = "/api/v1/dashboard";
+    } else {
+      base = "/api/v1" + path.replace(/\/$/, "");
+    }
+    return search ? base + search : base;
   }
 
   function loadInitialContent() {
     var path = window.location.pathname;
-    htmx.ajax("GET", pathToAPI(path), { target: "#app", swap: "innerHTML" });
+    var search = window.location.search;
+    htmx.ajax("GET", pathToAPI(path, search), { target: "#app", swap: "innerHTML" });
     highlightActiveNav(path);
   }
 
   function loadContentForPath(path) {
-    htmx.ajax("GET", pathToAPI(path), { target: "#app", swap: "innerHTML" });
+    var search = window.location.search;
+    htmx.ajax("GET", pathToAPI(path, search), { target: "#app", swap: "innerHTML" });
     highlightActiveNav(path);
   }
 

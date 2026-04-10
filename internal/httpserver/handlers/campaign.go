@@ -3,8 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"fresnel/internal/authz"
 	"fresnel/internal/domain"
 	"fresnel/internal/httpserver/requestctx"
+	"fresnel/internal/markdown"
 	"fresnel/internal/service"
 	"fresnel/internal/views"
 
@@ -13,10 +15,11 @@ import (
 
 type CampaignHandler struct {
 	campaigns *service.CampaignService
+	lookups   Lookups
 }
 
-func NewCampaignHandler(campaigns *service.CampaignService) *CampaignHandler {
-	return &CampaignHandler{campaigns: campaigns}
+func NewCampaignHandler(campaigns *service.CampaignService, lk Lookups) *CampaignHandler {
+	return &CampaignHandler{campaigns: campaigns, lookups: lk}
 }
 
 func (h *CampaignHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -59,12 +62,13 @@ func (h *CampaignHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *CampaignHandler) Get(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
+	ctx := r.Context()
 	id, err := parseUUID(r, "id")
 	if err != nil {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	campaign, err := h.campaigns.GetByID(r.Context(), auth, id)
+	campaign, err := h.campaigns.GetByID(ctx, auth, id)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -77,8 +81,33 @@ func (h *CampaignHandler) Get(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	res := authz.CampaignResource(campaign)
+	canEdit := h.lookups.Authz.Authorize(ctx, auth, authz.ActionEdit, res)
+	canDelete := h.lookups.Authz.Authorize(ctx, auth, authz.ActionDelete, res)
+
+	eventInfos, _ := h.campaigns.GetLinkedEvents(ctx, auth, campaign.ID)
+	var linkedEvents []views.CampaignLinkedEvent
+	for _, info := range eventInfos {
+		if info.Restricted {
+			linkedEvents = append(linkedEvents, views.CampaignLinkedEvent{Restricted: true})
+		} else if info.Event != nil {
+			linkedEvents = append(linkedEvents, views.CampaignLinkedEvent{
+				ID:     info.Event.ID,
+				Title:  info.Event.Title,
+				Status: info.Event.Status,
+				Impact: info.Event.Impact,
+				TLP:    info.Event.TLP,
+			})
+		}
+	}
+
 	respondView(w, r, http.StatusOK, views.CampaignDetail(views.CampaignDetailData{
-		Campaign: campaign,
+		Campaign:        campaign,
+		CanEdit:         canEdit,
+		CanDelete:       canDelete,
+		DescriptionHTML: string(markdown.Render(campaign.Description)),
+		LinkedEvents:    linkedEvents,
 	}))
 }
 
@@ -175,6 +204,7 @@ func (h *CampaignHandler) GetLinkedEvents(w http.ResponseWriter, r *http.Request
 
 func (h *CampaignHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
+	ctx := r.Context()
 	var campaign *domain.Campaign
 
 	if idStr := r.PathValue("id"); idStr != "" {
@@ -183,7 +213,7 @@ func (h *CampaignHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		campaign, err = h.campaigns.GetByID(r.Context(), auth, id)
+		campaign, err = h.campaigns.GetByID(ctx, auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return

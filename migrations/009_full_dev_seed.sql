@@ -32,10 +32,10 @@ VALUES
     ('b0000000-0000-4000-8000-000000000016'::uuid, 'b0000000-0000-4000-8000-000000000007'::uuid, 'Telecom Authority')
 ON CONFLICT (id) DO NOTHING;
 
--- Users (dedupe on lower(email) so 008 platform row can coexist without error)
+-- Platform root user already exists from 008 as a0..0004 (admin@fresnel.local).
+-- We skip re-inserting it and reference a0..0004 directly for IAM below.
 INSERT INTO fresnel.users (id, keycloak_sub, display_name, email, primary_org_id)
 VALUES
-    ('b1000000-0000-4000-8000-000000000001'::uuid, 'placeholder-platform-root', 'Platform Root', 'admin@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
     ('b1000000-0000-4000-8000-000000000002'::uuid, 'placeholder-gov-root', 'Government Sector Root', 'gov-root@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
     ('b1000000-0000-4000-8000-000000000003'::uuid, 'placeholder-fed-root', 'Federal Sector Root', 'fed-root@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
     ('b1000000-0000-4000-8000-000000000004'::uuid, 'placeholder-orga-root', 'Org A Root', 'orga-root@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
@@ -48,7 +48,7 @@ ON CONFLICT ((lower(email))) DO NOTHING;
 INSERT INTO fresnel.user_org_memberships (user_id, organization_id, assigned_by)
 SELECT m.user_id, m.organization_id, m.user_id
 FROM (VALUES
-    ('b1000000-0000-4000-8000-000000000001'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('a0000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
     ('b1000000-0000-4000-8000-000000000002'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
     ('b1000000-0000-4000-8000-000000000003'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
     ('b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
@@ -65,6 +65,7 @@ SET search_path TO fresnel_iam, fresnel, public;
 INSERT INTO fresnel_iam.role_assignments (id, user_id, role, scope_type, scope_id, assigned_by)
 SELECT a.id, a.user_id, a.role, a.scope_type, a.scope_id, a.assigned_by
 FROM (VALUES
+    ('b2100000-0000-4000-8000-000000000000'::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid, 'PLATFORM_ROOT', 'PLATFORM', 'b0000000-0000-4000-8000-000000000010'::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid),
     ('b2100000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid, 'SECTOR_ROOT', 'SECTOR', 'b0000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid),
     ('b2100000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid, 'SECTOR_ROOT', 'SECTOR', 'b0000000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid),
     ('b2100000-0000-4000-8000-000000000003'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid, 'ORG_ROOT', 'ORG', 'b0000000-0000-4000-8000-000000000010'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid),
@@ -79,7 +80,7 @@ ON CONFLICT (user_id, role, scope_type, scope_id) DO NOTHING;
 INSERT INTO fresnel_iam.root_designations (id, user_id, scope_type, scope_id, designated_by)
 SELECT d.id, d.user_id, d.scope_type, d.scope_id, d.designated_by
 FROM (VALUES
-    ('b2200000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000001'::uuid, 'PLATFORM', NULL::uuid, 'b1000000-0000-4000-8000-000000000001'::uuid),
+    ('b2200000-0000-4000-8000-000000000001'::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid, 'PLATFORM', NULL::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid),
     ('b2200000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid, 'SECTOR', 'b0000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid),
     ('b2200000-0000-4000-8000-000000000003'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid, 'SECTOR', 'b0000000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid),
     ('b2200000-0000-4000-8000-000000000004'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid, 'ORG', 'b0000000-0000-4000-8000-000000000010'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid),

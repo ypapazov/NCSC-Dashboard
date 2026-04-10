@@ -107,14 +107,19 @@ func (s *EventStore) List(ctx context.Context, f domain.EventFilter) (*domain.Li
 		where = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
+	orderCol := "created_at"
+	if f.SortBy == "updated_at" {
+		orderCol = "updated_at"
+	}
+
 	q := fmt.Sprintf(`
 SELECT id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id,
        tlp, impact, status, created_at, updated_at,
        COUNT(*) OVER() AS total
 FROM fresnel.events
 %s
-ORDER BY created_at DESC
-LIMIT $%d OFFSET $%d`, where, idx, idx+1)
+ORDER BY %s DESC
+LIMIT $%d OFFSET $%d`, where, orderCol, idx, idx+1)
 	args = append(args, f.Limit, f.Offset)
 
 	rows, err := s.pool.Query(ctx, q, args...)

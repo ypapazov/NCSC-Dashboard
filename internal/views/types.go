@@ -14,6 +14,14 @@ type DashboardData struct {
 	Sectors         []*service.DashboardNode
 	RecentEvents    []*domain.Event
 	ActiveCampaigns []*domain.Campaign
+	ViewMode        string // "tree" or "lanes"
+}
+
+type SwimlaneData struct {
+	User            *domain.AuthContext
+	Sectors         []*service.DashboardNode
+	ActiveCampaigns []*domain.Campaign
+	FilterQuery     string // pre-built filter params for lane hx-get URLs
 }
 
 // --- Events ---

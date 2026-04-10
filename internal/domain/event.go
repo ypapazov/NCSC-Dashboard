@@ -132,5 +132,6 @@ type EventFilter struct {
 	Search          string
 	DateFrom        *time.Time
 	DateTo          *time.Time
+	SortBy          string // "created_at" (default) or "updated_at"
 	Pagination
 }

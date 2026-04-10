@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"time"
 
+	"fresnel/internal/authz"
 	"fresnel/internal/domain"
 	"fresnel/internal/httpserver/requestctx"
+	"fresnel/internal/markdown"
 	"fresnel/internal/service"
 	"fresnel/internal/views"
 
@@ -14,10 +16,12 @@ import (
 
 type StatusReportHandler struct {
 	reports *service.StatusReportService
+	events  *service.EventService
+	lookups Lookups
 }
 
-func NewStatusReportHandler(reports *service.StatusReportService) *StatusReportHandler {
-	return &StatusReportHandler{reports: reports}
+func NewStatusReportHandler(reports *service.StatusReportService, events *service.EventService, lk Lookups) *StatusReportHandler {
+	return &StatusReportHandler{reports: reports, events: events, lookups: lk}
 }
 
 func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -77,12 +81,13 @@ func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *StatusReportHandler) Get(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
+	ctx := r.Context()
 	id, err := parseUUID(r, "id")
 	if err != nil {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	report, err := h.reports.GetByID(r.Context(), auth, id)
+	report, err := h.reports.GetByID(ctx, auth, id)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -95,8 +100,51 @@ func (h *StatusReportHandler) Get(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	var scopeName string
+	switch report.ScopeType {
+	case "ORG":
+		if org, _ := h.lookups.Orgs.GetByID(ctx, report.ScopeRef); org != nil {
+			scopeName = org.Name
+		}
+	case "SECTOR":
+		if sec, _ := h.lookups.Sectors.GetByID(ctx, report.ScopeRef); sec != nil {
+			scopeName = sec.Name
+		}
+	}
+
+	var authorName string
+	if user, _ := h.lookups.Users.GetByID(ctx, report.AuthorID); user != nil {
+		authorName = user.DisplayName
+	}
+
+	sec, _ := h.lookups.Sectors.GetByID(ctx, report.SectorContext)
+	ancestry := ""
+	if sec != nil {
+		ancestry = sec.AncestryPath
+	}
+	recipients, _ := h.lookups.TLPRed.GetRecipients(ctx, "status_report", report.ID)
+	res := authz.StatusReportResource(report, ancestry, recipients)
+	canEdit := h.lookups.Authz.Authorize(ctx, auth, authz.ActionEdit, res)
+
+	eventIDs, _ := h.reports.GetLinkedEventIDs(ctx, auth, report.ID)
+	var linkedEvents []*domain.Event
+	for _, eid := range eventIDs {
+		if e, _ := h.events.GetByID(ctx, auth, eid); e != nil {
+			linkedEvents = append(linkedEvents, e)
+		}
+	}
+
+	revisions, _ := h.reports.GetRevisions(ctx, auth, report.ID)
+
 	respondView(w, r, http.StatusOK, views.ReportDetail(views.ReportDetailData{
-		Report: report,
+		Report:       report,
+		CanEdit:      canEdit,
+		ScopeName:    scopeName,
+		AuthorName:   authorName,
+		BodyHTML:     string(markdown.Render(report.Body)),
+		LinkedEvents: linkedEvents,
+		Revisions:    revisions,
 	}))
 }
 
@@ -155,6 +203,7 @@ func (h *StatusReportHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *StatusReportHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
+	ctx := r.Context()
 	var report *domain.StatusReport
 
 	if idStr := r.PathValue("id"); idStr != "" {
@@ -163,7 +212,7 @@ func (h *StatusReportHandler) Form(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, service.ErrValidation)
 			return
 		}
-		report, err = h.reports.GetByID(r.Context(), auth, id)
+		report, err = h.reports.GetByID(ctx, auth, id)
 		if err != nil {
 			respondError(w, r, err)
 			return
@@ -174,7 +223,21 @@ func (h *StatusReportHandler) Form(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusOK, StatusReportFormData{User: auth, Report: report})
 		return
 	}
+
+	var scopeOptions []views.ScopeOption
+	if sectors, _ := h.lookups.Sectors.List(ctx); sectors != nil {
+		for _, s := range sectors {
+			scopeOptions = append(scopeOptions, views.ScopeOption{ID: s.ID, Name: s.Name, Type: "SECTOR"})
+		}
+	}
+	if orgs, _ := h.lookups.Orgs.List(ctx, nil); orgs != nil {
+		for _, o := range orgs {
+			scopeOptions = append(scopeOptions, views.ScopeOption{ID: o.ID, Name: o.Name, Type: "ORG"})
+		}
+	}
+
 	respondView(w, r, http.StatusOK, views.ReportForm(views.ReportFormData{
-		Report: report,
+		Report:       report,
+		ScopeOptions: scopeOptions,
 	}))
 }

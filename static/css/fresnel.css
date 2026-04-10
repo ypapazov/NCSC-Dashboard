@@ -535,6 +535,185 @@ img { max-width: 100%; }
 .tab-link:hover { color: var(--text); text-decoration: none; }
 .tab-link.active { color: var(--text); border-bottom-color: var(--primary); }
 
+/* --- View Toggle ------------------------------------------- */
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.view-toggle-btn {
+  padding: .35rem .85rem;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  border-right: 1px solid var(--border);
+  text-decoration: none;
+}
+.view-toggle-btn:last-child { border-right: none; }
+.view-toggle-btn:hover { background: var(--surface-alt); color: var(--text); text-decoration: none; }
+.view-toggle-btn.active { background: var(--accent); color: var(--text); }
+
+/* --- Event Card (compact, for swimlane/timeline) ----------- */
+.event-card {
+  flex: 0 0 200px;
+  min-width: 180px;
+  max-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .6rem .75rem;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.event-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(233,69,96,.15);
+  text-decoration: none;
+}
+.event-card-title {
+  font-size: .82rem;
+  font-weight: 500;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.event-card-badges { display: flex; gap: .3rem; flex-wrap: wrap; }
+.event-card-meta { display: flex; gap: .3rem; align-items: center; }
+.event-card-time { margin-top: auto; }
+.event-card-empty {
+  flex: 0 0 auto;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .5;
+}
+
+/* --- Swimlane Layout --------------------------------------- */
+.swimlane-container {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.swimlane-sector-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: .5rem;
+}
+.swimlane-sector-name { flex-shrink: 0; }
+.swimlane-section-divider {
+  padding: .6rem .75rem;
+  font-weight: 700;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-dim);
+  border-top: 2px solid var(--border);
+  margin-top: .75rem;
+}
+.swimlane-lane {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-left: 1rem;
+  overflow: hidden;
+}
+.swimlane-lane-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: .85rem;
+}
+.swimlane-lane-name { font-weight: 500; }
+.swimlane-lane-cards {
+  display: flex;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  min-height: 80px;
+  align-items: flex-start;
+}
+.swimlane-lane-cards::-webkit-scrollbar { height: 6px; }
+.swimlane-lane-cards::-webkit-scrollbar-track { background: transparent; }
+.swimlane-lane-cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.swimlane-lane-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+}
+.lane-sentinel {
+  flex: 0 0 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+}
+
+/* --- Graph Layout ------------------------------------------ */
+.graph-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.25rem;
+  min-height: 500px;
+}
+.graph-container {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-height: 500px;
+  position: relative;
+}
+.graph-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  color: var(--text-muted);
+  font-size: .9rem;
+}
+.graph-side-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-height: calc(100vh - var(--topnav-h) - 3rem);
+  overflow-y: auto;
+  position: sticky;
+  top: calc(var(--topnav-h) + 1.25rem);
+}
+.graph-side-panel .side-panel-header { padding: .75rem 1rem; border-bottom: 1px solid var(--border); font-weight: 600; }
+.graph-side-panel .side-panel-body { padding: .75rem 1rem; }
+.graph-side-panel .side-panel-empty { padding: 2rem 1rem; text-align: center; color: var(--text-dim); font-size: .85rem; }
+
+@media (max-width: 1024px) {
+  .graph-layout { grid-template-columns: 1fr; }
+  .graph-side-panel { position: static; max-height: none; }
+}
+
 /* --- Utilities --------------------------------------------- */
 .flex { display: flex; }
 .flex-col { display: flex; flex-direction: column; }

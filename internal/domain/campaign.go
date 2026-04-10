@@ -17,6 +17,9 @@ type Campaign struct {
 	OrganizationID uuid.UUID      `json:"organization_id"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
+
+	// EventCount is populated by the handler layer, not persisted.
+	EventCount int `json:"event_count,omitempty"`
 }
 
 func (c *Campaign) Validate() error {

@@ -30,6 +30,9 @@ func (a *CedarAuthorizer) Authorize(_ context.Context, auth *domain.AuthContext,
 	if auth == nil || res == nil {
 		return false
 	}
+	if auth.IsRoot && auth.RootScope != nil && auth.RootScope.Type == string(domain.ScopePlatform) {
+		return true
+	}
 	for _, role := range auth.Roles {
 		if a.rolePermits(auth, role, action, res) {
 			return true

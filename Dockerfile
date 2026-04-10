@@ -1,13 +1,23 @@
-# Build
-FROM golang:1.23-alpine AS build
+# Fetch dependencies
+FROM golang:1.23-alpine AS fetch
 RUN apk add --no-cache ca-certificates git
-COPY --from=ghcr.io/a-h/templ:latest /templ /usr/local/bin/templ
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . .
-RUN templ generate
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/fresnel ./cmd/fresnel
+
+# Generate templ
+FROM ghcr.io/a-h/templ:latest AS generate
+COPY --chown=65532:65532 . /src
+WORKDIR /src
+RUN ["templ", "generate"]
+
+# Build
+FROM golang:1.23-alpine AS build
+RUN apk add --no-cache ca-certificates git
+WORKDIR /src
+COPY --from=fetch /go /go
+COPY --from=generate /src /src
+RUN CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags="-s -w" -o /out/fresnel ./cmd/fresnel
 
 # Runtime
 FROM alpine:3.21

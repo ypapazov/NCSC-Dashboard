@@ -119,7 +119,15 @@ func main() {
 		Dashboard:     dashboardSvc,
 	}
 
-	handler, err := apphttp.NewRouter(log, cfg, pool, svc)
+	lk := apphttp.Lookups{
+		Orgs:    orgStore,
+		Sectors: sectorStore,
+		Users:   userStore,
+		TLPRed:  tlpRedStore,
+		Authz:   az,
+	}
+
+	handler, err := apphttp.NewRouter(log, cfg, pool, svc, lk)
 	if err != nil {
 		log.Error("router", "err", err)
 		os.Exit(1)

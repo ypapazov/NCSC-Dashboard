@@ -1,0 +1,28 @@
+package views
+
+// GraphPage renders the HTMX shell for the Cytoscape.js correlation graph.
+// The graph container fetches JSON from the correlations endpoint and renders client-side.
+templ GraphPage(eventTitle string, eventID string) {
+	<div class="page-header">
+		<div>
+			<a class="text-muted text-sm" hx-get={ "/api/v1/events/" + eventID } hx-target="#app" hx-swap="innerHTML"
+				hx-push-url={ "/events/" + eventID }>&larr; Back to Event</a>
+			<h1 style="margin-top:.25rem;">Correlations: { eventTitle }</h1>
+		</div>
+	</div>
+	<div class="graph-layout">
+		<div id="cy-container" class="graph-container"
+			data-event-id={ eventID }
+			data-api-url={ "/api/v1/events/" + eventID + "/correlations?format=graph" }>
+			<div class="graph-loading"><span class="spinner"></span> Loading graph&hellip;</div>
+		</div>
+		<div class="graph-side-panel">
+			<div class="side-panel-header">Event Details</div>
+			<div id="graph-panel-body" class="side-panel-body">
+				<div class="side-panel-empty">Click a node to view event details.</div>
+			</div>
+		</div>
+	</div>
+	<script src="/static/cytoscape.min.js"></script>
+	<script src="/static/graph.js"></script>
+}

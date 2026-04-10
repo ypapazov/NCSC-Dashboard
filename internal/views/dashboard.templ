@@ -10,11 +10,7 @@ import (
 templ Dashboard(data DashboardData) {
 	<div class="page-header">
 		<h1>Dashboard</h1>
-		if data.User != nil {
-			<span class="text-muted text-sm">
-				{ data.User.DisplayName } &middot; { data.User.Email }
-			</span>
-		}
+		@ViewToggle("tree")
 	</div>
 	<div class="dashboard-layout" hx-trigger="every 60s" hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML">
 		<div>

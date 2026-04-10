@@ -168,7 +168,17 @@ templ EventDetail(data EventDetailData) {
 		</div>
 	</div>
 	<div class="card">
-		<div class="card-header">Correlations</div>
+		<div class="card-header">
+			Correlations
+			if len(data.Correlations) > 0 {
+				<a class="btn btn-sm btn-secondary"
+					hx-get={ "/api/v1/events/" + data.Event.ID.String() + "/graph" }
+					hx-target="#app" hx-swap="innerHTML"
+					hx-push-url={ "/events/" + data.Event.ID.String() + "/graph" }>
+					View Graph
+				</a>
+			}
+		</div>
 		<div class="card-body">
 			if len(data.Correlations) > 0 {
 				for _, corr := range data.Correlations {

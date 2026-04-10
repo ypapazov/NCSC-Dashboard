@@ -144,6 +144,14 @@ func (s *CampaignService) UnlinkEvent(ctx context.Context, auth *domain.AuthCont
 	return nil
 }
 
+func (s *CampaignService) CountLinkedEvents(ctx context.Context, campaignID uuid.UUID) (int, error) {
+	ids, err := s.campaigns.GetLinkedEventIDs(ctx, campaignID)
+	if err != nil {
+		return 0, err
+	}
+	return len(ids), nil
+}
+
 type CampaignEventInfo struct {
 	Event      *domain.Event
 	Restricted bool

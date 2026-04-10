@@ -333,19 +333,29 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 
 -- DNS exfiltration (b4..0004) is TLP:RED — grant visibility to platform root and gov sector root
-INSERT INTO tlp_red_recipients (id, resource_type, resource_id, recipient_user_id, granted_by) VALUES
-('b6200000-0000-4000-8000-000000000001'::uuid, 'event', 'b4000000-0000-4000-8000-000000000004'::uuid,
- 'b1000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid),
-('b6200000-0000-4000-8000-000000000002'::uuid, 'event', 'b4000000-0000-4000-8000-000000000004'::uuid,
- 'b1000000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid),
-('b6200000-0000-4000-8000-000000000003'::uuid, 'event', 'b4000000-0000-4000-8000-000000000004'::uuid,
- 'b1000000-0000-4000-8000-000000000008'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid)
+INSERT INTO tlp_red_recipients (id, resource_type, resource_id, recipient_user_id, granted_by)
+SELECT r.id, r.resource_type, r.resource_id, r.recipient_user_id, r.granted_by
+FROM (VALUES
+  ('b6200000-0000-4000-8000-000000000001'::uuid, 'event', 'b4000000-0000-4000-8000-000000000004'::uuid,
+   'b1000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid),
+  ('b6200000-0000-4000-8000-000000000002'::uuid, 'event', 'b4000000-0000-4000-8000-000000000004'::uuid,
+   'b1000000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid),
+  ('b6200000-0000-4000-8000-000000000003'::uuid, 'event', 'b4000000-0000-4000-8000-000000000004'::uuid,
+   'b1000000-0000-4000-8000-000000000008'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid)
+) AS r(id, resource_type, resource_id, recipient_user_id, granted_by)
+WHERE EXISTS (SELECT 1 FROM users u WHERE u.id = r.recipient_user_id)
+  AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.granted_by)
 ON CONFLICT (resource_type, resource_id, recipient_user_id) DO NOTHING;
 
 -- Insider threat (b3..0005 from 009) is also TLP:RED — grant to platform root
-INSERT INTO tlp_red_recipients (id, resource_type, resource_id, recipient_user_id, granted_by) VALUES
-('b6200000-0000-4000-8000-000000000004'::uuid, 'event', 'b3000000-0000-4000-8000-000000000005'::uuid,
- 'b1000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid),
-('b6200000-0000-4000-8000-000000000005'::uuid, 'event', 'b3000000-0000-4000-8000-000000000005'::uuid,
- 'b1000000-0000-4000-8000-000000000008'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid)
+INSERT INTO tlp_red_recipients (id, resource_type, resource_id, recipient_user_id, granted_by)
+SELECT r.id, r.resource_type, r.resource_id, r.recipient_user_id, r.granted_by
+FROM (VALUES
+  ('b6200000-0000-4000-8000-000000000004'::uuid, 'event', 'b3000000-0000-4000-8000-000000000005'::uuid,
+   'b1000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid),
+  ('b6200000-0000-4000-8000-000000000005'::uuid, 'event', 'b3000000-0000-4000-8000-000000000005'::uuid,
+   'b1000000-0000-4000-8000-000000000008'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid)
+) AS r(id, resource_type, resource_id, recipient_user_id, granted_by)
+WHERE EXISTS (SELECT 1 FROM users u WHERE u.id = r.recipient_user_id)
+  AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.granted_by)
 ON CONFLICT (resource_type, resource_id, recipient_user_id) DO NOTHING;
