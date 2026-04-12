@@ -17,6 +17,13 @@ coverage.out
 .env.*
 !.env.example
 
+# Terraform
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/terraform.tfvars
+infra/**/.terraform.lock.hcl
+
 # TLS certs
 deploy/nginx/certs/
 

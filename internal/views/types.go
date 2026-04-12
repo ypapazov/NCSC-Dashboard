@@ -11,6 +11,7 @@ import (
 
 type DashboardData struct {
 	User            *domain.AuthContext
+	RootStatus      domain.AssessedStatus
 	Sectors         []*service.DashboardNode
 	RecentEvents    []*domain.Event
 	ActiveCampaigns []*domain.Campaign

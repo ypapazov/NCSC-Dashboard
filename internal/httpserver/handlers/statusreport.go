@@ -47,6 +47,9 @@ func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
 			filter.ScopeRef = &id
 		}
 	}
+	if v := q.Get("sector_ancestry"); v != "" {
+		filter.SectorAncestryPrefix = v
+	}
 	if v := q.Get("assessed_status"); v != "" {
 		s := domain.AssessedStatus(v)
 		filter.AssessedStatus = &s
@@ -76,6 +79,16 @@ func (h *StatusReportHandler) List(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	if q.Get("partial") == "timeline" {
+		scopeName := q.Get("scope_name")
+		if scopeName == "" {
+			scopeName = "Status Timeline"
+		}
+		respondView(w, r, http.StatusOK, views.StatusTimeline(result.Items, scopeName))
+		return
+	}
+
 	respondView(w, r, http.StatusOK, views.ReportList(result.Items, result.TotalCount))
 }
 

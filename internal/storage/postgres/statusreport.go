@@ -66,6 +66,12 @@ func (s *StatusReportStore) List(ctx context.Context, f domain.StatusReportFilte
 		args = append(args, *f.SectorContextID)
 		idx++
 	}
+	if f.SectorAncestryPrefix != "" {
+		conditions = append(conditions, fmt.Sprintf(
+			"sector_context IN (SELECT id FROM fresnel.sectors WHERE ancestry_path LIKE $%d)", idx))
+		args = append(args, f.SectorAncestryPrefix+"%")
+		idx++
+	}
 	if f.OrganizationID != nil {
 		conditions = append(conditions, fmt.Sprintf("organization_id = $%d", idx))
 		args = append(args, *f.OrganizationID)

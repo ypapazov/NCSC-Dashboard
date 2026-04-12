@@ -1,0 +1,64 @@
+variable "aws_region" {
+  type    = string
+  default = "eu-west-2"
+}
+
+variable "project" {
+  type    = string
+  default = "fresnel"
+}
+
+variable "environment" {
+  type    = string
+  default = "poc"
+}
+
+variable "vpc_cidr" {
+  type    = string
+  default = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidrs" {
+  type    = list(string)
+  default = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "private_subnet_cidrs" {
+  type    = list(string)
+  default = ["10.0.10.0/24", "10.0.11.0/24"]
+}
+
+variable "instance_type" {
+  description = "EC2 instance type — 4 vCPU / 16 GB matches HOSTING_REQUIREMENTS.md"
+  type        = string
+  default     = "t3.xlarge"
+}
+
+variable "data_volume_size_gb" {
+  description = "EBS data volume size in GB (Postgres, attachments, backups)"
+  type        = number
+  default     = 100
+}
+
+variable "ssh_allowed_cidrs" {
+  description = "CIDRs allowed to SSH (management network). Empty = no SSH from internet."
+  type        = list(string)
+  default     = []
+}
+
+variable "domain_name" {
+  description = "FQDN for the platform (e.g. fresnel.example.org). Used for ACM cert and DNS."
+  type        = string
+}
+
+variable "route53_zone_id" {
+  description = "Route 53 hosted zone ID for the domain. Leave empty to skip DNS record creation."
+  type        = string
+  default     = ""
+}
+
+variable "key_pair_name" {
+  description = "EC2 key pair name for SSH access. Leave empty to use SSM only."
+  type        = string
+  default     = ""
+}

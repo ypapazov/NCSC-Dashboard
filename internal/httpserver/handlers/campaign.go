@@ -194,12 +194,28 @@ func (h *CampaignHandler) GetLinkedEvents(w http.ResponseWriter, r *http.Request
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	events, err := h.campaigns.GetLinkedEvents(r.Context(), auth, campaignID)
+	infos, err := h.campaigns.GetLinkedEvents(r.Context(), auth, campaignID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, events)
+
+	if r.URL.Query().Get("partial") == "cards" {
+		var visible []*domain.Event
+		for _, info := range infos {
+			if !info.Restricted && info.Event != nil {
+				visible = append(visible, info.Event)
+			}
+		}
+		if len(visible) == 0 {
+			respondView(w, r, http.StatusOK, views.SwimlaneLaneEmpty())
+			return
+		}
+		respondView(w, r, http.StatusOK, views.EventCardRow(visible, "", len(visible), 0, len(visible)))
+		return
+	}
+
+	respondJSON(w, http.StatusOK, infos)
 }
 
 func (h *CampaignHandler) Form(w http.ResponseWriter, r *http.Request) {

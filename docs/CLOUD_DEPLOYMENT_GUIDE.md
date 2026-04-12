@@ -82,7 +82,7 @@ The Fresnel app only needs a **`DATABASE_URL`**; it does not care whether RDS, A
 
 - Run Keycloak as a **container** on EC2 or as another service task; use a **hostname** and TLS.
 - Point Fresnel’s **`KEYCLOAK_ISSUER`** at `https://<your-host>/realms/fresnel` (or your realm name).
-- Realm JSON and secrets should be **managed** (see §5), not hand-edited on servers forever.
+- Realm JSON and secrets should be **managed** (see §6), not hand-edited on servers forever.
 
 ### 3.5 Edge and TLS
 
@@ -113,7 +113,59 @@ This is **not** “Terraform is the product”; it is “Terraform bootstraps di
 
 ---
 
-## 5. Secrets and configuration
+## 5. Encryption at rest (data outside AWS control)
+
+### Threat model
+
+AWS is a convenient landing zone, not a trusted custodian of data at rest. The goal: even if someone gains access to the underlying AWS infrastructure (EBS snapshots, S3 buckets, decommissioned disks), the data is unreadable without a key that AWS does not hold.
+
+We accept the runtime risk — anyone with SSM or console access to a running instance can inspect process memory. The protection is against data at rest on AWS-managed storage.
+
+### Approach: LUKS on EBS volumes with a non-AWS key
+
+This is the same pattern specified in `HOSTING_REQUIREMENTS.md` for vSphere (LUKS on both OS and data disks). Apply it identically on EC2.
+
+**Setup:**
+
+1. Attach a dedicated EBS volume for the data disk (Postgres data, attachments, Keycloak DB).
+2. Format with LUKS. The passphrase is held **outside AWS** — in an on-prem vault, a hardware token, or known to an authorized operator.
+
+```bash
+# On the EC2 instance (one-time setup)
+cryptsetup luksFormat /dev/xvdf            # data volume
+cryptsetup luksOpen /dev/xvdf fresnel-data
+mkfs.ext4 /dev/mapper/fresnel-data
+mount /dev/mapper/fresnel-data /data
+```
+
+3. Configure Docker Compose to store Postgres data and attachments on `/data`.
+4. On reboot, an operator unlocks the volume before the stack starts:
+
+```bash
+cryptsetup luksOpen /dev/xvdf fresnel-data
+mount /dev/mapper/fresnel-data /data
+cd /opt/fresnel/deploy && docker compose up -d
+```
+
+**Key management options (external to AWS):**
+
+| Method | Complexity | Automation |
+|---|---|---|
+| Operator provides passphrase via SSM session on boot | Low | Manual — acceptable for PoC |
+| Passphrase fetched from on-prem HashiCorp Vault over VPN | Medium | Automated unlock on boot |
+| Passphrase on a YubiKey / HSM available via network | High | Fully automated, hardware dependency |
+
+For the PoC, the manual SSM approach is sufficient. If the instance rarely reboots (and it should rarely reboot), this is a non-event.
+
+**Defence-in-depth:** You can *also* enable standard AWS EBS encryption with a customer-managed CMK. This adds a second layer — AWS encryption protects against physical disk theft from an AWS data centre, LUKS protects against AWS-side logical access. Neither layer alone is sufficient; together they cover different threat vectors.
+
+**Impact on availability:** After a reboot, the data volume is not mounted until the LUKS passphrase is provided. Automated instance recovery (ASG replacement, spot interruption) requires either manual intervention or an automated unsealing flow to a non-AWS key source. For a PoC with a single, stable instance, manual unlock is acceptable.
+
+**Impact on backups:** Backups of the LUKS volume are encrypted at the block level. To create portable backups, run `pg_dump` from inside the running container (where the filesystem is decrypted) and encrypt the output with GPG before storing it anywhere (S3, off-site). See `AWS_TO_VSPHERE_MIGRATION.md` for the encrypted `pg_dump` procedure.
+
+---
+
+## 6. Secrets and configuration
 
 - **Never** bake production secrets into images. Use **SSM Parameter Store**, **Secrets Manager**, or another secret store; inject at runtime as env vars (`HMAC_SECRET`, `KEYCLOAK_CLIENT_SECRET`, DB password, etc.).
 - **Keycloak** client secrets and realm imports should be **templated** or loaded from secure storage, not copied from dev defaults.
@@ -121,7 +173,7 @@ This is **not** “Terraform is the product”; it is “Terraform bootstraps di
 
 ---
 
-## 6. What to avoid locking in early
+## 7. What to avoid locking in early
 
 - **Vendor-specific application glue** that only deploys on one PaaS (unless you accept that lock-in).
 - **Hard-coded** AWS endpoints inside the Go app (use env vars and standard URLs).
@@ -129,7 +181,7 @@ This is **not** “Terraform is the product”; it is “Terraform bootstraps di
 
 ---
 
-## 7. Path off AWS (on‑prem or another cloud)
+## 8. Path off AWS (on‑prem or another cloud)
 
 The portable unit is:
 
@@ -140,11 +192,15 @@ The portable unit is:
 
 Replace RDS with a **managed Postgres** elsewhere or a **patroni** cluster; replace ALB with **another** L7 load balancer; keep Fresnel’s **environment contract** stable.
 
+For a detailed step-by-step procedure, see `AWS_TO_VSPHERE_MIGRATION.md`.
+
 ---
 
-## 8. Checklist before calling an AWS MVP “live”
+## 9. Checklist before calling an AWS MVP “live”
 
 - [ ] TLS everywhere user-facing; no dev self-signed certs.
+- [ ] LUKS encryption on data volume; passphrase verified externally held (see §5).
+- [ ] EBS encryption enabled as defence-in-depth (customer-managed CMK).
 - [ ] Postgres backups tested restore (RDS snapshot or logical dump).
 - [ ] Keycloak admin and realm credentials **not** default dev values.
 - [ ] `HMAC_SECRET` and OIDC client secret rotated from Compose defaults.
@@ -153,7 +209,7 @@ Replace RDS with a **managed Postgres** elsewhere or a **patroni** cluster; repl
 
 ---
 
-## 9. Summary
+## 10. Summary
 
 - **Local:** `make compose-up` brings the stack up; migrations run with the API; **registration is closed** in Keycloak; use **pre-created** users (e.g. `platform-admin`) or admin-created users.
 - **AWS MVP:** use **standard** building blocks (VPC, ALB, RDS, EC2/ECS) **without** tying the application to AWS-only services in code.

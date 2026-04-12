@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"fresnel/internal/domain"
 	"fresnel/internal/service"
@@ -12,23 +13,34 @@ templ Dashboard(data DashboardData) {
 		<h1>Dashboard</h1>
 		@ViewToggle("tree")
 	</div>
-	<div class="dashboard-layout" hx-trigger="every 60s" hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML">
+	<div class="dashboard-layout">
 		<div>
-			if len(data.Sectors) > 0 {
-				<div class="card">
-					<div class="card-header">
-						National Cyber Status
-						<span class="htmx-indicator"><span class="spinner"></span></span>
+			<div class="card">
+				<div class="card-header">
+					National Cyber Status
+					<span class="htmx-indicator"><span class="spinner"></span></span>
+				</div>
+				<div class="card-body">
+					<div class="tree-root-status">
+						<span class="tree-root-label">Overall Platform Status</span>
+						if data.RootStatus != "" {
+							@AssessedBadge(data.RootStatus)
+						} else {
+							<span class="badge badge-assessed-unknown">UNKNOWN</span>
+						}
+						<span class="text-xs text-muted">(computed from sectors)</span>
 					</div>
-					<div class="card-body">
+					if len(data.Sectors) > 0 {
 						<div class="tree">
 							for _, sector := range data.Sectors {
 								@dashboardSectorNode(sector)
 							}
 						</div>
-					</div>
+					} else {
+						<p class="text-muted" style="text-align:center;padding:1rem;">No sectors available.</p>
+					}
 				</div>
-			}
+			</div>
 			if len(data.RecentEvents) > 0 {
 				@dashboardRecentEvents(data.RecentEvents)
 			}
@@ -36,8 +48,11 @@ templ Dashboard(data DashboardData) {
 				@dashboardActiveCampaigns(data.ActiveCampaigns)
 			}
 		</div>
-		<div class="side-panel">
-			<div class="side-panel-header">Status Timeline</div>
+		<div id="side-panel" class="side-panel side-panel-hidden">
+			<div class="side-panel-header">
+				<span id="side-panel-title">Status Timeline</span>
+				<button class="side-panel-close" onclick={ closeSidePanel() }>&times;</button>
+			</div>
 			<div id="side-panel-body" class="side-panel-body">
 				<div class="side-panel-empty">Select a sector or organization to view its status timeline.</div>
 			</div>
@@ -47,39 +62,73 @@ templ Dashboard(data DashboardData) {
 
 templ dashboardSectorNode(node *service.DashboardNode) {
 	<div class="tree-node">
-		<div class="tree-node-header"
-			hx-get={ "/api/v1/sectors/" + node.ID.String() + "/children" }
-			hx-target={ "#sector-children-" + node.ID.String() }
-			hx-swap="innerHTML"
-			onclick="this.querySelector('.tree-expand').classList.toggle('open');this.closest('.tree-node').querySelector('.tree-children').classList.toggle('collapsed');">
-			<span class="tree-expand">&#9654;</span>
-			<span class="tree-node-name">{ node.Name }</span>
+		<div class="tree-node-header">
+			<span class="tree-expand"
+				onclick="event.stopPropagation();this.classList.toggle('open');this.closest('.tree-node').querySelector(':scope > .tree-children').classList.toggle('collapsed');">&#9654;</span>
+			<span id={ "tree-" + node.ID.String() }
+				class="tree-node-name clickable"
+				hx-get={ fmt.Sprintf("/api/v1/status-reports?sector_ancestry=%s&partial=timeline&scope_name=%s",
+					url.QueryEscape(node.AncestryPath), url.QueryEscape(node.Name)) }
+				hx-target="#side-panel-body"
+				hx-swap="innerHTML"
+				onclick={ selectTreeItem("tree-"+node.ID.String(), node.Name) }>
+				{ node.Name }
+			</span>
 			<span class="tree-node-meta">
+				if node.ReportedStatus != "" {
+					<span class={ "badge badge-assessed-" + strings.ToLower(string(node.ReportedStatus)) }
+						title="From status reports">{ string(node.ReportedStatus) }</span>
+				}
 				if node.AssessedStatus != "" {
-					<span class={ "badge badge-assessed-" + strings.ToLower(string(node.AssessedStatus)) }>{ string(node.AssessedStatus) }</span>
+					<span class={ "badge badge-computed badge-assessed-" + strings.ToLower(string(node.AssessedStatus)) }
+						title="Computed from child statuses">{ string(node.AssessedStatus) } &#x2699;</span>
 				}
 			</span>
 		</div>
-		<div id={ "sector-children-" + node.ID.String() } class="tree-children collapsed">
-			for _, child := range node.Children {
-				@dashboardChildNode(child)
+		<div class="tree-children collapsed">
+			if len(node.Children) > 0 {
+				for _, child := range node.Children {
+					@dashboardChildNode(child)
+				}
+			} else {
+				<div class="tree-empty">No sub-sectors or organizations.</div>
 			}
 		</div>
 	</div>
 }
 
 templ dashboardChildNode(node *service.DashboardNode) {
-	<div class="tree-leaf"
-		hx-get={ "/api/v1/status-reports?scope_type=ORG&scope_ref=" + node.ID.String() }
-		hx-target="#side-panel-body"
-		hx-swap="innerHTML">
-		<span class="tree-node-name">{ node.Name }</span>
-		<span class="tree-node-meta">
-			if node.AssessedStatus != "" {
-				<span class={ "badge badge-assessed-" + strings.ToLower(string(node.AssessedStatus)) }>{ string(node.AssessedStatus) }</span>
-			}
-		</span>
-	</div>
+	if node.NodeType == "sector" {
+		@dashboardSectorNode(node)
+	} else {
+		<div id={ "tree-" + node.ID.String() }
+			class="tree-leaf clickable"
+			hx-get={ fmt.Sprintf("/api/v1/status-reports?scope_type=ORG&scope_ref=%s&partial=timeline&scope_name=%s",
+				node.ID.String(), url.QueryEscape(node.Name)) }
+			hx-target="#side-panel-body"
+			hx-swap="innerHTML"
+			onclick={ selectTreeItem("tree-"+node.ID.String(), node.Name) }>
+			<span class="tree-node-name">{ node.Name }</span>
+			<span class="tree-node-meta">
+				if node.AssessedStatus != "" {
+					@AssessedBadge(node.AssessedStatus)
+				}
+			</span>
+		</div>
+	}
+}
+
+script selectTreeItem(elemId string, name string) {
+	document.querySelectorAll('.tree-selected').forEach(function(el) { el.classList.remove('tree-selected'); });
+	var el = document.getElementById(elemId);
+	if (el) el.classList.add('tree-selected');
+	document.getElementById('side-panel').classList.remove('side-panel-hidden');
+	document.getElementById('side-panel-title').textContent = name + ' \u2014 Timeline';
+}
+
+script closeSidePanel() {
+	document.getElementById('side-panel').classList.add('side-panel-hidden');
+	document.querySelectorAll('.tree-selected').forEach(function(el) { el.classList.remove('tree-selected'); });
 }
 
 templ dashboardRecentEvents(events []*domain.Event) {

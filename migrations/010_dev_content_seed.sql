@@ -223,7 +223,25 @@ INSERT INTO status_reports (id, source_instance, sector_context, scope_type, sco
  'Three orgs reporting: Dept of Technology (DEGRADED — phishing contained, RDP exposure under watch), National Security Agency (IMPAIRED — active spear-phishing and DNS exfiltration), State IT Authority (NORMAL). Sector posture reflects the weighted average. Recommend sector-wide dormant-account audit.',
  now() - interval '7 days', now(), now() - interval '1 hour',
  'DEGRADED', 'HIGH', 'AMBER',
- 'b1000000-0000-4000-8000-000000000002'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid)
+ 'b1000000-0000-4000-8000-000000000002'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
+
+-- Sector-level report: Critical Infrastructure
+('b5000000-0000-4000-8000-000000000011'::uuid, 'local', 'b0000000-0000-4000-8000-000000000005'::uuid,
+ 'SECTOR', 'b0000000-0000-4000-8000-000000000005'::uuid,
+ 'Critical Infrastructure sector — weekly consolidated posture',
+ 'Two orgs reporting elevated activity. National Grid Operator (IMPAIRED — SCADA scan and RTU firmware anomalies) and Telecom Authority (DEGRADED — BGP hijack mitigation and SS7 probing). Sector posture reflects weighted average of child statuses. Recommend cross-sector OT monitoring coordination.',
+ now() - interval '7 days', now(), now() - interval '1 hour',
+ 'IMPAIRED', 'CRITICAL', 'AMBER_STRICT',
+ 'a0000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
+
+-- Sector-level report: Finance
+('b5000000-0000-4000-8000-000000000012'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
+ 'SECTOR', 'b0000000-0000-4000-8000-000000000004'::uuid,
+ 'Finance sector — weekly consolidated posture',
+ 'Central Bank reporting credential stuffing and SWIFT anomaly investigations (DEGRADED). Financial Regulatory Authority managing phishing kit takedown (DEGRADED). No systemic risk identified. Sector posture: DEGRADED.',
+ now() - interval '7 days', now(), now() - interval '2 hours',
+ 'DEGRADED', 'MODERATE', 'AMBER',
+ 'a0000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid)
 
 ON CONFLICT (id) DO NOTHING;
 

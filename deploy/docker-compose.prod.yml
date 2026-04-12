@@ -1,0 +1,28 @@
+# Production overrides — uses /data volume for persistent state.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Requires /data to be a LUKS-encrypted mount (see OPERATIONS_GUIDE.md).
+services:
+  postgres:
+    volumes:
+      - /data/pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+
+  keycloak:
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?Set KC_ADMIN_PASSWORD in .env}
+
+  fresnel:
+    environment:
+      DATABASE_URL: postgres://fresnel:${POSTGRES_PASSWORD}@postgres:5432/fresnel?sslmode=disable
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-http://keycloak:8080/realms/fresnel}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-fresnel-app}
+      KEYCLOAK_EXTERNAL_URL: ${KEYCLOAK_EXTERNAL_URL}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL}
+      HMAC_SECRET: ${HMAC_SECRET:?Set HMAC_SECRET in .env}
+      ATTACHMENT_DIR: /data/attachments
+    volumes:
+      - /data/attachments:/data/attachments

@@ -13,14 +13,15 @@ import (
 )
 
 type DashboardNode struct {
-	ID             uuid.UUID        `json:"id"`
-	Name           string           `json:"name"`
-	NodeType       string           `json:"node_type"` // "sector" or "organization"
+	ID             uuid.UUID            `json:"id"`
+	Name           string               `json:"name"`
+	NodeType       string               `json:"node_type"` // "sector", "organization", or "platform"
 	AssessedStatus domain.AssessedStatus `json:"assessed_status"`
-	Children       []*DashboardNode `json:"children,omitempty"`
-	Restricted     bool             `json:"restricted,omitempty"`
-	Depth          int              `json:"depth"`
-	AncestryPath   string           `json:"-"`
+	ReportedStatus domain.AssessedStatus `json:"reported_status,omitempty"`
+	Children       []*DashboardNode     `json:"children,omitempty"`
+	Restricted     bool                 `json:"restricted,omitempty"`
+	Depth          int                  `json:"depth"`
+	AncestryPath   string               `json:"-"`
 }
 
 type DashboardService struct {
@@ -107,6 +108,12 @@ func (s *DashboardService) buildTree(ctx context.Context) (*DashboardNode, error
 	}
 
 	for _, sec := range allSectors {
+		node := sectorMap[sec.ID]
+		latest, _ := s.reports.GetLatestByScope(ctx, "SECTOR", sec.ID)
+		if latest != nil {
+			node.ReportedStatus = latest.AssessedStatus
+		}
+
 		orgs, err := s.orgs.List(ctx, &sec.ID)
 		if err != nil {
 			continue
@@ -116,15 +123,16 @@ func (s *DashboardService) buildTree(ctx context.Context) (*DashboardNode, error
 				ID:       org.ID,
 				Name:     org.Name,
 				NodeType: "organization",
-				Depth:    sectorMap[sec.ID].Depth + 1,
+				Depth:    node.Depth + 1,
 			}
-			latest, _ := s.reports.GetLatestByScope(ctx, "ORG", org.ID)
-			if latest != nil {
-				orgNode.AssessedStatus = latest.AssessedStatus
+			orgLatest, _ := s.reports.GetLatestByScope(ctx, "ORG", org.ID)
+			if orgLatest != nil {
+				orgNode.AssessedStatus = orgLatest.AssessedStatus
+				orgNode.ReportedStatus = orgLatest.AssessedStatus
 			} else {
 				orgNode.AssessedStatus = domain.AssessedUnknown
 			}
-			sectorMap[sec.ID].Children = append(sectorMap[sec.ID].Children, orgNode)
+			node.Children = append(node.Children, orgNode)
 		}
 	}
 

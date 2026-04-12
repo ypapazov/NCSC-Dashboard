@@ -37,8 +37,10 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var sectors []*service.DashboardNode
+	var rootStatus domain.AssessedStatus
 	if tree != nil {
 		sectors = tree.Children
+		rootStatus = tree.AssessedStatus
 	}
 
 	activeStatus := domain.CampaignActive
@@ -94,6 +96,7 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	respondView(w, r, http.StatusOK, views.Dashboard(views.DashboardData{
 		User:            auth,
+		RootStatus:      rootStatus,
 		Sectors:         sectors,
 		RecentEvents:    recentEvents,
 		ActiveCampaigns: activeCampaigns,

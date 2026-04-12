@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars and fill in real values.
+# Do NOT commit terraform.tfvars — it may contain sensitive values.
+
+aws_region       = "eu-west-2"
+domain_name      = "fresnel.example.org"
+route53_zone_id  = ""          # set if using Route 53 for DNS
+key_pair_name    = ""          # set if you want SSH; leave empty for SSM-only
+ssh_allowed_cidrs = []         # e.g. ["10.0.0.0/8"]
+instance_type    = "t3.xlarge" # 4 vCPU / 16 GB per HOSTING_REQUIREMENTS.md
+data_volume_size_gb = 100

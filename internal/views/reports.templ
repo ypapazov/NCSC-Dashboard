@@ -61,6 +61,40 @@ templ ReportList(reports []*domain.StatusReport, total int) {
 	</div>
 }
 
+templ StatusTimeline(reports []*domain.StatusReport, scopeName string) {
+	if len(reports) > 0 {
+		<div class="timeline-header">
+			<strong>{ scopeName }</strong>
+		</div>
+		<ul class="timeline">
+			for _, r := range reports {
+				<li class="timeline-entry">
+					<div class="timeline-date">{ FmtTime(r.PublishedAt) }</div>
+					<div class="timeline-body">
+						<div class="flex gap-sm items-center mb-xs">
+							@AssessedBadge(r.AssessedStatus)
+							@ImpactBadge(r.Impact)
+							@TLPBadge(r.TLP)
+						</div>
+						<a class="text-sm"
+							hx-get={ "/api/v1/status-reports/" + r.ID.String() }
+							hx-target="#app" hx-swap="innerHTML"
+							hx-push-url={ "/status-reports/" + r.ID.String() }
+							style="cursor:pointer;text-decoration:underline;">
+							{ r.Title }
+						</a>
+						<div class="text-xs text-muted" style="margin-top:.25rem;">
+							{ FmtDate(r.PeriodCoveredStart) } – { FmtDate(r.PeriodCoveredEnd) }
+						</div>
+					</div>
+				</li>
+			}
+		</ul>
+	} else {
+		<div class="side-panel-empty">No status reports for this scope.</div>
+	}
+}
+
 templ ReportDetail(data ReportDetailData) {
 	<div class="page-header">
 		<div>

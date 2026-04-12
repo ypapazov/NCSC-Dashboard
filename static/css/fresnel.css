@@ -228,7 +228,7 @@ img { max-width: 100%; }
   transition: background var(--transition);
 }
 .table-row:hover { background: var(--surface-alt); }
-.table-row.clickable { cursor: pointer; }
+.table-row.clickable, .tree-leaf.clickable, .tree-node-name.clickable { cursor: pointer; }
 .table-cell {
   padding: .6rem .75rem;
   font-size: .85rem;
@@ -321,6 +321,15 @@ img { max-width: 100%; }
 
 /* --- Tree (Dashboard) -------------------------------------- */
 .tree {}
+.tree-root-status {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .6rem .75rem;
+  margin-bottom: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+}
+.tree-root-label { font-weight: 600; font-size: .9rem; }
 .tree-node {
   border-left: 2px solid var(--border);
   margin-left: .5rem;
@@ -330,7 +339,6 @@ img { max-width: 100%; }
   display: flex; align-items: center; gap: .5rem;
   padding: .4rem .6rem;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   transition: background var(--transition);
 }
 .tree-node-header:hover { background: var(--surface-alt); }
@@ -341,12 +349,16 @@ img { max-width: 100%; }
   color: var(--text-muted);
   transition: transform var(--transition);
   flex-shrink: 0;
+  cursor: pointer;
 }
+.tree-expand:hover { color: var(--text); }
 .tree-expand.open { transform: rotate(90deg); }
 .tree-node-name { font-weight: 500; font-size: .9rem; }
+.tree-node-name.clickable:hover { text-decoration: underline; }
 .tree-node-meta { font-size: .8rem; color: var(--text-muted); margin-left: auto; display: flex; gap: .5rem; align-items: center; }
 .tree-children { margin-left: .75rem; }
 .tree-children.collapsed { display: none; }
+.tree-empty { padding: .5rem 1.8rem; font-size: .8rem; color: var(--text-dim); font-style: italic; }
 .tree-leaf {
   display: flex; align-items: center; gap: .5rem;
   padding: .35rem .6rem .35rem 1.8rem;
@@ -356,6 +368,8 @@ img { max-width: 100%; }
   transition: background var(--transition);
 }
 .tree-leaf:hover { background: var(--surface-alt); }
+.tree-selected, .tree-leaf.tree-selected { background: var(--accent-bg, rgba(59,130,246,.1)); border-left: 2px solid var(--accent); }
+.badge-computed { border-style: dashed; }
 
 /* --- Side Panel (Dashboard timeline) ----------------------- */
 .dashboard-layout { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; }
@@ -368,7 +382,15 @@ img { max-width: 100%; }
   overflow-y: auto;
   position: sticky;
   top: calc(var(--topnav-h) + 1.25rem);
+  transition: opacity .2s, max-height .2s;
 }
+.side-panel-hidden { opacity: 0; max-height: 0; border: none; pointer-events: none; }
+.side-panel-header { display: flex; align-items: center; justify-content: space-between; }
+.side-panel-close {
+  background: none; border: none; font-size: 1.2rem; cursor: pointer;
+  color: var(--text-muted); padding: 0 .25rem; line-height: 1;
+}
+.side-panel-close:hover { color: var(--text); }
 .side-panel-header {
   padding: .75rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -379,6 +401,7 @@ img { max-width: 100%; }
 .side-panel-empty { padding: 2rem 1rem; text-align: center; color: var(--text-dim); font-size: .85rem; }
 
 /* --- Timeline entries -------------------------------------- */
+.timeline-header { font-size: .9rem; margin-bottom: .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
 .timeline { list-style: none; margin: 0; padding: 0; }
 .timeline-entry {
   position: relative;
