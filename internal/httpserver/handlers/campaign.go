@@ -42,6 +42,7 @@ func (h *CampaignHandler) List(w http.ResponseWriter, r *http.Request) {
 		t := domain.TLP(v)
 		filter.TLP = &t
 	}
+	filter.Search = q.Get("search")
 
 	result, err := h.campaigns.List(r.Context(), auth, filter)
 	if err != nil {
@@ -57,6 +58,12 @@ func (h *CampaignHandler) List(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	if q.Get("partial") == "options" {
+		respondView(w, r, http.StatusOK, views.CampaignSearchResults(result.Items))
+		return
+	}
+
 	respondView(w, r, http.StatusOK, views.CampaignList(result.Items, result.TotalCount))
 }
 
@@ -113,16 +120,27 @@ func (h *CampaignHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *CampaignHandler) Create(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	var campaign domain.Campaign
-	if err := parseJSON(r, &campaign); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var campaign *domain.Campaign
+	if isFormSubmission(r) {
+		campaign = parseCampaignFromForm(r)
+	} else {
+		var c domain.Campaign
+		if err := parseJSON(r, &c); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		campaign = &c
 	}
-	if err := h.campaigns.Create(r.Context(), auth, &campaign); err != nil {
+	if err := h.campaigns.Create(r.Context(), auth, campaign); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, &campaign)
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusCreated, campaign)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/campaigns/"+campaign.ID.String())
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -132,17 +150,28 @@ func (h *CampaignHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var campaign domain.Campaign
-	if err := parseJSON(r, &campaign); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var campaign *domain.Campaign
+	if isFormSubmission(r) {
+		campaign = parseCampaignFromForm(r)
+	} else {
+		var c domain.Campaign
+		if err := parseJSON(r, &c); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		campaign = &c
 	}
 	campaign.ID = id
-	if err := h.campaigns.Update(r.Context(), auth, &campaign); err != nil {
+	if err := h.campaigns.Update(r.Context(), auth, campaign); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, &campaign)
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, campaign)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/campaigns/"+id.String())
+	w.WriteHeader(http.StatusOK)
 }
 
 type linkEventRequest struct {
@@ -156,13 +185,28 @@ func (h *CampaignHandler) LinkEvent(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var req linkEventRequest
-	if err := parseJSON(r, &req); err != nil {
+	var eventID uuid.UUID
+	if isFormSubmission(r) {
+		eventID = parseLinkEventFromForm(r)
+	} else {
+		var req linkEventRequest
+		if err := parseJSON(r, &req); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		eventID = req.EventID
+	}
+	if eventID == uuid.Nil {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	if err := h.campaigns.LinkEvent(r.Context(), auth, campaignID, req.EventID); err != nil {
+	if err := h.campaigns.LinkEvent(r.Context(), auth, campaignID, eventID); err != nil {
 		respondError(w, r, err)
+		return
+	}
+	if getRenderKind(r) != requestctx.RenderJSON {
+		w.Header().Set("HX-Redirect", "/campaigns/"+campaignID.String())
+		w.WriteHeader(http.StatusCreated)
 		return
 	}
 	respondJSON(w, http.StatusCreated, map[string]string{"status": "linked"})

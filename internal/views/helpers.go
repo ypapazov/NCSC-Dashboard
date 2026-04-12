@@ -91,6 +91,46 @@ func safeEventField(e *domain.Event, fn func(*domain.Event) string) string {
 	return fn(e)
 }
 
+func safeEventDateField(e *domain.Event) string {
+	if e == nil || e.OriginalEventDate == nil {
+		return ""
+	}
+	return e.OriginalEventDate.Format("2006-01-02")
+}
+
+func EventTypeName(et domain.EventType) string {
+	switch et {
+	case domain.EventTypePhishing:
+		return "Phishing"
+	case domain.EventTypeMalware:
+		return "Malware"
+	case domain.EventTypeRansomware:
+		return "Ransomware"
+	case domain.EventTypeDDoS:
+		return "DDoS"
+	case domain.EventTypeDataBreach:
+		return "Data Breach"
+	case domain.EventTypeUnauthorized:
+		return "Unauthorized Access"
+	case domain.EventTypeWebDefacement:
+		return "Web Defacement"
+	case domain.EventTypeInsiderThreat:
+		return "Insider Threat"
+	case domain.EventTypeSupplyChain:
+		return "Supply Chain"
+	case domain.EventTypeVulnerability:
+		return "Vulnerability"
+	case domain.EventTypeHybrid:
+		return "Hybrid"
+	case domain.EventTypeMisinformation:
+		return "Misinformation"
+	case domain.EventTypeUnclassified:
+		return "Unclassified"
+	default:
+		return string(et)
+	}
+}
+
 func safeReportField(r *domain.StatusReport, fn func(*domain.StatusReport) string) string {
 	if r == nil {
 		return ""
@@ -103,6 +143,36 @@ func safeCampaignField(c *domain.Campaign, fn func(*domain.Campaign) string) str
 		return ""
 	}
 	return fn(c)
+}
+
+func dashboardGraphJSON(events []*domain.Event) string {
+	type node struct {
+		ID        string `json:"id"`
+		Title     string `json:"title"`
+		Impact    string `json:"impact"`
+		Status    string `json:"status"`
+		EventType string `json:"event_type"`
+		TLP       string `json:"tlp"`
+		UpdatedAt string `json:"updated_at"`
+	}
+	nodes := make([]node, 0, len(events))
+	for _, e := range events {
+		title := e.Title
+		if len(title) > 60 {
+			title = title[:57] + "..."
+		}
+		nodes = append(nodes, node{
+			ID:        e.ID.String(),
+			Title:     title,
+			Impact:    string(e.Impact),
+			Status:    string(e.Status),
+			EventType: string(e.EventType),
+			TLP:       string(e.TLP),
+			UpdatedAt: e.UpdatedAt.Format("2006-01-02"),
+		})
+	}
+	b, _ := json.Marshal(map[string]any{"nodes": nodes})
+	return string(b)
 }
 
 func RelativeTime(t time.Time) string {

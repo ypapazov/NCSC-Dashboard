@@ -51,6 +51,8 @@ func eventShape(et domain.EventType) string {
 		return "ellipse"
 	case et == domain.EventTypeVulnerability || et == domain.EventTypeWebDefacement:
 		return "diamond"
+	case et == domain.EventTypeHybrid || et == domain.EventTypeMisinformation:
+		return "hexagon"
 	default:
 		return "rectangle"
 	}
@@ -254,15 +256,33 @@ func (h *CorrelationHandler) CreateCorrelation(w http.ResponseWriter, r *http.Re
 		return
 	}
 	var corr domain.Correlation
-	if err := parseJSON(r, &corr); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	if isFormSubmission(r) {
+		_ = r.ParseForm()
+		corr.Label = r.FormValue("label")
+		corr.CorrelationType = domain.CorrelationType(r.FormValue("correlation_type"))
+		if corr.CorrelationType == "" {
+			corr.CorrelationType = domain.CorrelationManual
+		}
+		corr.EventAID = eventID
+		if id, err := uuid.Parse(r.FormValue("event_b_id")); err == nil {
+			corr.EventBID = id
+		}
+	} else {
+		if err := parseJSON(r, &corr); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
 	if corr.EventAID == uuid.Nil {
 		corr.EventAID = eventID
 	}
 	if err := h.corrs.CreateCorrelation(r.Context(), auth, &corr); err != nil {
 		respondError(w, r, err)
+		return
+	}
+	if getRenderKind(r) != requestctx.RenderJSON {
+		w.Header().Set("HX-Redirect", "/events/"+eventID.String())
+		w.WriteHeader(http.StatusCreated)
 		return
 	}
 	respondJSON(w, http.StatusCreated, &corr)

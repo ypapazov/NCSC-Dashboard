@@ -25,6 +25,11 @@ type SwimlaneData struct {
 	FilterQuery     string // pre-built filter params for lane hx-get URLs
 }
 
+type DashboardGraphData struct {
+	Events  []*domain.Event
+	Sectors []*service.DashboardNode
+}
+
 // --- Events ---
 
 type CorrelationView struct {

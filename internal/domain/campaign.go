@@ -52,5 +52,6 @@ type CampaignFilter struct {
 	OrganizationID *uuid.UUID
 	Status         *CampaignStatus
 	TLP            *TLP
+	Search         string
 	Pagination
 }

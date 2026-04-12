@@ -40,7 +40,7 @@ templ EventCardRow(events []*domain.Event, orgID string, total int, offset int, 
 	}
 }
 
-// ViewToggle renders the tree/lanes toggle control.
+// ViewToggle renders the tree/timeline/graph toggle control.
 templ ViewToggle(currentView string) {
 	<div class="view-toggle">
 		<a class={ "view-toggle-btn", templ.KV("active", currentView == "tree") }
@@ -48,10 +48,15 @@ templ ViewToggle(currentView string) {
 			hx-push-url="/dashboard?view=tree">
 			Tree
 		</a>
-		<a class={ "view-toggle-btn", templ.KV("active", currentView == "lanes") }
-			hx-get="/api/v1/dashboard?view=lanes" hx-target="#app" hx-swap="innerHTML"
-			hx-push-url="/dashboard?view=lanes">
-			Lanes
+		<a class={ "view-toggle-btn", templ.KV("active", currentView == "timeline") }
+			hx-get="/api/v1/dashboard?view=timeline" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/dashboard?view=timeline">
+			Timeline
+		</a>
+		<a class={ "view-toggle-btn", templ.KV("active", currentView == "graph") }
+			hx-get="/api/v1/dashboard?view=graph" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/dashboard?view=graph">
+			Graph
 		</a>
 	</div>
 }
@@ -63,7 +68,7 @@ templ DashboardFilterBar(currentView string) {
 			hx-get={ "/api/v1/dashboard?view=" + currentView }
 			hx-target="#app" hx-swap="innerHTML"
 			hx-include="#dashboard-filters">
-			<option value="">All Impacts</option>
+			<option value="">All Risk Levels</option>
 			<option value="CRITICAL">Critical</option>
 			<option value="HIGH">High</option>
 			<option value="MODERATE">Moderate</option>
@@ -105,7 +110,9 @@ templ DashboardFilterBar(currentView string) {
 			<option value="UNAUTHORIZED_ACCESS">Unauthorized Access</option>
 			<option value="SUPPLY_CHAIN">Supply Chain</option>
 			<option value="VULNERABILITY">Vulnerability</option>
-			<option value="OTHER">Other</option>
+			<option value="HYBRID">Hybrid</option>
+			<option value="MISINFORMATION">Misinformation</option>
+			<option value="UNCLASSIFIED">Unclassified</option>
 		</select>
 	</div>
 }
@@ -131,13 +138,13 @@ func SwimlaneBuildFilterQuery(impact, tlp, status, eventType string) string {
 	return "&" + strings.Join(parts, "&")
 }
 
-// SwimlaneDashboard renders the full swimlane view.
+// SwimlaneDashboard renders the full timeline view (formerly lanes/swimlane).
 templ SwimlaneDashboard(data SwimlaneData) {
 	<div class="page-header">
 		<h1>Dashboard</h1>
-		@ViewToggle("lanes")
+		@ViewToggle("timeline")
 	</div>
-	@DashboardFilterBar("lanes")
+	@DashboardFilterBar("timeline")
 	<div class="swimlane-container">
 		for _, sector := range data.Sectors {
 			@swimlaneSectorGroup(sector, data.FilterQuery)

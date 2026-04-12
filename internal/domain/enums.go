@@ -156,14 +156,17 @@ const (
 	EventTypeInsiderThreat   EventType = "INSIDER_THREAT"
 	EventTypeSupplyChain     EventType = "SUPPLY_CHAIN"
 	EventTypeVulnerability   EventType = "VULNERABILITY"
-	EventTypeOther           EventType = "OTHER"
+	EventTypeHybrid          EventType = "HYBRID"
+	EventTypeMisinformation  EventType = "MISINFORMATION"
+	EventTypeUnclassified    EventType = "UNCLASSIFIED"
 )
 
 func (e EventType) Valid() bool {
 	switch e {
 	case EventTypePhishing, EventTypeMalware, EventTypeRansomware, EventTypeDDoS,
 		EventTypeDataBreach, EventTypeUnauthorized, EventTypeWebDefacement,
-		EventTypeInsiderThreat, EventTypeSupplyChain, EventTypeVulnerability, EventTypeOther:
+		EventTypeInsiderThreat, EventTypeSupplyChain, EventTypeVulnerability,
+		EventTypeHybrid, EventTypeMisinformation, EventTypeUnclassified:
 		return true
 	}
 	return false

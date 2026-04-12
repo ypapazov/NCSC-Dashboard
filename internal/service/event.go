@@ -41,6 +41,9 @@ func (s *EventService) Create(ctx context.Context, auth *domain.AuthContext, eve
 	}
 	event.Status = domain.StatusOpen
 	event.SourceInstance = "local"
+	if event.IntelSource == "" {
+		event.IntelSource = "Manual"
+	}
 
 	if err := event.Validate(); err != nil {
 		return fmt.Errorf("%w: %v", ErrValidation, err)
@@ -108,7 +111,7 @@ func (s *EventService) List(ctx context.Context, auth *domain.AuthContext, filte
 		recipients, _ := s.tlpRed.GetRecipients(ctx, "event", e.ID)
 		return authz.EventResource(e, ancestry, recipients)
 	})
-	return &domain.ListResult[*domain.Event]{Items: filtered, TotalCount: result.TotalCount}, nil
+	return &domain.ListResult[*domain.Event]{Items: filtered, TotalCount: len(filtered)}, nil
 }
 
 func (s *EventService) Update(ctx context.Context, auth *domain.AuthContext, event *domain.Event, tlpRedRecipients []uuid.UUID) error {
@@ -135,6 +138,9 @@ func (s *EventService) Update(ctx context.Context, auth *domain.AuthContext, eve
 	existing.Description = event.Description
 	existing.EventType = event.EventType
 	existing.Impact = event.Impact
+	existing.IntelSource = event.IntelSource
+	existing.Target = event.Target
+	existing.OriginalEventDate = event.OriginalEventDate
 
 	// TLP can only become more restrictive
 	if event.TLP.Restrictiveness() < existing.TLP.Restrictiveness() {

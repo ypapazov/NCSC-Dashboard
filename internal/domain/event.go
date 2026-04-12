@@ -8,19 +8,22 @@ import (
 )
 
 type Event struct {
-	ID             uuid.UUID   `json:"id"`
-	SourceInstance string      `json:"source_instance"`
-	SectorContext  uuid.UUID   `json:"sector_context"`
-	Title          string      `json:"title"`
-	Description    string      `json:"description"`
-	EventType      EventType   `json:"event_type"`
-	SubmitterID    uuid.UUID   `json:"submitter_id"`
-	OrganizationID uuid.UUID   `json:"organization_id"`
-	TLP            TLP         `json:"tlp"`
-	Impact         Impact      `json:"impact"`
-	Status         EventStatus `json:"status"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	ID                uuid.UUID   `json:"id"`
+	SourceInstance    string      `json:"source_instance"`
+	SectorContext     uuid.UUID   `json:"sector_context"`
+	Title             string      `json:"title"`
+	Description       string      `json:"description"`
+	EventType         EventType   `json:"event_type"`
+	SubmitterID       uuid.UUID   `json:"submitter_id"`
+	OrganizationID    uuid.UUID   `json:"organization_id"`
+	TLP               TLP         `json:"tlp"`
+	Impact            Impact      `json:"impact"`
+	Status            EventStatus `json:"status"`
+	IntelSource       string      `json:"intel_source"`
+	Target            string      `json:"target"`
+	OriginalEventDate *time.Time  `json:"original_event_date,omitempty"`
+	CreatedAt         time.Time   `json:"created_at"`
+	UpdatedAt         time.Time   `json:"updated_at"`
 }
 
 func (e *Event) Validate() error {

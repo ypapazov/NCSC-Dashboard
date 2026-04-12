@@ -52,7 +52,7 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if campaignResult != nil {
 		activeCampaigns = campaignResult.Items
 		for _, c := range activeCampaigns {
-			c.EventCount, _ = h.campaigns.CountLinkedEvents(ctx, c.ID)
+			c.EventCount, _ = h.campaigns.CountLinkedEvents(ctx, auth, c.ID)
 		}
 	}
 
@@ -74,7 +74,7 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if viewMode == "lanes" {
+	if viewMode == "lanes" || viewMode == "timeline" {
 		q := r.URL.Query()
 		filterQuery := views.SwimlaneBuildFilterQuery(q.Get("impact"), q.Get("tlp"), q.Get("status"), q.Get("event_type"))
 		respondView(w, r, http.StatusOK, views.SwimlaneDashboard(views.SwimlaneData{
@@ -82,6 +82,21 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 			Sectors:         sectors,
 			ActiveCampaigns: activeCampaigns,
 			FilterQuery:     filterQuery,
+		}))
+		return
+	}
+
+	if viewMode == "graph" {
+		recentResult, _ := h.events.List(ctx, auth, domain.EventFilter{
+			Pagination: domain.Pagination{Limit: 200},
+		})
+		var allEvents []*domain.Event
+		if recentResult != nil {
+			allEvents = recentResult.Items
+		}
+		respondView(w, r, http.StatusOK, views.DashboardGraph(views.DashboardGraphData{
+			Events:   allEvents,
+			Sectors:  sectors,
 		}))
 		return
 	}

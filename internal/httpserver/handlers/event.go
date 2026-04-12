@@ -90,6 +90,18 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if q.Get("partial") == "search-results" {
+		campaignID := q.Get("campaign_id")
+		respondView(w, r, http.StatusOK, views.EventSearchResults(result.Items, campaignID))
+		return
+	}
+
+	if q.Get("partial") == "correlate-results" {
+		sourceEventID := q.Get("source_event_id")
+		respondView(w, r, http.StatusOK, views.CorrelateSearchResults(result.Items, sourceEventID))
+		return
+	}
+
 	if q.Get("partial") == "cards" {
 		orgID := q.Get("organization_id")
 		if len(result.Items) == 0 {
@@ -100,6 +112,10 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if q.Get("search") != "" || q.Get("status") != "" || q.Get("impact") != "" || q.Get("event_type") != "" || q.Get("tlp") != "" {
+		respondView(w, r, http.StatusOK, views.EventTable(result.Items, result.TotalCount))
+		return
+	}
 	respondView(w, r, http.StatusOK, views.EventList(result.Items, result.TotalCount))
 }
 
@@ -188,16 +204,29 @@ type eventCreateRequest struct {
 
 func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	var req eventCreateRequest
-	if err := parseJSON(r, &req); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var event *domain.Event
+	var recipients []uuid.UUID
+	if isFormSubmission(r) {
+		event, recipients = parseEventFromForm(r)
+	} else {
+		var req eventCreateRequest
+		if err := parseJSON(r, &req); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		event = &req.Event
+		recipients = req.TLPRedRecipients
 	}
-	if err := h.events.Create(r.Context(), auth, &req.Event, req.TLPRedRecipients); err != nil {
+	if err := h.events.Create(r.Context(), auth, event, recipients); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, &req.Event)
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusCreated, event)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/events/"+event.ID.String())
+	w.WriteHeader(http.StatusCreated)
 }
 
 type eventUpdateRequest struct {
@@ -212,17 +241,30 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var req eventUpdateRequest
-	if err := parseJSON(r, &req); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var event *domain.Event
+	var recipients []uuid.UUID
+	if isFormSubmission(r) {
+		event, recipients = parseEventFromForm(r)
+	} else {
+		var req eventUpdateRequest
+		if err := parseJSON(r, &req); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		event = &req.Event
+		recipients = req.TLPRedRecipients
 	}
-	req.Event.ID = id
-	if err := h.events.Update(r.Context(), auth, &req.Event, req.TLPRedRecipients); err != nil {
+	event.ID = id
+	if err := h.events.Update(r.Context(), auth, event, recipients); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, &req.Event)
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, event)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/events/"+id.String())
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -246,17 +288,32 @@ func (h *EventHandler) CreateUpdate(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var update domain.EventUpdate
-	if err := parseJSON(r, &update); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var update *domain.EventUpdate
+	if isFormSubmission(r) {
+		update = parseEventUpdateFromForm(r)
+		if update.TLP == "" {
+			if ev, _ := h.events.GetByID(r.Context(), auth, eventID); ev != nil {
+				update.TLP = ev.TLP
+			}
+		}
+	} else {
+		var u domain.EventUpdate
+		if err := parseJSON(r, &u); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		update = &u
 	}
 	update.EventID = eventID
-	if err := h.events.CreateUpdate(r.Context(), auth, &update); err != nil {
+	if err := h.events.CreateUpdate(r.Context(), auth, update); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, &update)
+	if getRenderKind(r) != requestctx.RenderJSON {
+		respondView(w, r, http.StatusCreated, views.EventUpdatesReload(eventID))
+		return
+	}
+	respondJSON(w, http.StatusCreated, update)
 }
 
 func (h *EventHandler) ListUpdates(w http.ResponseWriter, r *http.Request) {
@@ -376,7 +433,8 @@ func (h *EventHandler) Form(w http.ResponseWriter, r *http.Request) {
 		domain.EventTypePhishing, domain.EventTypeMalware, domain.EventTypeRansomware,
 		domain.EventTypeDDoS, domain.EventTypeDataBreach, domain.EventTypeUnauthorized,
 		domain.EventTypeWebDefacement, domain.EventTypeInsiderThreat,
-		domain.EventTypeSupplyChain, domain.EventTypeVulnerability, domain.EventTypeOther,
+		domain.EventTypeSupplyChain, domain.EventTypeVulnerability,
+		domain.EventTypeHybrid, domain.EventTypeMisinformation, domain.EventTypeUnclassified,
 	}
 
 	var recipients []views.RecipientOption

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"fresnel/internal/domain"
 	"fresnel/internal/httpserver/requestctx"
@@ -30,6 +32,10 @@ func parseUUID(r *http.Request, param string) (uuid.UUID, error) {
 
 func parseJSON(r *http.Request, dest any) error {
 	defer r.Body.Close()
+	ct := r.Header.Get("Content-Type")
+	if strings.HasPrefix(ct, "application/x-www-form-urlencoded") || strings.HasPrefix(ct, "multipart/form-data") {
+		return r.ParseForm()
+	}
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	return dec.Decode(dest)
@@ -41,6 +47,75 @@ func parsePagination(r *http.Request) domain.Pagination {
 	p := domain.Pagination{Offset: offset, Limit: limit}
 	p.Normalize()
 	return p
+}
+
+func isFormSubmission(r *http.Request) bool {
+	ct := r.Header.Get("Content-Type")
+	return strings.HasPrefix(ct, "application/x-www-form-urlencoded") || strings.HasPrefix(ct, "multipart/form-data")
+}
+
+func parseEventFromForm(r *http.Request) (*domain.Event, []uuid.UUID) {
+	_ = r.ParseForm()
+	e := &domain.Event{
+		Title:       r.FormValue("title"),
+		Description: r.FormValue("description"),
+		EventType:   domain.EventType(r.FormValue("event_type")),
+		TLP:         domain.TLP(r.FormValue("tlp")),
+		Impact:      domain.Impact(r.FormValue("impact")),
+		IntelSource: r.FormValue("intel_source"),
+		Target:      r.FormValue("target"),
+	}
+	if v := r.FormValue("sector_context"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			e.SectorContext = id
+		}
+	}
+	if v := r.FormValue("original_event_date"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			e.OriginalEventDate = &t
+		}
+	}
+	var recipients []uuid.UUID
+	for _, v := range r.Form["recipients"] {
+		if id, err := uuid.Parse(v); err == nil {
+			recipients = append(recipients, id)
+		}
+	}
+	return e, recipients
+}
+
+func parseCampaignFromForm(r *http.Request) *domain.Campaign {
+	_ = r.ParseForm()
+	return &domain.Campaign{
+		Title:       r.FormValue("title"),
+		Description: r.FormValue("description"),
+		TLP:         domain.TLP(r.FormValue("tlp")),
+	}
+}
+
+func parseLinkEventFromForm(r *http.Request) uuid.UUID {
+	_ = r.ParseForm()
+	if id, err := uuid.Parse(r.FormValue("event_id")); err == nil {
+		return id
+	}
+	return uuid.Nil
+}
+
+func parseEventUpdateFromForm(r *http.Request) *domain.EventUpdate {
+	_ = r.ParseForm()
+	u := &domain.EventUpdate{
+		Body: r.FormValue("body"),
+		TLP:  domain.TLP(r.FormValue("tlp")),
+	}
+	if v := r.FormValue("status_change"); v != "" {
+		s := domain.EventStatus(v)
+		u.StatusChange = &s
+	}
+	if v := r.FormValue("impact_change"); v != "" {
+		i := domain.Impact(v)
+		u.ImpactChange = &i
+	}
+	return u
 }
 
 func respondJSON(w http.ResponseWriter, status int, data any) {

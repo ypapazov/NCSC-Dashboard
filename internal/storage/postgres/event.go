@@ -23,11 +23,12 @@ func NewEventStore(pool *pgxpool.Pool) *EventStore {
 func (s *EventStore) Create(ctx context.Context, e *domain.Event) error {
 	_, err := s.pool.Exec(ctx, `
 INSERT INTO fresnel.events
-    (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+    (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, intel_source, target, original_event_date, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 		e.ID, e.SourceInstance, e.SectorContext, e.Title, e.Description,
 		string(e.EventType), e.SubmitterID, e.OrganizationID,
 		string(e.TLP), string(e.Impact), string(e.Status),
+		e.IntelSource, e.Target, e.OriginalEventDate,
 		e.CreatedAt, e.UpdatedAt,
 	)
 	return err
@@ -37,11 +38,12 @@ func (s *EventStore) GetByID(ctx context.Context, id uuid.UUID) (*domain.Event, 
 	var e domain.Event
 	err := s.pool.QueryRow(ctx, `
 SELECT id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id,
-       tlp, impact, status, created_at, updated_at
+       tlp, impact, status, intel_source, target, original_event_date, created_at, updated_at
 FROM fresnel.events WHERE id = $1`, id,
 	).Scan(&e.ID, &e.SourceInstance, &e.SectorContext, &e.Title, &e.Description,
 		&e.EventType, &e.SubmitterID, &e.OrganizationID,
 		&e.TLP, &e.Impact, &e.Status,
+		&e.IntelSource, &e.Target, &e.OriginalEventDate,
 		&e.CreatedAt, &e.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -114,7 +116,7 @@ func (s *EventStore) List(ctx context.Context, f domain.EventFilter) (*domain.Li
 
 	q := fmt.Sprintf(`
 SELECT id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id,
-       tlp, impact, status, created_at, updated_at,
+       tlp, impact, status, intel_source, target, original_event_date, created_at, updated_at,
        COUNT(*) OVER() AS total
 FROM fresnel.events
 %s
@@ -136,6 +138,7 @@ LIMIT $%d OFFSET $%d`, where, orderCol, idx, idx+1)
 			&e.ID, &e.SourceInstance, &e.SectorContext, &e.Title, &e.Description,
 			&e.EventType, &e.SubmitterID, &e.OrganizationID,
 			&e.TLP, &e.Impact, &e.Status,
+			&e.IntelSource, &e.Target, &e.OriginalEventDate,
 			&e.CreatedAt, &e.UpdatedAt,
 			&total,
 		); err != nil {
@@ -173,9 +176,11 @@ FROM fresnel.events WHERE id = $1`, e.ID, revNum, changedBy)
 
 	ct, err := tx.Exec(ctx, `
 UPDATE fresnel.events SET
-    title = $2, description = $3, event_type = $4, tlp = $5, impact = $6, status = $7, updated_at = now()
+    title = $2, description = $3, event_type = $4, tlp = $5, impact = $6, status = $7,
+    intel_source = $8, target = $9, original_event_date = $10, updated_at = now()
 WHERE id = $1`,
 		e.ID, e.Title, e.Description, string(e.EventType), string(e.TLP), string(e.Impact), string(e.Status),
+		e.IntelSource, e.Target, e.OriginalEventDate,
 	)
 	if err != nil {
 		return err

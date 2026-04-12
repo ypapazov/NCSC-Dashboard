@@ -1,4 +1,4 @@
-# Dev overrides: expose debug ports, disable nginx (optional).
+# Dev overrides: expose debug ports for direct access.
 services:
   fresnel:
     ports:
@@ -12,4 +12,4 @@ services:
 
   keycloak:
     ports:
-      - "8081:8080"
+      - "8081:8080"  # Direct admin console access during development

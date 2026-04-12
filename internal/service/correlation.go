@@ -162,7 +162,8 @@ func (s *CorrelationService) CreateRelationship(ctx context.Context, auth *domai
 		return fmt.Errorf("%w: referenced events not found", ErrValidation)
 	}
 	resS := s.eventResource(ctx, source)
-	if !s.authz.Authorize(ctx, auth, authz.ActionLink, resS) {
+	resT := s.eventResource(ctx, target)
+	if !s.authz.Authorize(ctx, auth, authz.ActionLink, resS) || !s.authz.Authorize(ctx, auth, authz.ActionLink, resT) {
 		return ErrForbidden
 	}
 	rel.ID = uuid.New()
@@ -185,5 +186,25 @@ func (s *CorrelationService) ListRelationshipsByEvent(ctx context.Context, auth 
 	if !s.authz.Authorize(ctx, auth, authz.ActionView, res) {
 		return nil, ErrForbidden
 	}
-	return s.relationships.ListByEvent(ctx, eventID)
+	all, err := s.relationships.ListByEvent(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*domain.EventRelationship
+	for _, rel := range all {
+		peerID := rel.TargetEventID
+		if peerID == eventID {
+			peerID = rel.SourceEventID
+		}
+		peer, err := s.events.GetByID(ctx, peerID)
+		if err != nil || peer == nil {
+			continue
+		}
+		peerRes := s.eventResource(ctx, peer)
+		if s.authz.Authorize(ctx, auth, authz.ActionView, peerRes) {
+			result = append(result, rel)
+		}
+	}
+	return result, nil
 }

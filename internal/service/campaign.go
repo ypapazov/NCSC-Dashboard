@@ -79,7 +79,7 @@ func (s *CampaignService) List(ctx context.Context, auth *domain.AuthContext, fi
 	filtered := authz.FilterAuthorized(ctx, s.authz, auth, authz.ActionView, result.Items, func(c *domain.Campaign) *authz.Resource {
 		return authz.CampaignResource(c)
 	})
-	return &domain.ListResult[*domain.Campaign]{Items: filtered, TotalCount: result.TotalCount}, nil
+	return &domain.ListResult[*domain.Campaign]{Items: filtered, TotalCount: len(filtered)}, nil
 }
 
 func (s *CampaignService) Update(ctx context.Context, auth *domain.AuthContext, campaign *domain.Campaign) error {
@@ -121,6 +121,20 @@ func (s *CampaignService) LinkEvent(ctx context.Context, auth *domain.AuthContex
 	if !s.authz.Authorize(ctx, auth, authz.ActionLink, res) {
 		return ErrForbidden
 	}
+	event, err := s.events.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return fmt.Errorf("%w: event not found", ErrValidation)
+	}
+	sec, _ := s.sectors.GetByID(ctx, event.SectorContext)
+	ancestry := ""
+	if sec != nil {
+		ancestry = sec.AncestryPath
+	}
+	recipients, _ := s.tlpRed.GetRecipients(ctx, "event", event.ID)
+	eventRes := authz.EventResource(event, ancestry, recipients)
+	if !s.authz.Authorize(ctx, auth, authz.ActionView, eventRes) {
+		return ErrForbidden
+	}
 	if err := s.campaigns.LinkEvent(ctx, campaignID, eventID, auth.UserID); err != nil {
 		return err
 	}
@@ -144,12 +158,29 @@ func (s *CampaignService) UnlinkEvent(ctx context.Context, auth *domain.AuthCont
 	return nil
 }
 
-func (s *CampaignService) CountLinkedEvents(ctx context.Context, campaignID uuid.UUID) (int, error) {
+func (s *CampaignService) CountLinkedEvents(ctx context.Context, auth *domain.AuthContext, campaignID uuid.UUID) (int, error) {
 	ids, err := s.campaigns.GetLinkedEventIDs(ctx, campaignID)
 	if err != nil {
 		return 0, err
 	}
-	return len(ids), nil
+	count := 0
+	for _, eid := range ids {
+		event, err := s.events.GetByID(ctx, eid)
+		if err != nil || event == nil {
+			continue
+		}
+		sec, _ := s.sectors.GetByID(ctx, event.SectorContext)
+		ancestry := ""
+		if sec != nil {
+			ancestry = sec.AncestryPath
+		}
+		recipients, _ := s.tlpRed.GetRecipients(ctx, "event", event.ID)
+		res := authz.EventResource(event, ancestry, recipients)
+		if s.authz.Authorize(ctx, auth, authz.ActionView, res) {
+			count++
+		}
+	}
+	return count, nil
 }
 
 type CampaignEventInfo struct {

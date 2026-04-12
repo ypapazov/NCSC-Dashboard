@@ -14,11 +14,13 @@ templ Shell(keycloakURL, keycloakRealm, keycloakClientID string) {
 		</head>
 		<body>
 			<nav id="topnav">
+				<button id="sidebar-toggle" class="btn-icon sidebar-toggle" aria-label="Toggle navigation">&#9776;</button>
 				<span class="brand">Fresnel</span>
 				<div class="nav-spacer"></div>
 				<select id="org-context-selector" style="display:none;"></select>
 				<span id="user-info"></span>
 			</nav>
+			<div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 			<aside id="sidebar"></aside>
 			<main id="app">
 				<p>Authenticating&hellip;</p>
@@ -34,10 +36,33 @@ templ Nav() {
 	<ul class="nav-sidebar">
 		<li>
 			<a class="nav-link" href="/dashboard"
-				hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/dashboard">
+				hx-get="/api/v1/dashboard?view=tree" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/dashboard?view=tree">
 				Dashboard
 			</a>
+			<ul class="nav-subsection">
+				<li>
+					<a class="nav-sublink" href="/dashboard?view=tree"
+						hx-get="/api/v1/dashboard?view=tree" hx-target="#app" hx-swap="innerHTML"
+						hx-push-url="/dashboard?view=tree">
+						Tree
+					</a>
+				</li>
+				<li>
+					<a class="nav-sublink" href="/dashboard?view=timeline"
+						hx-get="/api/v1/dashboard?view=timeline" hx-target="#app" hx-swap="innerHTML"
+						hx-push-url="/dashboard?view=timeline">
+						Timeline
+					</a>
+				</li>
+				<li>
+					<a class="nav-sublink" href="/dashboard?view=graph"
+						hx-get="/api/v1/dashboard?view=graph" hx-target="#app" hx-swap="innerHTML"
+						hx-push-url="/dashboard?view=graph">
+						Graph
+					</a>
+				</li>
+			</ul>
 		</li>
 		<li>
 			<a class="nav-link" href="/events"

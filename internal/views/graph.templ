@@ -1,5 +1,9 @@
 package views
 
+import (
+	"fmt"
+)
+
 // GraphPage renders the HTMX shell for the Cytoscape.js correlation graph.
 // The graph container fetches JSON from the correlations endpoint and renders client-side.
 templ GraphPage(eventTitle string, eventID string) {
@@ -23,6 +27,38 @@ templ GraphPage(eventTitle string, eventID string) {
 			</div>
 		</div>
 	</div>
+	<script src="/static/cytoscape.min.js"></script>
+	<script src="/static/graph.js"></script>
+}
+
+// DashboardGraph renders a full overview graph of all events visible to the user.
+templ DashboardGraph(data DashboardGraphData) {
+	<div class="page-header">
+		<h1>Dashboard</h1>
+		@ViewToggle("graph")
+	</div>
+	<div class="graph-layout" style="height:calc(100vh - 140px);">
+		<div id="cy-container" class="graph-container"
+			data-mode="dashboard"
+			data-event-count={ fmt.Sprintf("%d", len(data.Events)) }>
+			if len(data.Events) == 0 {
+				<div class="graph-loading">No events to display.</div>
+			} else {
+				<div class="graph-loading"><span class="spinner"></span> Building graph&hellip;</div>
+			}
+		</div>
+		<div class="graph-side-panel">
+			<div class="side-panel-header">Event Details</div>
+			<div id="graph-panel-body" class="side-panel-body">
+				<div class="side-panel-empty">Click a node to view event details.</div>
+			</div>
+		</div>
+	</div>
+	if len(data.Events) > 0 {
+		<script id="dashboard-graph-data" type="application/json">
+			@templ.Raw(dashboardGraphJSON(data.Events))
+		</script>
+	}
 	<script src="/static/cytoscape.min.js"></script>
 	<script src="/static/graph.js"></script>
 }

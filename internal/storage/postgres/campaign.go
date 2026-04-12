@@ -65,6 +65,11 @@ func (s *CampaignStore) List(ctx context.Context, f domain.CampaignFilter) (*dom
 		args = append(args, string(*f.TLP))
 		idx++
 	}
+	if f.Search != "" {
+		conditions = append(conditions, fmt.Sprintf("(title ILIKE '%%' || $%d || '%%' OR description ILIKE '%%' || $%d || '%%')", idx, idx))
+		args = append(args, f.Search)
+		idx++
+	}
 
 	where := ""
 	if len(conditions) > 0 {

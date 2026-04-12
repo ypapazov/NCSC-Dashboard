@@ -54,8 +54,41 @@
         "Authentication failed. Please refresh the page.";
     });
 
+  function initSidebarToggle() {
+    var toggle = document.getElementById("sidebar-toggle");
+    var sidebar = document.getElementById("sidebar");
+    var backdrop = document.getElementById("sidebar-backdrop");
+    if (!toggle || !sidebar) return;
+
+    function openSidebar() {
+      sidebar.classList.add("open");
+      if (backdrop) backdrop.classList.add("visible");
+    }
+    function closeSidebar() {
+      sidebar.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("visible");
+    }
+
+    toggle.addEventListener("click", function () {
+      if (sidebar.classList.contains("open")) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+    if (backdrop) {
+      backdrop.addEventListener("click", closeSidebar);
+    }
+    sidebar.addEventListener("click", function (evt) {
+      if (evt.target.closest(".nav-link, .nav-sublink")) {
+        closeSidebar();
+      }
+    });
+  }
+
   function onAuthenticated(kc) {
     updateUserInfo(kc);
+    initSidebarToggle();
 
     document.body.addEventListener("htmx:configRequest", function (evt) {
       evt.detail.headers["Authorization"] = "Bearer " + kc.token;

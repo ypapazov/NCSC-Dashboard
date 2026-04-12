@@ -22,7 +22,6 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-fresnel-app}
       KEYCLOAK_EXTERNAL_URL: ${KEYCLOAK_EXTERNAL_URL}
       APP_PUBLIC_URL: ${APP_PUBLIC_URL}
-      HMAC_SECRET: ${HMAC_SECRET:?Set HMAC_SECRET in .env}
       ATTACHMENT_DIR: /data/attachments
     volumes:
       - /data/attachments:/data/attachments

@@ -28,3 +28,29 @@ templ CampaignStatusBadge(status domain.CampaignStatus) {
 templ SeverityBadge(severity domain.AuditSeverity) {
 	<span class={ "badge badge-severity-" + strings.ToLower(string(severity)) }>{ string(severity) }</span>
 }
+
+templ TLPLegend() {
+	<details class="legend-details">
+		<summary class="legend-summary">TLP Reference</summary>
+		<div class="legend-body">
+			<div class="legend-item"><span class="badge badge-tlp-clear">TLP:CLEAR</span> Unrestricted within the platform.</div>
+			<div class="legend-item"><span class="badge badge-tlp-green">TLP:GREEN</span> Visible to all authenticated platform users.</div>
+			<div class="legend-item"><span class="badge badge-tlp-amber">TLP:AMBER</span> Owning org + orgs with explicit access grants.</div>
+			<div class="legend-item"><span class="badge badge-tlp-amber_strict">TLP:AMBER+STRICT</span> Owning organization only.</div>
+			<div class="legend-item"><span class="badge badge-tlp-red">TLP:RED</span> Named recipients only (specified per-object).</div>
+		</div>
+	</details>
+}
+
+templ RiskLevelLegend() {
+	<details class="legend-details">
+		<summary class="legend-summary">Risk Level Reference</summary>
+		<div class="legend-body">
+			<div class="legend-item"><span class="badge badge-impact-critical">CRITICAL</span> Total service loss, catastrophic operational impact.</div>
+			<div class="legend-item"><span class="badge badge-impact-high">HIGH</span> Major degradation, significant operational consequences.</div>
+			<div class="legend-item"><span class="badge badge-impact-moderate">MODERATE</span> Partial impact, workarounds available.</div>
+			<div class="legend-item"><span class="badge badge-impact-low">LOW</span> Minor, largely contained.</div>
+			<div class="legend-item"><span class="badge badge-impact-info">INFO</span> No direct impact, awareness only.</div>
+		</div>
+	</details>
+}
