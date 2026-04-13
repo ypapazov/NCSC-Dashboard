@@ -41,10 +41,10 @@ resource "aws_iam_instance_profile" "app" {
 # --- Data volume (separate EBS, LUKS-encrypted by operator) ---
 
 resource "aws_ebs_volume" "data" {
-  availability_zone = data.aws_availability_zones.available.names[0]
+  availability_zone = data.aws_subnet.selected.availability_zone
   size              = var.data_volume_size_gb
   type              = "gp3"
-  encrypted         = true # AWS-level encryption (defence-in-depth under LUKS)
+  encrypted         = true
 
   tags = { Name = "${var.project}-data" }
 }
@@ -55,12 +55,12 @@ resource "aws_volume_attachment" "data" {
   instance_id = aws_instance.app.id
 }
 
-# --- EC2 instance ---
+# --- EC2 instance (default VPC, public subnet) ---
 
 resource "aws_instance" "app" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.private[0].id
+  subnet_id              = data.aws_subnet.selected.id
   vpc_security_group_ids = [aws_security_group.app.id]
   iam_instance_profile   = aws_iam_instance_profile.app.name
   key_name               = var.key_pair_name != "" ? var.key_pair_name : null

@@ -1,13 +1,12 @@
 package views
 
 import (
-	"fmt"
 	"fresnel/internal/domain"
 )
 
 templ AuditLog(entries []*domain.AuditEntry, total int) {
 	<div class="page-header">
-		<h1>Audit Log</h1>
+		<h1>{ T(ctx, "audit.title") }</h1>
 	</div>
 	<div id="audit-results">
 		if len(entries) > 0 {
@@ -15,12 +14,12 @@ templ AuditLog(entries []*domain.AuditEntry, total int) {
 				<table class="table">
 					<thead>
 						<tr>
-							<th class="table-header">Timestamp</th>
-							<th class="table-header">Actor</th>
-							<th class="table-header">Action</th>
-							<th class="table-header">Resource</th>
-							<th class="table-header">Severity</th>
-							<th class="table-header">Detail</th>
+							<th class="table-header">{ T(ctx, "label.timestamp") }</th>
+							<th class="table-header">{ T(ctx, "label.actor") }</th>
+							<th class="table-header">{ T(ctx, "label.actions") }</th>
+							<th class="table-header">{ T(ctx, "label.resource") }</th>
+							<th class="table-header">{ T(ctx, "label.severity") }</th>
+							<th class="table-header">{ T(ctx, "label.detail") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -41,7 +40,7 @@ templ AuditLog(entries []*domain.AuditEntry, total int) {
 								<td class="table-cell">
 									if e.Detail != nil {
 										<details>
-											<summary class="text-xs text-muted" style="cursor:pointer;">show</summary>
+											<summary class="text-xs text-muted" style="cursor:pointer;">{ T(ctx, "audit.show_detail") }</summary>
 											<pre class="audit-detail" style="margin:.25rem 0 0;white-space:pre-wrap;">{ FmtJSON(e.Detail) }</pre>
 										</details>
 									}
@@ -51,11 +50,11 @@ templ AuditLog(entries []*domain.AuditEntry, total int) {
 					</tbody>
 				</table>
 			</div>
-			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d entries total", total) }</p>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ Tn(ctx, "audit.total", total) }</p>
 		} else {
 			<div class="card">
 				<div class="card-body" style="text-align:center;padding:3rem;">
-					<p class="text-muted">No audit entries found.</p>
+					<p class="text-muted">{ T(ctx, "audit.no_entries") }</p>
 				</div>
 			</div>
 		}

@@ -3,11 +3,11 @@ package views
 templ Error403() {
 	<div class="error-page">
 		<div class="error-code">403</div>
-		<div class="error-message">You don't have permission to access this resource.</div>
+		<div class="error-message">{ T(ctx, "error.403") }</div>
 		<a class="btn btn-primary"
 			hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML"
 			hx-push-url="/dashboard">
-			Return to Dashboard
+			{ T(ctx, "error.return") }
 		</a>
 	</div>
 }
@@ -15,11 +15,11 @@ templ Error403() {
 templ Error404() {
 	<div class="error-page">
 		<div class="error-code">404</div>
-		<div class="error-message">The page you're looking for doesn't exist or has been moved.</div>
+		<div class="error-message">{ T(ctx, "error.404") }</div>
 		<a class="btn btn-primary"
 			hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML"
 			hx-push-url="/dashboard">
-			Return to Dashboard
+			{ T(ctx, "error.return") }
 		</a>
 	</div>
 }
@@ -27,15 +27,15 @@ templ Error404() {
 templ Error500() {
 	<div class="error-page">
 		<div class="error-code">500</div>
-		<div class="error-message">Something went wrong on our end. Please try again later.</div>
+		<div class="error-message">{ T(ctx, "error.500") }</div>
 		<div class="flex gap-md" style="margin-top:.5rem;">
 			<a class="btn btn-primary"
 				hx-get="/api/v1/dashboard" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/dashboard">
-				Return to Dashboard
+				{ T(ctx, "error.return") }
 			</a>
 			<button class="btn btn-secondary" data-action="reload-page">
-				Refresh Page
+				{ T(ctx, "action.refresh") }
 			</button>
 		</div>
 	</div>

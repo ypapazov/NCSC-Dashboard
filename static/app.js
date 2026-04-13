@@ -10,15 +10,25 @@
   var kcRealm = meta("keycloak-realm");
   var kcClientId = meta("keycloak-client-id");
 
+  var i18n = document.body.dataset || {};
+
+  document.addEventListener("click", function (e) {
+    var flag = e.target.closest("[data-lang]");
+    if (!flag) return;
+    e.preventDefault();
+    document.cookie = "fresnel_lang=" + flag.dataset.lang + ";path=/;SameSite=Strict;Secure";
+    location.reload();
+  });
+
   if (!kcURL || !kcRealm || !kcClientId) {
     document.getElementById("app").textContent =
-      "Missing Keycloak configuration.";
+      i18n.i18nMissingKc || "Missing Keycloak configuration.";
     return;
   }
 
   if (typeof Keycloak === "undefined") {
     document.getElementById("app").textContent =
-      "Keycloak adapter failed to load.";
+      i18n.i18nKcFailed || "Keycloak adapter failed to load.";
     return;
   }
 
@@ -51,7 +61,7 @@
     })
     .catch(function () {
       document.getElementById("app").textContent =
-        "Authentication failed. Please refresh the page.";
+        i18n.i18nAuthFailed || "Authentication failed. Please refresh the page.";
     });
 
   function initSidebarToggle() {
@@ -106,7 +116,8 @@
           var panel = document.getElementById("side-panel");
           if (panel) panel.classList.remove("side-panel-hidden");
           var titleEl = document.getElementById("side-panel-title");
-          if (titleEl) titleEl.textContent = (el.getAttribute("data-name") || "") + " \u2014 Timeline";
+          var suffix = i18n.i18nTimelineSuffix || "\u2014 Timeline";
+          if (titleEl) titleEl.textContent = (el.getAttribute("data-name") || "") + " " + suffix;
           break;
 
         case "close-side-panel":
@@ -310,7 +321,7 @@
 
     var logout = document.createElement("a");
     logout.href = "#";
-    logout.textContent = "Log out";
+    logout.textContent = i18n.i18nLogout || "Log out";
     logout.addEventListener("click", function (e) {
       e.preventDefault();
       kc.logout({ redirectUri: window.location.origin + "/" });

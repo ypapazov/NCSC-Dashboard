@@ -185,10 +185,12 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	}
 
 	chain := middleware.RequestLogger(log)(
-		auditCtx(
-			oidc.Handler(
-				middleware.CedarGate(
-					middleware.ContentNegotiation(mux),
+		middleware.Locale(
+			auditCtx(
+				oidc.Handler(
+					middleware.CedarGate(
+						middleware.ContentNegotiation(mux),
+					),
 				),
 			),
 		),

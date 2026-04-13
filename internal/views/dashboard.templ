@@ -10,25 +10,25 @@ import (
 
 templ Dashboard(data DashboardData) {
 	<div class="page-header">
-		<h1>Dashboard</h1>
+		<h1>{ T(ctx, "dashboard.title") }</h1>
 		@ViewToggle("tree")
 	</div>
 	<div class="dashboard-layout">
 		<div>
 			<div class="card">
 				<div class="card-header">
-					National Cyber Status
+					{ T(ctx, "dashboard.national_status") }
 					<span class="htmx-indicator"><span class="spinner"></span></span>
 				</div>
 				<div class="card-body">
 					<div class="tree-root-status">
-						<span class="tree-root-label">Overall Platform Status</span>
+						<span class="tree-root-label">{ T(ctx, "dashboard.overall_status") }</span>
 						if data.RootStatus != "" {
 							@AssessedBadge(data.RootStatus)
 						} else {
 							<span class="badge badge-assessed-unknown">UNKNOWN</span>
 						}
-						<span class="text-xs text-muted">(computed from sectors)</span>
+						<span class="text-xs text-muted">{ T(ctx, "dashboard.computed_hint") }</span>
 					</div>
 					if len(data.Sectors) > 0 {
 						<div class="tree">
@@ -37,7 +37,7 @@ templ Dashboard(data DashboardData) {
 							}
 						</div>
 					} else {
-						<p class="text-muted" style="text-align:center;padding:1rem;">No sectors available.</p>
+						<p class="text-muted" style="text-align:center;padding:1rem;">{ T(ctx, "dashboard.no_sectors") }</p>
 					}
 				</div>
 			</div>
@@ -50,11 +50,11 @@ templ Dashboard(data DashboardData) {
 		</div>
 		<div id="side-panel" class="side-panel side-panel-hidden">
 			<div class="side-panel-header">
-				<span id="side-panel-title">Status Timeline</span>
+				<span id="side-panel-title">{ T(ctx, "dashboard.side_panel_title") }</span>
 				<button class="side-panel-close" data-action="close-side-panel">&times;</button>
 			</div>
 			<div id="side-panel-body" class="side-panel-body">
-				<div class="side-panel-empty">Select a sector or organization to view its status timeline.</div>
+				<div class="side-panel-empty">{ T(ctx, "dashboard.side_panel_empty") }</div>
 			</div>
 		</div>
 	</div>
@@ -76,11 +76,11 @@ templ dashboardSectorNode(node *service.DashboardNode) {
 			<span class="tree-node-meta">
 				if node.ReportedStatus != "" {
 					<span class={ "badge badge-assessed-" + strings.ToLower(string(node.ReportedStatus)) }
-						title="From status reports">{ string(node.ReportedStatus) }</span>
+						title={ T(ctx, "dashboard.from_reports") }>{ string(node.ReportedStatus) }</span>
 				}
 				if node.AssessedStatus != "" {
 					<span class={ "badge badge-computed badge-assessed-" + strings.ToLower(string(node.AssessedStatus)) }
-						title="Computed from child statuses">{ string(node.AssessedStatus) } &#x2699;</span>
+						title={ T(ctx, "dashboard.computed_from_children") }>{ string(node.AssessedStatus) } &#x2699;</span>
 				}
 			</span>
 		</div>
@@ -90,7 +90,7 @@ templ dashboardSectorNode(node *service.DashboardNode) {
 					@dashboardChildNode(child)
 				}
 			} else {
-				<div class="tree-empty">No sub-sectors or organizations.</div>
+				<div class="tree-empty">{ T(ctx, "dashboard.no_subsectors") }</div>
 			}
 		</div>
 	</div>
@@ -120,18 +120,18 @@ templ dashboardChildNode(node *service.DashboardNode) {
 templ dashboardRecentEvents(events []*domain.Event) {
 	<div class="card">
 		<div class="card-header">
-			Recent Events
-			<a class="btn btn-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML" hx-push-url="/events">View All</a>
+			{ T(ctx, "dashboard.recent_events") }
+			<a class="btn btn-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML" hx-push-url="/events">{ T(ctx, "dashboard.view_all") }</a>
 		</div>
 		<div class="card-body" style="padding:0;">
 			<table class="table">
 				<thead>
 					<tr>
-						<th class="table-header">Title</th>
-						<th class="table-header">Status</th>
-						<th class="table-header">Impact</th>
-						<th class="table-header">TLP</th>
-						<th class="table-header">Date</th>
+						<th class="table-header">{ T(ctx, "label.title") }</th>
+						<th class="table-header">{ T(ctx, "label.status") }</th>
+						<th class="table-header">{ T(ctx, "label.impact") }</th>
+						<th class="table-header">{ T(ctx, "label.tlp") }</th>
+						<th class="table-header">{ T(ctx, "label.date") }</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -161,17 +161,17 @@ templ dashboardRecentEvents(events []*domain.Event) {
 templ dashboardActiveCampaigns(campaigns []*domain.Campaign) {
 	<div class="card">
 		<div class="card-header">
-			Active Campaigns
-			<a class="btn btn-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML" hx-push-url="/campaigns">View All</a>
+			{ T(ctx, "dashboard.active_campaigns") }
+			<a class="btn btn-sm" hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML" hx-push-url="/campaigns">{ T(ctx, "dashboard.view_all") }</a>
 		</div>
 		<div class="card-body" style="padding:0;">
 			<table class="table">
 				<thead>
 					<tr>
-						<th class="table-header">Title</th>
-						<th class="table-header">TLP</th>
-						<th class="table-header">Events</th>
-						<th class="table-header">Created</th>
+						<th class="table-header">{ T(ctx, "label.title") }</th>
+						<th class="table-header">{ T(ctx, "label.tlp") }</th>
+						<th class="table-header">{ T(ctx, "nav.events") }</th>
+						<th class="table-header">{ T(ctx, "label.created") }</th>
 					</tr>
 				</thead>
 				<tbody>

@@ -7,11 +7,11 @@ import (
 
 templ ReportList(reports []*domain.StatusReport, total int) {
 	<div class="page-header">
-		<h1>Status Reports</h1>
+		<h1>{ T(ctx, "reports.title") }</h1>
 		<button class="btn btn-primary"
 			hx-get="/api/v1/status-reports/new" hx-target="#app" hx-swap="innerHTML"
 			hx-push-url="/status-reports/new">
-			+ New Report
+			{ T(ctx, "reports.new") }
 		</button>
 	</div>
 	<div id="report-results">
@@ -20,12 +20,12 @@ templ ReportList(reports []*domain.StatusReport, total int) {
 				<table class="table">
 					<thead>
 						<tr>
-							<th class="table-header">Title</th>
-							<th class="table-header">Scope</th>
-							<th class="table-header">Assessed Status</th>
-							<th class="table-header">Impact</th>
-							<th class="table-header">TLP</th>
-							<th class="table-header">Published</th>
+							<th class="table-header">{ T(ctx, "label.title") }</th>
+							<th class="table-header">{ T(ctx, "label.scope") }</th>
+							<th class="table-header">{ T(ctx, "reports.assessed_status") }</th>
+							<th class="table-header">{ T(ctx, "label.impact") }</th>
+							<th class="table-header">{ T(ctx, "label.tlp") }</th>
+							<th class="table-header">{ T(ctx, "label.published") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -50,11 +50,11 @@ templ ReportList(reports []*domain.StatusReport, total int) {
 					</tbody>
 				</table>
 			</div>
-			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d report(s) total", total) }</p>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ Tn(ctx, "reports.total", total) }</p>
 		} else {
 			<div class="card">
 				<div class="card-body" style="text-align:center;padding:3rem;">
-					<p class="text-muted">No status reports found.</p>
+					<p class="text-muted">{ T(ctx, "reports.no_reports") }</p>
 				</div>
 			</div>
 		}
@@ -91,7 +91,7 @@ templ StatusTimeline(reports []*domain.StatusReport, scopeName string) {
 			}
 		</ul>
 	} else {
-		<div class="side-panel-empty">No status reports for this scope.</div>
+		<div class="side-panel-empty">{ T(ctx, "reports.no_scope_reports") }</div>
 	}
 }
 
@@ -99,7 +99,7 @@ templ ReportDetail(data ReportDetailData) {
 	<div class="page-header">
 		<div>
 			<a class="text-muted text-sm" hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/status-reports">&larr; Back to Reports</a>
+				hx-push-url="/status-reports">{ T(ctx, "reports.back") }</a>
 			<h1 style="margin-top:.25rem;">{ data.Report.Title }</h1>
 		</div>
 		<div class="flex gap-md items-center">
@@ -107,7 +107,7 @@ templ ReportDetail(data ReportDetailData) {
 				<button class="btn btn-secondary"
 					hx-get={ "/api/v1/status-reports/" + data.Report.ID.String() + "/edit" } hx-target="#app" hx-swap="innerHTML"
 					hx-push-url={ "/status-reports/" + data.Report.ID.String() + "/edit" }>
-					Edit
+					{ T(ctx, "action.edit") }
 				</button>
 			}
 		</div>
@@ -121,49 +121,49 @@ templ ReportDetail(data ReportDetailData) {
 		<div class="card-body">
 			<div class="meta-grid">
 				<div class="meta-item">
-					<div class="meta-label">Scope</div>
+					<div class="meta-label">{ T(ctx, "label.scope") }</div>
 					<div class="meta-value">{ data.Report.ScopeType }: { data.ScopeName }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Author</div>
+					<div class="meta-label">{ T(ctx, "label.author") }</div>
 					<div class="meta-value">{ data.AuthorName }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Period Covered</div>
+					<div class="meta-label">{ T(ctx, "reports.period_covered") }</div>
 					<div class="meta-value">{ FmtDate(data.Report.PeriodCoveredStart) } &ndash; { FmtDate(data.Report.PeriodCoveredEnd) }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">As Of</div>
+					<div class="meta-label">{ T(ctx, "reports.as_of") }</div>
 					<div class="meta-value">{ FmtTime(data.Report.AsOf) }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Published</div>
+					<div class="meta-label">{ T(ctx, "label.published") }</div>
 					<div class="meta-value">{ FmtTime(data.Report.PublishedAt) }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Report ID</div>
+					<div class="meta-label">{ T(ctx, "reports.report_id") }</div>
 					<div class="meta-value font-mono text-sm">{ data.Report.ID.String() }</div>
 				</div>
 			</div>
 		</div>
 	</div>
 	<div class="card">
-		<div class="card-header">Body</div>
+		<div class="card-header">{ T(ctx, "reports.body") }</div>
 		<div class="card-body rendered-body">
 			@templ.Raw(data.BodyHTML)
 		</div>
 	</div>
 	if len(data.LinkedEvents) > 0 {
 		<div class="card">
-			<div class="card-header">Linked Events</div>
+			<div class="card-header">{ T(ctx, "campaigns.linked_events") }</div>
 			<div class="card-body" style="padding:0;">
 				<table class="table">
 					<thead>
 						<tr>
-							<th class="table-header">Title</th>
-							<th class="table-header">Status</th>
-							<th class="table-header">Impact</th>
-							<th class="table-header">Date</th>
+							<th class="table-header">{ T(ctx, "label.title") }</th>
+							<th class="table-header">{ T(ctx, "label.status") }</th>
+							<th class="table-header">{ T(ctx, "label.impact") }</th>
+							<th class="table-header">{ T(ctx, "label.date") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -187,10 +187,10 @@ templ ReportDetail(data ReportDetailData) {
 		</div>
 	}
 	<div class="card">
-		<div class="card-header">Revision History</div>
+		<div class="card-header">{ T(ctx, "revisions.title") }</div>
 		<div class="card-body">
 			<details>
-				<summary class="revision-toggle">Show { fmt.Sprintf("%d", len(data.Revisions)) } revision(s)</summary>
+				<summary class="revision-toggle">{ Tn(ctx, "revisions.show", len(data.Revisions)) }</summary>
 				<ul class="revision-list mt-sm">
 					for _, rev := range data.Revisions {
 						<li class="revision-item">
@@ -212,11 +212,11 @@ templ ReportForm(data ReportFormData) {
 	<div class="page-header">
 		<div>
 			<a class="text-muted text-sm" hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/status-reports">&larr; Back to Reports</a>
+				hx-push-url="/status-reports">{ T(ctx, "reports.back") }</a>
 			if data.Report != nil && data.Report.ID.String() != "00000000-0000-0000-0000-000000000000" {
-				<h1 style="margin-top:.25rem;">Edit Status Report</h1>
+				<h1 style="margin-top:.25rem;">{ T(ctx, "reports.edit_title") }</h1>
 			} else {
-				<h1 style="margin-top:.25rem;">New Status Report</h1>
+				<h1 style="margin-top:.25rem;">{ T(ctx, "reports.new_title") }</h1>
 			}
 		</div>
 	</div>
@@ -239,29 +239,29 @@ templ ReportForm(data ReportFormData) {
 
 templ reportFormFields(data ReportFormData) {
 	<div class="form-group">
-		<label class="form-label" for="title">Title</label>
+		<label class="form-label" for="title">{ T(ctx, "label.title") }</label>
 		<input type="text" id="title" name="title" class="form-input" required
 			maxlength="500" value={ safeReportField(data.Report, func(r *domain.StatusReport) string { return r.Title }) }/>
 	</div>
 	<div class="form-group">
-		<label class="form-label" for="body">Body</label>
+		<label class="form-label" for="body">{ T(ctx, "reports.body") }</label>
 		<textarea id="body" name="body" class="form-textarea" required
-			maxlength="50000" placeholder="Status report content (Markdown supported)">{ safeReportField(data.Report, func(r *domain.StatusReport) string { return r.Body }) }</textarea>
-		<span class="form-hint">Markdown formatting is supported.</span>
+			maxlength="50000" placeholder={ T(ctx, "reports.body_placeholder") }>{ safeReportField(data.Report, func(r *domain.StatusReport) string { return r.Body }) }</textarea>
+		<span class="form-hint">{ T(ctx, "events.markdown_hint") }</span>
 	</div>
 	<div class="form-row">
 		<div class="form-group">
-			<label class="form-label" for="scope_type">Scope Type</label>
+			<label class="form-label" for="scope_type">{ T(ctx, "reports.scope_type") }</label>
 			<select id="scope_type" name="scope_type" class="form-select" required>
-				<option value="">Select scope&hellip;</option>
-				<option value="ORG" selected?={ data.Report != nil && data.Report.ScopeType == "ORG" }>Organization</option>
-				<option value="SECTOR" selected?={ data.Report != nil && data.Report.ScopeType == "SECTOR" }>Sector</option>
+				<option value="">{ T(ctx, "reports.select_scope") }</option>
+				<option value="ORG" selected?={ data.Report != nil && data.Report.ScopeType == "ORG" }>{ T(ctx, "reports.scope_org") }</option>
+				<option value="SECTOR" selected?={ data.Report != nil && data.Report.ScopeType == "SECTOR" }>{ T(ctx, "reports.scope_sector") }</option>
 			</select>
 		</div>
 		<div class="form-group">
-			<label class="form-label" for="scope_ref">Scope Reference</label>
+			<label class="form-label" for="scope_ref">{ T(ctx, "reports.scope_ref") }</label>
 			<select id="scope_ref" name="scope_ref" class="form-select" required>
-				<option value="">Select scope target&hellip;</option>
+				<option value="">{ T(ctx, "reports.select_scope_target") }</option>
 				for _, opt := range data.ScopeOptions {
 					<option value={ opt.ID.String() } selected?={ data.Report != nil && data.Report.ScopeRef == opt.ID }>{ opt.Name } ({ opt.Type })</option>
 				}
@@ -270,33 +270,33 @@ templ reportFormFields(data ReportFormData) {
 	</div>
 	<div class="form-row">
 		<div class="form-group">
-			<label class="form-label" for="assessed_status">Assessed Status</label>
+			<label class="form-label" for="assessed_status">{ T(ctx, "reports.assessed_status") }</label>
 			<select id="assessed_status" name="assessed_status" class="form-select" required>
-				<option value="">Select status&hellip;</option>
-				<option value="NORMAL" selected?={ data.Report != nil && data.Report.AssessedStatus == "NORMAL" }>Normal</option>
-				<option value="DEGRADED" selected?={ data.Report != nil && data.Report.AssessedStatus == "DEGRADED" }>Degraded</option>
-				<option value="IMPAIRED" selected?={ data.Report != nil && data.Report.AssessedStatus == "IMPAIRED" }>Impaired</option>
-				<option value="CRITICAL" selected?={ data.Report != nil && data.Report.AssessedStatus == "CRITICAL" }>Critical</option>
-				<option value="UNKNOWN" selected?={ data.Report != nil && data.Report.AssessedStatus == "UNKNOWN" }>Unknown</option>
+				<option value="">{ T(ctx, "reports.select_status") }</option>
+				<option value="NORMAL" selected?={ data.Report != nil && data.Report.AssessedStatus == "NORMAL" }>{ T(ctx, "assessed.normal") }</option>
+				<option value="DEGRADED" selected?={ data.Report != nil && data.Report.AssessedStatus == "DEGRADED" }>{ T(ctx, "assessed.degraded") }</option>
+				<option value="IMPAIRED" selected?={ data.Report != nil && data.Report.AssessedStatus == "IMPAIRED" }>{ T(ctx, "assessed.impaired") }</option>
+				<option value="CRITICAL" selected?={ data.Report != nil && data.Report.AssessedStatus == "CRITICAL" }>{ T(ctx, "assessed.critical") }</option>
+				<option value="UNKNOWN" selected?={ data.Report != nil && data.Report.AssessedStatus == "UNKNOWN" }>{ T(ctx, "assessed.unknown") }</option>
 			</select>
 		</div>
 		<div class="form-group">
-			<label class="form-label" for="impact">Impact</label>
+			<label class="form-label" for="impact">{ T(ctx, "label.impact") }</label>
 			<select id="impact" name="impact" class="form-select" required>
-				<option value="">Select impact&hellip;</option>
-				<option value="INFO" selected?={ data.Report != nil && data.Report.Impact == "INFO" }>Info</option>
-				<option value="LOW" selected?={ data.Report != nil && data.Report.Impact == "LOW" }>Low</option>
-				<option value="MODERATE" selected?={ data.Report != nil && data.Report.Impact == "MODERATE" }>Moderate</option>
-				<option value="HIGH" selected?={ data.Report != nil && data.Report.Impact == "HIGH" }>High</option>
-				<option value="CRITICAL" selected?={ data.Report != nil && data.Report.Impact == "CRITICAL" }>Critical</option>
+				<option value="">{ T(ctx, "reports.select_impact") }</option>
+				<option value="INFO" selected?={ data.Report != nil && data.Report.Impact == "INFO" }>{ T(ctx, "impact.info") }</option>
+				<option value="LOW" selected?={ data.Report != nil && data.Report.Impact == "LOW" }>{ T(ctx, "impact.low") }</option>
+				<option value="MODERATE" selected?={ data.Report != nil && data.Report.Impact == "MODERATE" }>{ T(ctx, "impact.moderate") }</option>
+				<option value="HIGH" selected?={ data.Report != nil && data.Report.Impact == "HIGH" }>{ T(ctx, "impact.high") }</option>
+				<option value="CRITICAL" selected?={ data.Report != nil && data.Report.Impact == "CRITICAL" }>{ T(ctx, "impact.critical") }</option>
 			</select>
 		</div>
 	</div>
 	<div class="form-row">
 		<div class="form-group">
-			<label class="form-label" for="tlp">TLP</label>
+			<label class="form-label" for="tlp">{ T(ctx, "label.tlp") }</label>
 			<select id="tlp" name="tlp" class="form-select" required>
-				<option value="">Select TLP&hellip;</option>
+				<option value="">{ T(ctx, "events.select_tlp") }</option>
 				<option value="CLEAR" selected?={ data.Report != nil && data.Report.TLP == "CLEAR" }>TLP:CLEAR</option>
 				<option value="GREEN" selected?={ data.Report != nil && data.Report.TLP == "GREEN" }>TLP:GREEN</option>
 				<option value="AMBER" selected?={ data.Report != nil && data.Report.TLP == "AMBER" }>TLP:AMBER</option>
@@ -308,30 +308,30 @@ templ reportFormFields(data ReportFormData) {
 	</div>
 	<div class="form-row">
 		<div class="form-group">
-			<label class="form-label" for="period_start">Period Start</label>
+			<label class="form-label" for="period_start">{ T(ctx, "reports.period_start") }</label>
 			<input type="date" id="period_start" name="period_covered_start" class="form-input" required
 				value={ safeReportField(data.Report, func(r *domain.StatusReport) string { return FmtDate(r.PeriodCoveredStart) }) }/>
 		</div>
 		<div class="form-group">
-			<label class="form-label" for="period_end">Period End</label>
+			<label class="form-label" for="period_end">{ T(ctx, "reports.period_end") }</label>
 			<input type="date" id="period_end" name="period_covered_end" class="form-input" required
 				value={ safeReportField(data.Report, func(r *domain.StatusReport) string { return FmtDate(r.PeriodCoveredEnd) }) }/>
 		</div>
 	</div>
 	<div class="form-actions">
 		if data.Report != nil && data.Report.ID.String() != "00000000-0000-0000-0000-000000000000" {
-			<button type="submit" class="btn btn-primary">Save Changes</button>
+			<button type="submit" class="btn btn-primary">{ T(ctx, "action.save") }</button>
 			<button type="button" class="btn"
 				hx-get={ "/api/v1/status-reports/" + data.Report.ID.String() } hx-target="#app" hx-swap="innerHTML"
 				hx-push-url={ "/status-reports/" + data.Report.ID.String() }>
-				Cancel
+				{ T(ctx, "action.cancel") }
 			</button>
 		} else {
-			<button type="submit" class="btn btn-primary">Create Report</button>
+			<button type="submit" class="btn btn-primary">{ T(ctx, "reports.create_report") }</button>
 			<button type="button" class="btn"
 				hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/status-reports">
-				Cancel
+				{ T(ctx, "action.cancel") }
 			</button>
 		}
 		<span class="htmx-indicator"><span class="spinner"></span></span>

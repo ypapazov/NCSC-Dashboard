@@ -7,7 +7,7 @@ import (
 
 templ AdminSectors(sectors []*domain.Sector) {
 	<div class="page-header">
-		<h1>Sector Management</h1>
+		<h1>{ T(ctx, "admin.sectors") }</h1>
 	</div>
 	<div id="sector-tree">
 		if len(sectors) > 0 {
@@ -24,7 +24,7 @@ templ AdminSectors(sectors []*domain.Sector) {
 										<button class="btn btn-sm"
 											hx-get={ "/api/v1/sectors/" + s.ID.String() } hx-target="#app" hx-swap="innerHTML"
 											hx-push-url={ "/sectors/" + s.ID.String() }>
-											View
+											{ T(ctx, "action.view") }
 										</button>
 									</span>
 								</div>
@@ -36,7 +36,7 @@ templ AdminSectors(sectors []*domain.Sector) {
 		} else {
 			<div class="card">
 				<div class="card-body" style="text-align:center;padding:3rem;">
-					<p class="text-muted">No sectors defined yet.</p>
+					<p class="text-muted">{ T(ctx, "admin.no_sectors") }</p>
 				</div>
 			</div>
 		}
@@ -48,23 +48,23 @@ templ SectorDetail(sector *domain.Sector) {
 		<h1>{ sector.Name }</h1>
 	</div>
 	<div class="card">
-		<div class="card-header">Sector Details</div>
+		<div class="card-header">{ T(ctx, "admin.sector_details") }</div>
 		<div class="card-body">
 			<div class="meta-grid">
 				<div class="meta-item">
-					<div class="meta-label">ID</div>
+					<div class="meta-label">{ T(ctx, "label.id") }</div>
 					<div class="meta-value font-mono text-sm">{ sector.ID.String() }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Name</div>
+					<div class="meta-label">{ T(ctx, "label.name") }</div>
 					<div class="meta-value">{ sector.Name }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Depth</div>
+					<div class="meta-label">{ T(ctx, "label.depth") }</div>
 					<div class="meta-value">{ fmt.Sprintf("%d", sector.Depth) }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Ancestry Path</div>
+					<div class="meta-label">{ T(ctx, "label.ancestry_path") }</div>
 					<div class="meta-value font-mono text-sm">{ sector.AncestryPath }</div>
 				</div>
 			</div>
@@ -75,16 +75,16 @@ templ SectorDetail(sector *domain.Sector) {
 templ SectorForm(sector *domain.Sector) {
 	<div class="page-header">
 		if sector != nil {
-			<h1>Edit Sector</h1>
+			<h1>{ T(ctx, "admin.edit_sector") }</h1>
 		} else {
-			<h1>Create Sector</h1>
+			<h1>{ T(ctx, "admin.create_sector") }</h1>
 		}
 	</div>
 	<div class="card">
 		<div class="card-body">
 			<form hx-post="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML">
 				<div class="form-group">
-					<label class="form-label">Name</label>
+					<label class="form-label">{ T(ctx, "label.name") }</label>
 					if sector != nil {
 						<input type="text" name="name" class="form-input" required value={ sector.Name }/>
 					} else {
@@ -92,8 +92,8 @@ templ SectorForm(sector *domain.Sector) {
 					}
 				</div>
 				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">Save</button>
-					<a class="btn" hx-get="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML" hx-push-url="/sectors">Cancel</a>
+					<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
+					<a class="btn" hx-get="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML" hx-push-url="/sectors">{ T(ctx, "action.cancel") }</a>
 				</div>
 			</form>
 		</div>
@@ -102,7 +102,7 @@ templ SectorForm(sector *domain.Sector) {
 
 templ AdminOrgs(orgs []*domain.Organization) {
 	<div class="page-header">
-		<h1>Organization Management</h1>
+		<h1>{ T(ctx, "admin.orgs") }</h1>
 	</div>
 	<div id="org-list">
 		if len(orgs) > 0 {
@@ -110,10 +110,10 @@ templ AdminOrgs(orgs []*domain.Organization) {
 				<table class="table">
 					<thead>
 						<tr>
-							<th class="table-header">Name</th>
-							<th class="table-header">Sector</th>
-							<th class="table-header">Created</th>
-							<th class="table-header">Actions</th>
+							<th class="table-header">{ T(ctx, "label.name") }</th>
+							<th class="table-header">{ T(ctx, "label.sector") }</th>
+							<th class="table-header">{ T(ctx, "label.created") }</th>
+							<th class="table-header">{ T(ctx, "label.actions") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -126,7 +126,7 @@ templ AdminOrgs(orgs []*domain.Organization) {
 									<button class="btn btn-sm"
 										hx-get={ "/api/v1/orgs/" + o.ID.String() } hx-target="#app" hx-swap="innerHTML"
 										hx-push-url={ "/orgs/" + o.ID.String() }>
-										View
+										{ T(ctx, "action.view") }
 									</button>
 								</td>
 							</tr>
@@ -137,7 +137,7 @@ templ AdminOrgs(orgs []*domain.Organization) {
 		} else {
 			<div class="card">
 				<div class="card-body" style="text-align:center;padding:3rem;">
-					<p class="text-muted">No organizations found.</p>
+					<p class="text-muted">{ T(ctx, "admin.no_orgs") }</p>
 				</div>
 			</div>
 		}
@@ -149,19 +149,19 @@ templ OrgDetail(org *domain.Organization) {
 		<h1>{ org.Name }</h1>
 	</div>
 	<div class="card">
-		<div class="card-header">Organization Details</div>
+		<div class="card-header">{ T(ctx, "admin.org_details") }</div>
 		<div class="card-body">
 			<div class="meta-grid">
 				<div class="meta-item">
-					<div class="meta-label">ID</div>
+					<div class="meta-label">{ T(ctx, "label.id") }</div>
 					<div class="meta-value font-mono text-sm">{ org.ID.String() }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Name</div>
+					<div class="meta-label">{ T(ctx, "label.name") }</div>
 					<div class="meta-value">{ org.Name }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Sector</div>
+					<div class="meta-label">{ T(ctx, "label.sector") }</div>
 					<div class="meta-value font-mono text-sm">{ org.SectorID.String() }</div>
 				</div>
 			</div>
@@ -172,16 +172,16 @@ templ OrgDetail(org *domain.Organization) {
 templ OrgForm(org *domain.Organization) {
 	<div class="page-header">
 		if org != nil {
-			<h1>Edit Organization</h1>
+			<h1>{ T(ctx, "admin.edit_org") }</h1>
 		} else {
-			<h1>Create Organization</h1>
+			<h1>{ T(ctx, "admin.create_org") }</h1>
 		}
 	</div>
 	<div class="card">
 		<div class="card-body">
 			<form hx-post="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML">
 				<div class="form-group">
-					<label class="form-label">Name</label>
+					<label class="form-label">{ T(ctx, "label.name") }</label>
 					if org != nil {
 						<input type="text" name="name" class="form-input" required value={ org.Name }/>
 					} else {
@@ -189,8 +189,8 @@ templ OrgForm(org *domain.Organization) {
 					}
 				</div>
 				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">Save</button>
-					<a class="btn" hx-get="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML" hx-push-url="/orgs">Cancel</a>
+					<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
+					<a class="btn" hx-get="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML" hx-push-url="/orgs">{ T(ctx, "action.cancel") }</a>
 				</div>
 			</form>
 		</div>
@@ -199,7 +199,7 @@ templ OrgForm(org *domain.Organization) {
 
 templ AdminUsers(users []*domain.User, total int) {
 	<div class="page-header">
-		<h1>User Management</h1>
+		<h1>{ T(ctx, "admin.users") }</h1>
 	</div>
 	<div id="user-list">
 		if len(users) > 0 {
@@ -207,10 +207,10 @@ templ AdminUsers(users []*domain.User, total int) {
 				<table class="table">
 					<thead>
 						<tr>
-							<th class="table-header">Name</th>
-							<th class="table-header">Email</th>
-							<th class="table-header">Primary Org</th>
-							<th class="table-header">Actions</th>
+							<th class="table-header">{ T(ctx, "label.name") }</th>
+							<th class="table-header">{ T(ctx, "label.email") }</th>
+							<th class="table-header">{ T(ctx, "label.primary_org") }</th>
+							<th class="table-header">{ T(ctx, "label.actions") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -223,7 +223,7 @@ templ AdminUsers(users []*domain.User, total int) {
 									<button class="btn btn-sm"
 										hx-get={ "/api/v1/users/" + u.ID.String() } hx-target="#app" hx-swap="innerHTML"
 										hx-push-url={ "/users/" + u.ID.String() }>
-										View
+										{ T(ctx, "action.view") }
 									</button>
 								</td>
 							</tr>
@@ -231,11 +231,11 @@ templ AdminUsers(users []*domain.User, total int) {
 					</tbody>
 				</table>
 			</div>
-			<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d user(s) total", total) }</p>
+			<p class="text-sm text-muted" style="margin-top:.5rem;">{ Tn(ctx, "admin.users_total", total) }</p>
 		} else {
 			<div class="card">
 				<div class="card-body" style="text-align:center;padding:3rem;">
-					<p class="text-muted">No users found.</p>
+					<p class="text-muted">{ T(ctx, "admin.no_users") }</p>
 				</div>
 			</div>
 		}
@@ -248,23 +248,23 @@ templ UserDetail(user *domain.User) {
 		<span class="text-muted text-sm">{ user.Email }</span>
 	</div>
 	<div class="card">
-		<div class="card-header">Profile</div>
+		<div class="card-header">{ T(ctx, "admin.user_profile") }</div>
 		<div class="card-body">
 			<div class="meta-grid">
 				<div class="meta-item">
-					<div class="meta-label">ID</div>
+					<div class="meta-label">{ T(ctx, "label.id") }</div>
 					<div class="meta-value text-sm font-mono">{ user.ID.String() }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Display Name</div>
+					<div class="meta-label">{ T(ctx, "label.display_name") }</div>
 					<div class="meta-value">{ user.DisplayName }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Email</div>
+					<div class="meta-label">{ T(ctx, "label.email") }</div>
 					<div class="meta-value">{ user.Email }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Primary Organization</div>
+					<div class="meta-label">{ T(ctx, "label.primary_org") }</div>
 					<div class="meta-value font-mono text-sm">{ user.PrimaryOrgID.String() }</div>
 				</div>
 			</div>
@@ -275,16 +275,16 @@ templ UserDetail(user *domain.User) {
 templ UserForm(user *domain.User) {
 	<div class="page-header">
 		if user != nil {
-			<h1>Edit User</h1>
+			<h1>{ T(ctx, "admin.edit_user") }</h1>
 		} else {
-			<h1>Create User</h1>
+			<h1>{ T(ctx, "admin.create_user") }</h1>
 		}
 	</div>
 	<div class="card">
 		<div class="card-body">
 			<form hx-post="/api/v1/users" hx-target="#app" hx-swap="innerHTML">
 				<div class="form-group">
-					<label class="form-label">Display Name</label>
+					<label class="form-label">{ T(ctx, "label.display_name") }</label>
 					if user != nil {
 						<input type="text" name="display_name" class="form-input" required value={ user.DisplayName }/>
 					} else {
@@ -292,7 +292,7 @@ templ UserForm(user *domain.User) {
 					}
 				</div>
 				<div class="form-group">
-					<label class="form-label">Email</label>
+					<label class="form-label">{ T(ctx, "label.email") }</label>
 					if user != nil {
 						<input type="email" name="email" class="form-input" required value={ user.Email }/>
 					} else {
@@ -300,8 +300,8 @@ templ UserForm(user *domain.User) {
 					}
 				</div>
 				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">Save</button>
-					<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/users">Cancel</a>
+					<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
+					<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/users">{ T(ctx, "action.cancel") }</a>
 				</div>
 			</form>
 		</div>
@@ -312,21 +312,21 @@ templ AdminRoles(data AdminRolesData) {
 	<div class="page-header">
 		<div>
 			<a class="text-muted text-sm" hx-get="/api/v1/admin/users" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/admin/users">&larr; Back to Users</a>
-			<h1 style="margin-top:.25rem;">Roles for { data.UserName }</h1>
+				hx-push-url="/admin/users">{ T(ctx, "admin.back_users") }</a>
+			<h1 style="margin-top:.25rem;">{ T(ctx, "admin.roles_for") } { data.UserName }</h1>
 		</div>
 	</div>
 	<div class="card">
-		<div class="card-header">Assigned Roles</div>
+		<div class="card-header">{ T(ctx, "admin.assigned_roles") }</div>
 		<div class="card-body">
 			if len(data.Roles) > 0 {
 				<table class="table">
 					<thead>
 						<tr>
-							<th class="table-header">Role</th>
-							<th class="table-header">Scope Type</th>
-							<th class="table-header">Scope</th>
-							<th class="table-header">Actions</th>
+							<th class="table-header">{ T(ctx, "label.role") }</th>
+							<th class="table-header">{ T(ctx, "label.scope_type") }</th>
+							<th class="table-header">{ T(ctx, "label.scope") }</th>
+							<th class="table-header">{ T(ctx, "label.actions") }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -340,7 +340,7 @@ templ AdminRoles(data AdminRolesData) {
 										hx-delete={ fmt.Sprintf("/api/v1/admin/users/%s/roles/%s?scope_type=%s&scope_id=%s", data.UserID.String(), role.Role, role.ScopeType, role.ScopeID.String()) }
 										hx-target="#app" hx-swap="innerHTML"
 										hx-confirm={ "Revoke role " + role.Role + "?" }>
-										Revoke
+										{ T(ctx, "action.revoke") }
 									</button>
 								</td>
 							</tr>
@@ -348,52 +348,52 @@ templ AdminRoles(data AdminRolesData) {
 					</tbody>
 				</table>
 			} else {
-				<p class="text-muted text-sm">No roles assigned.</p>
+				<p class="text-muted text-sm">{ T(ctx, "admin.no_roles") }</p>
 			}
 		</div>
 	</div>
 	<div class="card">
-		<div class="card-header">Assign Role</div>
+		<div class="card-header">{ T(ctx, "admin.assign_role") }</div>
 		<div class="card-body">
 			<form hx-post={ "/api/v1/admin/users/" + data.UserID.String() + "/roles" }
 				hx-target="#app" hx-swap="innerHTML">
 				<div class="form-row">
 					<div class="form-group">
-						<label class="form-label" for="role">Role</label>
+						<label class="form-label" for="role">{ T(ctx, "label.role") }</label>
 						<select id="role" name="role" class="form-select" required>
-							<option value="">Select role&hellip;</option>
-							<option value="PLATFORM_ROOT">Platform Root</option>
-							<option value="SECTOR_ROOT">Sector Root</option>
-							<option value="ORG_ROOT">Org Root</option>
-							<option value="ORG_ADMIN">Org Admin</option>
-							<option value="CONTENT_ADMIN">Content Admin</option>
-							<option value="CONTRIBUTOR">Contributor</option>
-							<option value="VIEWER">Viewer</option>
-							<option value="LIAISON">Liaison</option>
+							<option value="">{ T(ctx, "admin.select_role") }</option>
+							<option value="PLATFORM_ROOT">{ T(ctx, "role.platform_root") }</option>
+							<option value="SECTOR_ROOT">{ T(ctx, "role.sector_root") }</option>
+							<option value="ORG_ROOT">{ T(ctx, "role.org_root") }</option>
+							<option value="ORG_ADMIN">{ T(ctx, "role.org_admin") }</option>
+							<option value="CONTENT_ADMIN">{ T(ctx, "role.content_admin") }</option>
+							<option value="CONTRIBUTOR">{ T(ctx, "role.contributor") }</option>
+							<option value="VIEWER">{ T(ctx, "role.viewer") }</option>
+							<option value="LIAISON">{ T(ctx, "role.liaison") }</option>
 						</select>
 					</div>
 					<div class="form-group">
-						<label class="form-label" for="scope_type">Scope Type</label>
+						<label class="form-label" for="scope_type">{ T(ctx, "label.scope_type") }</label>
 						<select id="scope_type" name="scope_type" class="form-select" required>
-							<option value="">Select scope&hellip;</option>
-							<option value="PLATFORM">Platform</option>
-							<option value="SECTOR">Sector</option>
-							<option value="ORG">Organization</option>
+							<option value="">{ T(ctx, "admin.select_scope") }</option>
+							<option value="PLATFORM">{ T(ctx, "scope.platform") }</option>
+							<option value="SECTOR">{ T(ctx, "scope.sector") }</option>
+							<option value="ORG">{ T(ctx, "scope.org") }</option>
 						</select>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="form-label" for="scope_id">Scope Target</label>
+					<label class="form-label" for="scope_id">{ T(ctx, "label.scope_target") }</label>
 					<select id="scope_id" name="scope_id" class="form-select">
-						<option value="">Platform-wide (no specific target)</option>
+						<option value="">{ T(ctx, "admin.scope_platform") }</option>
 						for _, opt := range data.ScopeOptions {
 							<option value={ opt.ID.String() }>{ opt.Name } ({ opt.Type })</option>
 						}
 					</select>
-					<span class="form-hint">For PLATFORM scope, leave target empty. For SECTOR or ORG, select the target.</span>
+					<span class="form-hint">{ T(ctx, "admin.scope_hint") }</span>
 				</div>
 				<div class="form-actions">
-					<button type="submit" class="btn btn-primary btn-sm">Assign Role</button>
+					<button type="submit" class="btn btn-primary btn-sm">{ T(ctx, "admin.assign_role") }</button>
 				</div>
 			</form>
 		</div>

@@ -10,20 +10,20 @@ templ GraphPage(eventTitle string, eventID string) {
 	<div class="page-header">
 		<div>
 			<a class="text-muted text-sm" hx-get={ "/api/v1/events/" + eventID } hx-target="#app" hx-swap="innerHTML"
-				hx-push-url={ "/events/" + eventID }>&larr; Back to Event</a>
-			<h1 style="margin-top:.25rem;">Correlations: { eventTitle }</h1>
+				hx-push-url={ "/events/" + eventID }>{ T(ctx, "graph.back") }</a>
+			<h1 style="margin-top:.25rem;">{ T(ctx, "graph.correlations_for") } { eventTitle }</h1>
 		</div>
 	</div>
 	<div class="graph-layout">
 		<div id="cy-container" class="graph-container"
 			data-event-id={ eventID }
 			data-api-url={ "/api/v1/events/" + eventID + "/correlations?format=graph" }>
-			<div class="graph-loading"><span class="spinner"></span> Loading graph&hellip;</div>
+			<div class="graph-loading"><span class="spinner"></span> { T(ctx, "graph.loading") }</div>
 		</div>
 		<div class="graph-side-panel">
-			<div class="side-panel-header">Event Details</div>
+			<div class="side-panel-header">{ T(ctx, "graph.event_details") }</div>
 			<div id="graph-panel-body" class="side-panel-body">
-				<div class="side-panel-empty">Click a node to view event details.</div>
+				<div class="side-panel-empty">{ T(ctx, "graph.click_node") }</div>
 			</div>
 		</div>
 	</div>
@@ -34,7 +34,7 @@ templ GraphPage(eventTitle string, eventID string) {
 // DashboardGraph renders a full overview graph of all events visible to the user.
 templ DashboardGraph(data DashboardGraphData) {
 	<div class="page-header">
-		<h1>Dashboard</h1>
+		<h1>{ T(ctx, "dashboard.title") }</h1>
 		@ViewToggle("graph")
 	</div>
 	<div class="graph-layout" style="height:calc(100vh - 140px);">
@@ -43,15 +43,15 @@ templ DashboardGraph(data DashboardGraphData) {
 			data-event-count={ fmt.Sprintf("%d", len(data.Events)) }
 			data-graph-json={ dashboardGraphJSON(data.Events, data.Edges) }>
 			if len(data.Events) == 0 {
-				<div class="graph-loading">No events to display.</div>
+				<div class="graph-loading">{ T(ctx, "graph.no_events") }</div>
 			} else {
-				<div class="graph-loading"><span class="spinner"></span> Building graph&hellip;</div>
+				<div class="graph-loading"><span class="spinner"></span> { T(ctx, "graph.building") }</div>
 			}
 		</div>
 		<div class="graph-side-panel">
-			<div class="side-panel-header">Event Details</div>
+			<div class="side-panel-header">{ T(ctx, "graph.event_details") }</div>
 			<div id="graph-panel-body" class="side-panel-body">
-				<div class="side-panel-empty">Click a node to view event details.</div>
+				<div class="side-panel-empty">{ T(ctx, "graph.click_node") }</div>
 			</div>
 		</div>
 	</div>

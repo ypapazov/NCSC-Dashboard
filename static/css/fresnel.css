@@ -865,6 +865,33 @@ img { max-width: 100%; }
 }
 .sidebar-backdrop.visible { display: block; }
 
+/* --- Language Switcher -------------------------------------- */
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  margin-right: .75rem;
+}
+.lang-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  opacity: .55;
+  transition: opacity .15s, border-color .15s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.lang-flag:hover { opacity: .85; }
+.lang-flag.lang-active {
+  opacity: 1;
+  border-color: var(--primary);
+  cursor: default;
+  pointer-events: none;
+}
+.lang-flag img { display: block; }
+
 /* --- Responsive -------------------------------------------- */
 @media (max-width: 1024px) {
   :root { --sidebar-w: 180px; }

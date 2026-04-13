@@ -9,43 +9,43 @@ import (
 
 templ EventList(events []*domain.Event, total int) {
 	<div class="page-header">
-		<h1>Events</h1>
+		<h1>{ T(ctx, "events.title") }</h1>
 		<div class="flex gap-sm">
 			<button class="btn btn-secondary" id="start-campaign-btn"
 				data-action="start-campaign-selection">
-				Create Campaign from Selection
+				{ T(ctx, "events.create_campaign") }
 			</button>
 			<button class="btn btn-primary"
 				hx-get="/api/v1/events/new" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/events/new">
-				+ New Event
+				{ T(ctx, "events.new") }
 			</button>
 		</div>
 	</div>
 	@EventFilterBar()
 	<div id="campaign-selection-bar" class="campaign-selection-bar" style="display:none;">
 		<div class="campaign-selection-header">
-			<span id="campaign-sel-count">0 events selected</span>
+			<span id="campaign-sel-count">{ T(ctx, "events.selected_count") }</span>
 			<div class="flex gap-sm">
 				<button class="btn btn-sm btn-primary" id="finish-campaign-btn" disabled
 					data-action="show-campaign-form">
-					Next: Campaign Details
+					{ T(ctx, "events.next_campaign") }
 				</button>
-				<button class="btn btn-sm" data-action="cancel-campaign-selection">Cancel</button>
+				<button class="btn btn-sm" data-action="cancel-campaign-selection">{ T(ctx, "action.cancel") }</button>
 			</div>
 		</div>
 		<div id="campaign-form-inline" style="display:none;padding:.75rem;border-top:1px solid var(--border);">
 			<div class="form-group" style="margin-bottom:.5rem;">
-				<label class="form-label" for="cs-title">Title</label>
-				<input type="text" id="cs-title" class="form-input" required placeholder="Campaign title"/>
+				<label class="form-label" for="cs-title">{ T(ctx, "label.title") }</label>
+				<input type="text" id="cs-title" class="form-input" required placeholder={ T(ctx, "campaigns.title_placeholder") }/>
 			</div>
 			<div class="form-group" style="margin-bottom:.5rem;">
-				<label class="form-label" for="cs-description">Description</label>
+				<label class="form-label" for="cs-description">{ T(ctx, "events.description") }</label>
 				<textarea id="cs-description" class="form-textarea" style="min-height:60px;"
-					placeholder="Campaign description (Markdown supported)"></textarea>
+					placeholder={ T(ctx, "campaigns.desc_placeholder") }></textarea>
 			</div>
 			<div class="form-group" style="margin-bottom:.5rem;">
-				<label class="form-label" for="cs-tlp">TLP</label>
+				<label class="form-label" for="cs-tlp">{ T(ctx, "label.tlp") }</label>
 				<select id="cs-tlp" class="form-select" style="max-width:200px;">
 					<option value="GREEN">TLP:GREEN</option>
 					<option value="CLEAR">TLP:CLEAR</option>
@@ -57,9 +57,9 @@ templ EventList(events []*domain.Event, total int) {
 			<div class="form-actions" style="padding-top:0;">
 				<button class="btn btn-primary btn-sm" id="submit-campaign-btn"
 					data-action="submit-campaign">
-					Create Campaign
+					{ T(ctx, "campaigns.create_campaign") }
 				</button>
-				<button class="btn btn-sm" data-action="cancel-campaign-selection">Cancel</button>
+				<button class="btn btn-sm" data-action="cancel-campaign-selection">{ T(ctx, "action.cancel") }</button>
 				<span class="htmx-indicator" id="campaign-create-spinner"><span class="spinner"></span></span>
 			</div>
 		</div>
@@ -74,7 +74,7 @@ templ EventList(events []*domain.Event, total int) {
 
 templ EventFilterBar() {
 	<div class="filter-bar" id="event-filters" style="margin-bottom:1rem;">
-		<input type="search" name="search" class="form-input" placeholder="Search events&hellip;"
+		<input type="search" name="search" class="form-input" placeholder={ T(ctx, "events.search_placeholder") }
 			style="max-width:300px;"
 			hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
 			hx-include="#event-filters"
@@ -82,45 +82,45 @@ templ EventFilterBar() {
 		<select name="status" class="form-select"
 			hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
 			hx-include="#event-filters">
-			<option value="">All Statuses</option>
-			<option value="OPEN">Open</option>
-			<option value="INVESTIGATING">Investigating</option>
-			<option value="MITIGATING">Mitigating</option>
-			<option value="RESOLVED">Resolved</option>
-			<option value="CLOSED">Closed</option>
+			<option value="">{ T(ctx, "filter.all_statuses") }</option>
+			<option value="OPEN">{ T(ctx, "status.open") }</option>
+			<option value="INVESTIGATING">{ T(ctx, "status.investigating") }</option>
+			<option value="MITIGATING">{ T(ctx, "status.mitigating") }</option>
+			<option value="RESOLVED">{ T(ctx, "status.resolved") }</option>
+			<option value="CLOSED">{ T(ctx, "status.closed") }</option>
 		</select>
 		<select name="impact" class="form-select"
 			hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
 			hx-include="#event-filters">
-			<option value="">All Risk Levels</option>
-			<option value="CRITICAL">Critical</option>
-			<option value="HIGH">High</option>
-			<option value="MODERATE">Moderate</option>
-			<option value="LOW">Low</option>
-			<option value="INFO">Info</option>
+			<option value="">{ T(ctx, "filter.all_risk") }</option>
+			<option value="CRITICAL">{ T(ctx, "impact.critical") }</option>
+			<option value="HIGH">{ T(ctx, "impact.high") }</option>
+			<option value="MODERATE">{ T(ctx, "impact.moderate") }</option>
+			<option value="LOW">{ T(ctx, "impact.low") }</option>
+			<option value="INFO">{ T(ctx, "impact.info") }</option>
 		</select>
 		<select name="event_type" class="form-select"
 			hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
 			hx-include="#event-filters">
-			<option value="">All Types</option>
-			<option value="PHISHING">Phishing</option>
-			<option value="MALWARE">Malware</option>
-			<option value="RANSOMWARE">Ransomware</option>
-			<option value="DDOS">DDoS</option>
-			<option value="DATA_BREACH">Data Breach</option>
-			<option value="UNAUTHORIZED_ACCESS">Unauthorized Access</option>
-			<option value="WEB_DEFACEMENT">Web Defacement</option>
-			<option value="INSIDER_THREAT">Insider Threat</option>
-			<option value="SUPPLY_CHAIN">Supply Chain</option>
-			<option value="VULNERABILITY">Vulnerability</option>
-			<option value="HYBRID">Hybrid</option>
-			<option value="MISINFORMATION">Misinformation</option>
-			<option value="UNCLASSIFIED">Unclassified</option>
+			<option value="">{ T(ctx, "filter.all_types") }</option>
+			<option value="PHISHING">{ T(ctx, "event_type.phishing") }</option>
+			<option value="MALWARE">{ T(ctx, "event_type.malware") }</option>
+			<option value="RANSOMWARE">{ T(ctx, "event_type.ransomware") }</option>
+			<option value="DDOS">{ T(ctx, "event_type.ddos") }</option>
+			<option value="DATA_BREACH">{ T(ctx, "event_type.data_breach") }</option>
+			<option value="UNAUTHORIZED_ACCESS">{ T(ctx, "event_type.unauthorized_access") }</option>
+			<option value="WEB_DEFACEMENT">{ T(ctx, "event_type.web_defacement") }</option>
+			<option value="INSIDER_THREAT">{ T(ctx, "event_type.insider_threat") }</option>
+			<option value="SUPPLY_CHAIN">{ T(ctx, "event_type.supply_chain") }</option>
+			<option value="VULNERABILITY">{ T(ctx, "event_type.vulnerability") }</option>
+			<option value="HYBRID">{ T(ctx, "event_type.hybrid") }</option>
+			<option value="MISINFORMATION">{ T(ctx, "event_type.misinformation") }</option>
+			<option value="UNCLASSIFIED">{ T(ctx, "event_type.unclassified") }</option>
 		</select>
 		<select name="tlp" class="form-select"
 			hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
 			hx-include="#event-filters">
-			<option value="">All TLP</option>
+			<option value="">{ T(ctx, "filter.all_tlp") }</option>
 			<option value="CLEAR">TLP:CLEAR</option>
 			<option value="GREEN">TLP:GREEN</option>
 			<option value="AMBER">TLP:AMBER</option>
@@ -139,14 +139,14 @@ templ EventTable(events []*domain.Event, total int) {
 						<th class="table-header col-select" style="display:none;width:36px;">
 							<input type="checkbox" id="select-all-events" title="Select all"/>
 						</th>
-						<th class="table-header">Title</th>
-						<th class="table-header">Sector</th>
-						<th class="table-header">Type</th>
-						<th class="table-header">Source</th>
-						<th class="table-header">Date</th>
-						<th class="table-header">Risk Level</th>
-						<th class="table-header">Status</th>
-						<th class="table-header">TLP</th>
+						<th class="table-header">{ T(ctx, "label.title") }</th>
+						<th class="table-header">{ T(ctx, "label.sector") }</th>
+						<th class="table-header">{ T(ctx, "label.type") }</th>
+						<th class="table-header">{ T(ctx, "label.source") }</th>
+						<th class="table-header">{ T(ctx, "label.date") }</th>
+						<th class="table-header">{ T(ctx, "label.risk_level") }</th>
+						<th class="table-header">{ T(ctx, "label.status") }</th>
+						<th class="table-header">{ T(ctx, "label.tlp") }</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -161,7 +161,7 @@ templ EventTable(events []*domain.Event, total int) {
 							</td>
 							<td class="table-cell truncate">{ e.Title }</td>
 							<td class="table-cell text-sm text-muted">—</td>
-							<td class="table-cell text-sm">{ EventTypeName(e.EventType) }</td>
+							<td class="table-cell text-sm">{ LocalizedEventTypeName(ctx, e.EventType) }</td>
 							<td class="table-cell text-sm text-muted">{ e.IntelSource }</td>
 							<td class="table-cell text-sm text-muted">{ FmtTime(e.CreatedAt) }</td>
 							<td class="table-cell">
@@ -178,11 +178,11 @@ templ EventTable(events []*domain.Event, total int) {
 				</tbody>
 			</table>
 		</div>
-		<p class="text-sm text-muted" style="margin-top:.5rem;">{ fmt.Sprintf("%d event(s) total", total) }</p>
+		<p class="text-sm text-muted" style="margin-top:.5rem;">{ Tn(ctx, "events.total", total) }</p>
 	} else {
 		<div class="card">
 			<div class="card-body" style="text-align:center;padding:3rem;">
-				<p class="text-muted">No events found.</p>
+				<p class="text-muted">{ T(ctx, "events.no_events") }</p>
 			</div>
 		</div>
 	}
@@ -192,7 +192,7 @@ templ EventDetail(data EventDetailData) {
 	<div class="page-header">
 		<div>
 			<a class="text-muted text-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/events">&larr; Back to Events</a>
+				hx-push-url="/events">{ T(ctx, "events.back") }</a>
 			<h1 style="margin-top:.25rem;">{ data.Event.Title }</h1>
 		</div>
 		<div class="flex gap-md items-center">
@@ -200,14 +200,14 @@ templ EventDetail(data EventDetailData) {
 				<button class="btn btn-secondary"
 					hx-get={ "/api/v1/events/" + data.Event.ID.String() + "/edit" } hx-target="#app" hx-swap="innerHTML"
 					hx-push-url={ "/events/" + data.Event.ID.String() + "/edit" }>
-					Edit
+					{ T(ctx, "action.edit") }
 				</button>
 			}
 			if data.CanDelete {
 				<button class="btn btn-danger"
 					hx-delete={ "/api/v1/events/" + data.Event.ID.String() } hx-target="#app" hx-swap="innerHTML"
-					hx-confirm="Are you sure you want to delete this event?">
-					Delete
+					hx-confirm={ T(ctx, "events.delete_confirm") }>
+					{ T(ctx, "action.delete") }
 				</button>
 			}
 		</div>
@@ -216,7 +216,7 @@ templ EventDetail(data EventDetailData) {
 		@StatusBadge(data.Event.Status)
 		@ImpactBadge(data.Event.Impact)
 		@TLPBadge(data.Event.TLP)
-		<span class="text-sm text-muted">{ EventTypeName(data.Event.EventType) }</span>
+		<span class="text-sm text-muted">{ LocalizedEventTypeName(ctx, data.Event.EventType) }</span>
 	</div>
 	<div class="flex gap-md mb-md" style="flex-wrap:wrap;">
 		@TLPLegend()
@@ -226,67 +226,67 @@ templ EventDetail(data EventDetailData) {
 		<div class="card-body">
 			<div class="meta-grid">
 				<div class="meta-item">
-					<div class="meta-label">Organization</div>
+					<div class="meta-label">{ T(ctx, "label.organization") }</div>
 					<div class="meta-value">{ data.OrgName }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Sector</div>
+					<div class="meta-label">{ T(ctx, "label.sector") }</div>
 					<div class="meta-value">{ data.SectorName }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Submitter</div>
+					<div class="meta-label">{ T(ctx, "label.submitter") }</div>
 					<div class="meta-value">{ data.SubmitterName }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Intelligence Source</div>
+					<div class="meta-label">{ T(ctx, "events.intel_source") }</div>
 					<div class="meta-value">{ data.Event.IntelSource }</div>
 				</div>
 				if data.Event.Target != "" {
 					<div class="meta-item">
-						<div class="meta-label">Target</div>
+						<div class="meta-label">{ T(ctx, "events.target") }</div>
 						<div class="meta-value">{ data.Event.Target }</div>
 					</div>
 				}
 				if data.Event.OriginalEventDate != nil {
 					<div class="meta-item">
-						<div class="meta-label">Original Event Date</div>
+						<div class="meta-label">{ T(ctx, "events.original_date") }</div>
 						<div class="meta-value">{ FmtTime(*data.Event.OriginalEventDate) }</div>
 					</div>
 				}
 				<div class="meta-item">
-					<div class="meta-label">Created</div>
+					<div class="meta-label">{ T(ctx, "label.created") }</div>
 					<div class="meta-value">{ FmtTime(data.Event.CreatedAt) }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Last Updated</div>
+					<div class="meta-label">{ T(ctx, "events.last_updated") }</div>
 					<div class="meta-value">{ FmtTime(data.Event.UpdatedAt) }</div>
 				</div>
 				<div class="meta-item">
-					<div class="meta-label">Event ID</div>
+					<div class="meta-label">{ T(ctx, "events.event_id") }</div>
 					<div class="meta-value font-mono text-sm">{ data.Event.ID.String() }</div>
 				</div>
 			</div>
 		</div>
 	</div>
 	<div class="card">
-		<div class="card-header">Description</div>
+		<div class="card-header">{ T(ctx, "events.description") }</div>
 		<div class="card-body rendered-body">
 			@templ.Raw(data.DescriptionHTML)
 		</div>
 	</div>
 	<div class="card">
 		<div class="card-header">
-			Updates
+			{ T(ctx, "updates.title") }
 			<span class="htmx-indicator"><span class="spinner"></span></span>
 		</div>
 		<div id="event-updates"
 			hx-get={ "/api/v1/events/" + data.Event.ID.String() + "/updates" } hx-target="#event-updates" hx-swap="innerHTML"
 			hx-trigger="load">
-			<div class="card-body text-muted text-sm">Loading updates&hellip;</div>
+			<div class="card-body text-muted text-sm">{ T(ctx, "updates.loading") }</div>
 		</div>
 	</div>
 	<div class="card">
-		<div class="card-header">Attachments</div>
+		<div class="card-header">{ T(ctx, "attachments.title") }</div>
 		<div class="card-body">
 			if len(data.Attachments) > 0 {
 				<ul class="attachment-list">
@@ -300,7 +300,7 @@ templ EventDetail(data EventDetailData) {
 					}
 				</ul>
 			} else {
-				<p class="text-muted text-sm">No attachments.</p>
+				<p class="text-muted text-sm">{ T(ctx, "attachments.none") }</p>
 			}
 			if data.CanEdit {
 				<form class="upload-area mt-md"
@@ -308,20 +308,20 @@ templ EventDetail(data EventDetailData) {
 					hx-target="#app" hx-swap="innerHTML"
 					hx-encoding="multipart/form-data">
 					<input type="file" name="file" required/>
-					<button type="submit" class="btn btn-sm btn-secondary mt-sm">Upload</button>
+					<button type="submit" class="btn btn-sm btn-secondary mt-sm">{ T(ctx, "action.upload") }</button>
 				</form>
 			}
 		</div>
 	</div>
 	<div class="card">
 		<div class="card-header">
-			Correlations
+			{ T(ctx, "correlations.title") }
 			if len(data.Correlations) > 0 {
 				<a class="btn btn-sm btn-secondary"
 					hx-get={ "/api/v1/events/" + data.Event.ID.String() + "/graph" }
 					hx-target="#app" hx-swap="innerHTML"
 					hx-push-url={ "/events/" + data.Event.ID.String() + "/graph" }>
-					View Graph
+					{ T(ctx, "correlations.view_graph") }
 				</a>
 			}
 		</div>
@@ -339,19 +339,19 @@ templ EventDetail(data EventDetailData) {
 					</div>
 				}
 			} else {
-				<p class="text-muted text-sm">No correlated events.</p>
+				<p class="text-muted text-sm">{ T(ctx, "correlations.none") }</p>
 			}
 			if data.CanEdit {
 				<div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.75rem;">
 					<button class="btn btn-sm btn-secondary"
 						data-action="show-correlation-form">
-						+ Add Correlation
+						{ T(ctx, "correlations.add") }
 					</button>
 					<div id="add-correlation-form" style="display:none;margin-top:.5rem;">
 						<div class="form-group">
-							<label class="form-label">Search events to correlate</label>
+							<label class="form-label">{ T(ctx, "correlations.search_label") }</label>
 							<input type="text" class="form-input" autocomplete="off"
-								placeholder="Search events by title&hellip;"
+								placeholder={ T(ctx, "correlations.search_placeholder") }
 								hx-get={ "/api/v1/events?partial=correlate-results&source_event_id=" + data.Event.ID.String() }
 								hx-target="#correlate-search-results"
 								hx-trigger="input changed delay:300ms"
@@ -360,8 +360,8 @@ templ EventDetail(data EventDetailData) {
 						</div>
 						<div id="correlate-search-results"></div>
 						<div class="form-group mt-sm">
-							<label class="form-label" for="corr-label">Correlation Label</label>
-							<input type="text" id="corr-label" class="form-input" placeholder="e.g. 'Related incident', 'Same actor'"
+							<label class="form-label" for="corr-label">{ T(ctx, "correlations.label_field") }</label>
+							<input type="text" id="corr-label" class="form-input" placeholder={ T(ctx, "correlations.label_placeholder") }
 								style="max-width:300px;"/>
 						</div>
 					</div>
@@ -371,14 +371,14 @@ templ EventDetail(data EventDetailData) {
 	</div>
 	if data.CanEdit {
 		<div class="card">
-			<div class="card-header">Campaign Membership</div>
+			<div class="card-header">{ T(ctx, "campaigns.membership") }</div>
 			<div class="card-body">
 				<form hx-post="" hx-target="#app" hx-swap="innerHTML"
 					id="link-to-campaign-form">
 					<div class="form-group">
-						<label class="form-label" for="campaign-search">Link to Campaign</label>
+						<label class="form-label" for="campaign-search">{ T(ctx, "campaigns.link_to") }</label>
 						<input type="text" id="campaign-search" class="form-input" autocomplete="off"
-							placeholder="Search campaigns by name&hellip;"
+							placeholder={ T(ctx, "campaigns.search_campaigns") }
 							hx-get="/api/v1/campaigns?partial=options"
 							hx-target="#campaign-search-results"
 							hx-trigger="input changed delay:300ms"
@@ -391,10 +391,10 @@ templ EventDetail(data EventDetailData) {
 		</div>
 	}
 	<div class="card">
-		<div class="card-header">Revision History</div>
+		<div class="card-header">{ T(ctx, "revisions.title") }</div>
 		<div class="card-body">
 			<details>
-				<summary class="revision-toggle">Show { fmt.Sprintf("%d", len(data.Revisions)) } revision(s)</summary>
+				<summary class="revision-toggle">{ Tn(ctx, "revisions.show", len(data.Revisions)) }</summary>
 				<ul class="revision-list mt-sm">
 					for _, rev := range data.Revisions {
 						<li class="revision-item">
@@ -402,7 +402,7 @@ templ EventDetail(data EventDetailData) {
 							<span>{ FmtUser(rev.ChangedBy) } &middot; { FmtTime(rev.ChangedAt) }</span>
 							<span class="flex gap-sm">
 								if rev.Title != "" {
-									<span class="text-xs">title changed</span>
+									<span class="text-xs">{ T(ctx, "revisions.title_changed") }</span>
 								}
 								@ImpactBadge(rev.Impact)
 								@StatusBadge(rev.Status)
@@ -419,11 +419,11 @@ templ EventForm(data EventFormData) {
 	<div class="page-header">
 		<div>
 			<a class="text-muted text-sm" hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/events">&larr; Back to Events</a>
+				hx-push-url="/events">{ T(ctx, "events.back") }</a>
 			if data.Event != nil && data.Event.ID.String() != "00000000-0000-0000-0000-000000000000" {
-				<h1 style="margin-top:.25rem;">Edit Event</h1>
+				<h1 style="margin-top:.25rem;">{ T(ctx, "events.edit_title") }</h1>
 			} else {
-				<h1 style="margin-top:.25rem;">New Event</h1>
+				<h1 style="margin-top:.25rem;">{ T(ctx, "events.new_title") }</h1>
 			}
 		</div>
 	</div>
@@ -446,31 +446,31 @@ templ EventForm(data EventFormData) {
 
 templ eventFormFields(data EventFormData) {
 	<div class="form-group">
-		<label class="form-label" for="title">Title</label>
+		<label class="form-label" for="title">{ T(ctx, "label.title") }</label>
 		<input type="text" id="title" name="title" class="form-input" required
 			maxlength="500" value={ safeEventField(data.Event, func(e *domain.Event) string { return e.Title }) }
-			placeholder="Brief description of the incident"/>
+			placeholder={ T(ctx, "events.title_placeholder") }/>
 	</div>
 	<div class="form-group">
-		<label class="form-label" for="description">Description</label>
+		<label class="form-label" for="description">{ T(ctx, "events.description") }</label>
 		<textarea id="description" name="description" class="form-textarea" required
-			maxlength="50000" placeholder="Detailed description (Markdown supported)">{ safeEventField(data.Event, func(e *domain.Event) string { return e.Description }) }</textarea>
-		<span class="form-hint">Markdown formatting is supported.</span>
+			maxlength="50000" placeholder={ T(ctx, "events.description_placeholder") }>{ safeEventField(data.Event, func(e *domain.Event) string { return e.Description }) }</textarea>
+		<span class="form-hint">{ T(ctx, "events.markdown_hint") }</span>
 	</div>
 	<div class="form-row">
 		<div class="form-group">
-			<label class="form-label" for="event_type">Event Type</label>
+			<label class="form-label" for="event_type">{ T(ctx, "events.event_type") }</label>
 			<select id="event_type" name="event_type" class="form-select" required>
-				<option value="">Select type&hellip;</option>
+				<option value="">{ T(ctx, "events.select_type") }</option>
 				for _, et := range data.EventTypes {
 					<option value={ string(et) } selected?={ data.Event != nil && data.Event.EventType == et }>{ string(et) }</option>
 				}
 			</select>
 		</div>
 		<div class="form-group">
-			<label class="form-label" for="sector_context">Sector Context</label>
+			<label class="form-label" for="sector_context">{ T(ctx, "events.sector_context") }</label>
 			<select id="sector_context" name="sector_context" class="form-select" required>
-				<option value="">Select sector&hellip;</option>
+				<option value="">{ T(ctx, "events.select_sector") }</option>
 				for _, s := range data.Sectors {
 					<option value={ s.ID.String() } selected?={ data.Event != nil && data.Event.SectorContext == s.ID }>{ s.Name }</option>
 				}
@@ -480,12 +480,12 @@ templ eventFormFields(data EventFormData) {
 	<div class="form-row">
 		<div class="form-group">
 			<label class="form-label" for="tlp">
-				TLP
-				<span class="form-label-help" title="Traffic Light Protocol — controls information sharing boundaries.&#10;&#10;TLP:CLEAR — Unrestricted within the platform&#10;TLP:GREEN — All authenticated platform users&#10;TLP:AMBER — Owning org + orgs with explicit access&#10;TLP:AMBER+STRICT — Owning organization only&#10;TLP:RED — Named recipients only">&#9432;</span>
+				{ T(ctx, "label.tlp") }
+				<span class="form-label-help" title={ T(ctx, "tlp.tooltip") }>&#9432;</span>
 			</label>
 			<select id="tlp" name="tlp" class="form-select" required
 				data-action="toggle-tlp-red">
-				<option value="">Select TLP&hellip;</option>
+				<option value="">{ T(ctx, "events.select_tlp") }</option>
 				<option value="CLEAR" selected?={ data.Event != nil && data.Event.TLP == "CLEAR" }>TLP:CLEAR</option>
 				<option value="GREEN" selected?={ data.Event != nil && data.Event.TLP == "GREEN" }>TLP:GREEN</option>
 				<option value="AMBER" selected?={ data.Event != nil && data.Event.TLP == "AMBER" }>TLP:AMBER</option>
@@ -495,40 +495,40 @@ templ eventFormFields(data EventFormData) {
 		</div>
 		<div class="form-group">
 			<label class="form-label" for="impact">
-				Risk Level
-				<span class="form-label-help" title="Operational severity assessment.&#10;&#10;Critical (Black) — Total service loss, catastrophic operational impact&#10;High (Red) — Major degradation, significant operational consequences&#10;Moderate (Amber) — Partial impact, workarounds available&#10;Low (Yellow) — Minor, largely contained&#10;Info (Green) — No direct impact, awareness only">&#9432;</span>
+				{ T(ctx, "label.risk_level") }
+				<span class="form-label-help" title={ T(ctx, "impact.tooltip") }>&#9432;</span>
 			</label>
 			<select id="impact" name="impact" class="form-select" required>
-				<option value="">Select risk level&hellip;</option>
-				<option value="INFO" selected?={ data.Event != nil && data.Event.Impact == "INFO" }>Info</option>
-				<option value="LOW" selected?={ data.Event != nil && data.Event.Impact == "LOW" }>Low</option>
-				<option value="MODERATE" selected?={ data.Event != nil && data.Event.Impact == "MODERATE" }>Moderate</option>
-				<option value="HIGH" selected?={ data.Event != nil && data.Event.Impact == "HIGH" }>High</option>
-				<option value="CRITICAL" selected?={ data.Event != nil && data.Event.Impact == "CRITICAL" }>Critical</option>
+				<option value="">{ T(ctx, "events.select_risk") }</option>
+				<option value="INFO" selected?={ data.Event != nil && data.Event.Impact == "INFO" }>{ T(ctx, "impact.info") }</option>
+				<option value="LOW" selected?={ data.Event != nil && data.Event.Impact == "LOW" }>{ T(ctx, "impact.low") }</option>
+				<option value="MODERATE" selected?={ data.Event != nil && data.Event.Impact == "MODERATE" }>{ T(ctx, "impact.moderate") }</option>
+				<option value="HIGH" selected?={ data.Event != nil && data.Event.Impact == "HIGH" }>{ T(ctx, "impact.high") }</option>
+				<option value="CRITICAL" selected?={ data.Event != nil && data.Event.Impact == "CRITICAL" }>{ T(ctx, "impact.critical") }</option>
 			</select>
 		</div>
 	</div>
 	<div class="form-row">
 		<div class="form-group">
-			<label class="form-label" for="intel_source">Intelligence Source</label>
+			<label class="form-label" for="intel_source">{ T(ctx, "events.intel_source") }</label>
 			<input type="text" id="intel_source" name="intel_source" class="form-input"
 				value={ safeEventField(data.Event, func(e *domain.Event) string { return e.IntelSource }) }
-				placeholder="Manual"/>
-			<span class="form-hint">Source of this intelligence (default: Manual).</span>
+				placeholder={ T(ctx, "events.intel_source_placeholder") }/>
+			<span class="form-hint">{ T(ctx, "events.intel_source_hint") }</span>
 		</div>
 		<div class="form-group">
-			<label class="form-label" for="target">Target</label>
+			<label class="form-label" for="target">{ T(ctx, "events.target") }</label>
 			<input type="text" id="target" name="target" class="form-input"
 				value={ safeEventField(data.Event, func(e *domain.Event) string { return e.Target }) }
-				placeholder="Affected entity or system"/>
+				placeholder={ T(ctx, "events.target_placeholder") }/>
 		</div>
 	</div>
 	<div class="form-group">
-		<label class="form-label" for="original_event_date">Original Event Date</label>
+		<label class="form-label" for="original_event_date">{ T(ctx, "events.original_date") }</label>
 		<input type="date" id="original_event_date" name="original_event_date" class="form-input"
 			value={ safeEventDateField(data.Event) }
 			style="max-width:250px;"/>
-		<span class="form-hint">When the event originally occurred (if different from submission date).</span>
+		<span class="form-hint">{ T(ctx, "events.original_date_hint") }</span>
 	</div>
 	if data.Event != nil && data.Event.TLP == domain.TLPRed {
 		<div id="tlp-red-recipients" class="form-group">
@@ -541,18 +541,18 @@ templ eventFormFields(data EventFormData) {
 	}
 	<div class="form-actions">
 		if data.Event != nil && data.Event.ID.String() != "00000000-0000-0000-0000-000000000000" {
-			<button type="submit" class="btn btn-primary">Save Changes</button>
+			<button type="submit" class="btn btn-primary">{ T(ctx, "action.save") }</button>
 			<button type="button" class="btn"
 				hx-get={ "/api/v1/events/" + data.Event.ID.String() } hx-target="#app" hx-swap="innerHTML"
 				hx-push-url={ "/events/" + data.Event.ID.String() }>
-				Cancel
+				{ T(ctx, "action.cancel") }
 			</button>
 		} else {
-			<button type="submit" class="btn btn-primary">Create Event</button>
+			<button type="submit" class="btn btn-primary">{ T(ctx, "events.create_event") }</button>
 			<button type="button" class="btn"
 				hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/events">
-				Cancel
+				{ T(ctx, "action.cancel") }
 			</button>
 		}
 		<span class="htmx-indicator"><span class="spinner"></span></span>
@@ -560,8 +560,8 @@ templ eventFormFields(data EventFormData) {
 }
 
 templ tlpRedRecipients(recipients []RecipientOption) {
-	<label class="form-label">TLP:RED Recipients</label>
-	<div class="form-hint mb-sm">Select users who should have access to this TLP:RED content.</div>
+	<label class="form-label">{ T(ctx, "tlp_red.label") }</label>
+	<div class="form-hint mb-sm">{ T(ctx, "tlp_red.hint") }</div>
 	if len(recipients) > 0 {
 		for _, r := range recipients {
 			<label style="display:flex;align-items:center;gap:.5rem;padding:.25rem 0;font-size:.85rem;">
@@ -570,7 +570,7 @@ templ tlpRedRecipients(recipients []RecipientOption) {
 			</label>
 		}
 	} else {
-		<p class="text-muted text-sm">No recipients available for selection.</p>
+		<p class="text-muted text-sm">{ T(ctx, "tlp_red.no_users") }</p>
 	}
 }
 
@@ -599,41 +599,41 @@ templ EventUpdates(data EventUpdatesData) {
 				}
 			</ul>
 		} else {
-			<p class="text-muted text-sm">No updates yet.</p>
+			<p class="text-muted text-sm">{ T(ctx, "updates.none") }</p>
 		}
 		if data.CanUpdate {
 			<div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.75rem;">
 				<form hx-post={ "/api/v1/events/" + data.EventID.String() + "/updates" }
 					hx-target="#event-updates" hx-swap="innerHTML">
 					<div class="form-group">
-						<label class="form-label" for="update-body">Add Update</label>
+						<label class="form-label" for="update-body">{ T(ctx, "updates.add") }</label>
 						<textarea id="update-body" name="body" class="form-textarea" required
-							placeholder="Describe the update&hellip;" style="min-height:80px;"></textarea>
+							placeholder={ T(ctx, "updates.body_placeholder") } style="min-height:80px;"></textarea>
 					</div>
 					<div class="form-row">
 						<div class="form-group">
-							<label class="form-label" for="status-change">Change Status (optional)</label>
+							<label class="form-label" for="status-change">{ T(ctx, "updates.change_status") }</label>
 							<select id="status-change" name="status_change" class="form-select">
-								<option value="">No change</option>
+								<option value="">{ T(ctx, "updates.no_change") }</option>
 								for _, t := range data.AllowedTransitions {
 									<option value={ string(t) }>{ string(t) }</option>
 								}
 							</select>
 						</div>
 						<div class="form-group">
-							<label class="form-label" for="impact-change">Change Risk Level (optional)</label>
+							<label class="form-label" for="impact-change">{ T(ctx, "updates.change_impact") }</label>
 							<select id="impact-change" name="impact_change" class="form-select">
-								<option value="">No change</option>
-								<option value="INFO">Info</option>
-								<option value="LOW">Low</option>
-								<option value="MODERATE">Moderate</option>
-								<option value="HIGH">High</option>
-								<option value="CRITICAL">Critical</option>
+								<option value="">{ T(ctx, "updates.no_change") }</option>
+								<option value="INFO">{ T(ctx, "impact.info") }</option>
+								<option value="LOW">{ T(ctx, "impact.low") }</option>
+								<option value="MODERATE">{ T(ctx, "impact.moderate") }</option>
+								<option value="HIGH">{ T(ctx, "impact.high") }</option>
+								<option value="CRITICAL">{ T(ctx, "impact.critical") }</option>
 							</select>
 						</div>
 					</div>
 					<div class="form-actions">
-						<button type="submit" class="btn btn-primary btn-sm">Post Update</button>
+						<button type="submit" class="btn btn-primary btn-sm">{ T(ctx, "updates.post") }</button>
 						<span class="htmx-indicator"><span class="spinner"></span></span>
 					</div>
 				</form>
@@ -662,7 +662,7 @@ templ CorrelateSearchResults(events []*domain.Event, sourceEventID string) {
 			}
 		</div>
 	} else {
-		<div class="text-sm text-muted" style="padding:.5rem 0;">No events found.</div>
+		<div class="text-sm text-muted" style="padding:.5rem 0;">{ T(ctx, "correlations.no_results") }</div>
 	}
 }
 
@@ -670,6 +670,6 @@ templ EventUpdatesReload(eventID uuid.UUID) {
 	<div hx-get={ "/api/v1/events/" + eventID.String() + "/updates" }
 		hx-target="#event-updates" hx-swap="innerHTML"
 		hx-trigger="load">
-		<div class="card-body text-muted text-sm">Refreshing&hellip;</div>
+		<div class="card-body text-muted text-sm">{ T(ctx, "updates.refreshing") }</div>
 	</div>
 }

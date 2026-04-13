@@ -2,7 +2,7 @@ package views
 
 templ Shell(keycloakURL, keycloakRealm, keycloakClientID string) {
 	<!DOCTYPE html>
-	<html lang="en">
+	<html lang={ Locale(ctx) }>
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -12,18 +12,41 @@ templ Shell(keycloakURL, keycloakRealm, keycloakClientID string) {
 			<meta name="keycloak-client-id" content={ keycloakClientID }/>
 			<link rel="stylesheet" href="/static/css/fresnel.css"/>
 		</head>
-		<body>
+		<body
+			data-i18n-missing-kc={ T(ctx, "js.missing_kc") }
+			data-i18n-kc-failed={ T(ctx, "js.kc_failed") }
+			data-i18n-auth-failed={ T(ctx, "js.auth_failed") }
+			data-i18n-logout={ T(ctx, "js.logout") }
+			data-i18n-timeline-suffix={ T(ctx, "js.timeline_suffix") }
+			data-locale={ Locale(ctx) }>
 			<nav id="topnav">
 				<button id="sidebar-toggle" class="btn-icon sidebar-toggle" aria-label="Toggle navigation">&#9776;</button>
-				<span class="brand">Fresnel</span>
+				<span class="brand">{ T(ctx, "shell.brand") }</span>
 				<div class="nav-spacer"></div>
+			<div class="lang-switcher">
+				if Locale(ctx) == "bg" {
+					<a class="lang-flag" href="#" data-lang="en" title={ T(ctx, "lang.en") }>
+						<img src="/static/flags/gb.svg" alt="EN" width="24" height="12"/>
+					</a>
+					<a class="lang-flag lang-active" href="#" title={ T(ctx, "lang.bg") }>
+						<img src="/static/flags/bg.svg" alt="BG" width="24" height="14"/>
+					</a>
+				} else {
+					<a class="lang-flag lang-active" href="#" title={ T(ctx, "lang.en") }>
+						<img src="/static/flags/gb.svg" alt="EN" width="24" height="12"/>
+					</a>
+					<a class="lang-flag" href="#" data-lang="bg" title={ T(ctx, "lang.bg") }>
+						<img src="/static/flags/bg.svg" alt="BG" width="24" height="14"/>
+					</a>
+				}
+			</div>
 				<select id="org-context-selector" style="display:none;"></select>
 				<span id="user-info"></span>
 			</nav>
 			<div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 			<aside id="sidebar"></aside>
 			<main id="app">
-				<p>Authenticating&hellip;</p>
+				<p>{ T(ctx, "shell.authenticating") }</p>
 			</main>
 			<script src="/static/keycloak.min.js"></script>
 			<script src="/static/htmx.min.js"></script>
@@ -38,28 +61,28 @@ templ Nav() {
 			<a class="nav-link" href="/dashboard"
 				hx-get="/api/v1/dashboard?view=tree" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/dashboard?view=tree">
-				Dashboard
+				{ T(ctx, "nav.dashboard") }
 			</a>
 			<ul class="nav-subsection">
 				<li>
 					<a class="nav-sublink" href="/dashboard?view=tree"
 						hx-get="/api/v1/dashboard?view=tree" hx-target="#app" hx-swap="innerHTML"
 						hx-push-url="/dashboard?view=tree">
-						Tree
+						{ T(ctx, "nav.tree") }
 					</a>
 				</li>
 				<li>
 					<a class="nav-sublink" href="/dashboard?view=timeline"
 						hx-get="/api/v1/dashboard?view=timeline" hx-target="#app" hx-swap="innerHTML"
 						hx-push-url="/dashboard?view=timeline">
-						Timeline
+						{ T(ctx, "nav.timeline") }
 					</a>
 				</li>
 				<li>
 					<a class="nav-sublink" href="/dashboard?view=graph"
 						hx-get="/api/v1/dashboard?view=graph" hx-target="#app" hx-swap="innerHTML"
 						hx-push-url="/dashboard?view=graph">
-						Graph
+						{ T(ctx, "nav.graph") }
 					</a>
 				</li>
 			</ul>
@@ -68,50 +91,50 @@ templ Nav() {
 			<a class="nav-link" href="/events"
 				hx-get="/api/v1/events" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/events">
-				Events
+				{ T(ctx, "nav.events") }
 			</a>
 		</li>
 		<li>
 			<a class="nav-link" href="/status-reports"
 				hx-get="/api/v1/status-reports" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/status-reports">
-				Status Reports
+				{ T(ctx, "nav.status_reports") }
 			</a>
 		</li>
 		<li>
 			<a class="nav-link" href="/campaigns"
 				hx-get="/api/v1/campaigns" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/campaigns">
-				Campaigns
+				{ T(ctx, "nav.campaigns") }
 			</a>
 		</li>
-		<li class="nav-section">Administration</li>
+		<li class="nav-section">{ T(ctx, "nav.admin") }</li>
 		<li>
 			<a class="nav-link" href="/sectors"
 				hx-get="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/sectors">
-				Sectors
+				{ T(ctx, "nav.sectors") }
 			</a>
 		</li>
 		<li>
 			<a class="nav-link" href="/orgs"
 				hx-get="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/orgs">
-				Organizations
+				{ T(ctx, "nav.orgs") }
 			</a>
 		</li>
 		<li>
 			<a class="nav-link" href="/users"
 				hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/users">
-				Users
+				{ T(ctx, "nav.users") }
 			</a>
 		</li>
 		<li>
 			<a class="nav-link" href="/audit"
 				hx-get="/api/v1/audit" hx-target="#app" hx-swap="innerHTML"
 				hx-push-url="/audit">
-				Audit Log
+				{ T(ctx, "nav.audit") }
 			</a>
 		</li>
 	</ul>

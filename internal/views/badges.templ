@@ -2,6 +2,7 @@ package views
 
 import (
 	"strings"
+
 	"fresnel/internal/domain"
 )
 
@@ -31,26 +32,26 @@ templ SeverityBadge(severity domain.AuditSeverity) {
 
 templ TLPLegend() {
 	<details class="legend-details">
-		<summary class="legend-summary">TLP Reference</summary>
+		<summary class="legend-summary">{ T(ctx, "legend.tlp_title") }</summary>
 		<div class="legend-body">
-			<div class="legend-item"><span class="badge badge-tlp-clear">TLP:CLEAR</span> Unrestricted within the platform.</div>
-			<div class="legend-item"><span class="badge badge-tlp-green">TLP:GREEN</span> Visible to all authenticated platform users.</div>
-			<div class="legend-item"><span class="badge badge-tlp-amber">TLP:AMBER</span> Owning org + orgs with explicit access grants.</div>
-			<div class="legend-item"><span class="badge badge-tlp-amber_strict">TLP:AMBER+STRICT</span> Owning organization only.</div>
-			<div class="legend-item"><span class="badge badge-tlp-red">TLP:RED</span> Named recipients only (specified per-object).</div>
+			<div class="legend-item"><span class="badge badge-tlp-clear">TLP:CLEAR</span> { T(ctx, "legend.tlp_clear") }</div>
+			<div class="legend-item"><span class="badge badge-tlp-green">TLP:GREEN</span> { T(ctx, "legend.tlp_green") }</div>
+			<div class="legend-item"><span class="badge badge-tlp-amber">TLP:AMBER</span> { T(ctx, "legend.tlp_amber") }</div>
+			<div class="legend-item"><span class="badge badge-tlp-amber_strict">TLP:AMBER+STRICT</span> { T(ctx, "legend.tlp_amber_strict") }</div>
+			<div class="legend-item"><span class="badge badge-tlp-red">TLP:RED</span> { T(ctx, "legend.tlp_red") }</div>
 		</div>
 	</details>
 }
 
 templ RiskLevelLegend() {
 	<details class="legend-details">
-		<summary class="legend-summary">Risk Level Reference</summary>
+		<summary class="legend-summary">{ T(ctx, "legend.risk_title") }</summary>
 		<div class="legend-body">
-			<div class="legend-item"><span class="badge badge-impact-critical">CRITICAL</span> Total service loss, catastrophic operational impact.</div>
-			<div class="legend-item"><span class="badge badge-impact-high">HIGH</span> Major degradation, significant operational consequences.</div>
-			<div class="legend-item"><span class="badge badge-impact-moderate">MODERATE</span> Partial impact, workarounds available.</div>
-			<div class="legend-item"><span class="badge badge-impact-low">LOW</span> Minor, largely contained.</div>
-			<div class="legend-item"><span class="badge badge-impact-info">INFO</span> No direct impact, awareness only.</div>
+			<div class="legend-item"><span class="badge badge-impact-critical">CRITICAL</span> { T(ctx, "legend.risk_critical") }</div>
+			<div class="legend-item"><span class="badge badge-impact-high">HIGH</span> { T(ctx, "legend.risk_high") }</div>
+			<div class="legend-item"><span class="badge badge-impact-moderate">MODERATE</span> { T(ctx, "legend.risk_moderate") }</div>
+			<div class="legend-item"><span class="badge badge-impact-low">LOW</span> { T(ctx, "legend.risk_low") }</div>
+			<div class="legend-item"><span class="badge badge-impact-info">INFO</span> { T(ctx, "legend.risk_info") }</div>
 		</div>
 	</details>
 }

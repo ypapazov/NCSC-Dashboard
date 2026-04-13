@@ -46,17 +46,17 @@ templ ViewToggle(currentView string) {
 		<a class={ "view-toggle-btn", templ.KV("active", currentView == "tree") }
 			hx-get="/api/v1/dashboard?view=tree" hx-target="#app" hx-swap="innerHTML"
 			hx-push-url="/dashboard?view=tree">
-			Tree
+			{ T(ctx, "view.tree") }
 		</a>
 		<a class={ "view-toggle-btn", templ.KV("active", currentView == "timeline") }
 			hx-get="/api/v1/dashboard?view=timeline" hx-target="#app" hx-swap="innerHTML"
 			hx-push-url="/dashboard?view=timeline">
-			Timeline
+			{ T(ctx, "view.timeline") }
 		</a>
 		<a class={ "view-toggle-btn", templ.KV("active", currentView == "graph") }
 			hx-get="/api/v1/dashboard?view=graph" hx-target="#app" hx-swap="innerHTML"
 			hx-push-url="/dashboard?view=graph">
-			Graph
+			{ T(ctx, "view.graph") }
 		</a>
 	</div>
 }
@@ -68,18 +68,18 @@ templ DashboardFilterBar(currentView string) {
 			hx-get={ "/api/v1/dashboard?view=" + currentView }
 			hx-target="#app" hx-swap="innerHTML"
 			hx-include="#dashboard-filters">
-			<option value="">All Risk Levels</option>
-			<option value="CRITICAL">Critical</option>
-			<option value="HIGH">High</option>
-			<option value="MODERATE">Moderate</option>
-			<option value="LOW">Low</option>
-			<option value="INFO">Info</option>
+			<option value="">{ T(ctx, "filter.all_risk") }</option>
+			<option value="CRITICAL">{ T(ctx, "impact.critical") }</option>
+			<option value="HIGH">{ T(ctx, "impact.high") }</option>
+			<option value="MODERATE">{ T(ctx, "impact.moderate") }</option>
+			<option value="LOW">{ T(ctx, "impact.low") }</option>
+			<option value="INFO">{ T(ctx, "impact.info") }</option>
 		</select>
 		<select name="tlp" class="form-select"
 			hx-get={ "/api/v1/dashboard?view=" + currentView }
 			hx-target="#app" hx-swap="innerHTML"
 			hx-include="#dashboard-filters">
-			<option value="">All TLP</option>
+			<option value="">{ T(ctx, "filter.all_tlp") }</option>
 			<option value="CLEAR">TLP:CLEAR</option>
 			<option value="GREEN">TLP:GREEN</option>
 			<option value="AMBER">TLP:AMBER</option>
@@ -90,29 +90,29 @@ templ DashboardFilterBar(currentView string) {
 			hx-get={ "/api/v1/dashboard?view=" + currentView }
 			hx-target="#app" hx-swap="innerHTML"
 			hx-include="#dashboard-filters">
-			<option value="">All Statuses</option>
-			<option value="OPEN">Open</option>
-			<option value="INVESTIGATING">Investigating</option>
-			<option value="MITIGATING">Mitigating</option>
-			<option value="RESOLVED">Resolved</option>
-			<option value="CLOSED">Closed</option>
+			<option value="">{ T(ctx, "filter.all_statuses") }</option>
+			<option value="OPEN">{ T(ctx, "status.open") }</option>
+			<option value="INVESTIGATING">{ T(ctx, "status.investigating") }</option>
+			<option value="MITIGATING">{ T(ctx, "status.mitigating") }</option>
+			<option value="RESOLVED">{ T(ctx, "status.resolved") }</option>
+			<option value="CLOSED">{ T(ctx, "status.closed") }</option>
 		</select>
 		<select name="event_type" class="form-select"
 			hx-get={ "/api/v1/dashboard?view=" + currentView }
 			hx-target="#app" hx-swap="innerHTML"
 			hx-include="#dashboard-filters">
-			<option value="">All Types</option>
-			<option value="PHISHING">Phishing</option>
-			<option value="MALWARE">Malware</option>
-			<option value="RANSOMWARE">Ransomware</option>
-			<option value="DDOS">DDoS</option>
-			<option value="DATA_BREACH">Data Breach</option>
-			<option value="UNAUTHORIZED_ACCESS">Unauthorized Access</option>
-			<option value="SUPPLY_CHAIN">Supply Chain</option>
-			<option value="VULNERABILITY">Vulnerability</option>
-			<option value="HYBRID">Hybrid</option>
-			<option value="MISINFORMATION">Misinformation</option>
-			<option value="UNCLASSIFIED">Unclassified</option>
+			<option value="">{ T(ctx, "filter.all_types") }</option>
+			<option value="PHISHING">{ T(ctx, "event_type.phishing") }</option>
+			<option value="MALWARE">{ T(ctx, "event_type.malware") }</option>
+			<option value="RANSOMWARE">{ T(ctx, "event_type.ransomware") }</option>
+			<option value="DDOS">{ T(ctx, "event_type.ddos") }</option>
+			<option value="DATA_BREACH">{ T(ctx, "event_type.data_breach") }</option>
+			<option value="UNAUTHORIZED_ACCESS">{ T(ctx, "event_type.unauthorized_access") }</option>
+			<option value="SUPPLY_CHAIN">{ T(ctx, "event_type.supply_chain") }</option>
+			<option value="VULNERABILITY">{ T(ctx, "event_type.vulnerability") }</option>
+			<option value="HYBRID">{ T(ctx, "event_type.hybrid") }</option>
+			<option value="MISINFORMATION">{ T(ctx, "event_type.misinformation") }</option>
+			<option value="UNCLASSIFIED">{ T(ctx, "event_type.unclassified") }</option>
 		</select>
 	</div>
 }
@@ -141,7 +141,7 @@ func SwimlaneBuildFilterQuery(impact, tlp, status, eventType string) string {
 // SwimlaneDashboard renders the full timeline view (formerly lanes/swimlane).
 templ SwimlaneDashboard(data SwimlaneData) {
 	<div class="page-header">
-		<h1>Dashboard</h1>
+		<h1>{ T(ctx, "dashboard.title") }</h1>
 		@ViewToggle("timeline")
 	</div>
 	@DashboardFilterBar("timeline")
@@ -150,7 +150,7 @@ templ SwimlaneDashboard(data SwimlaneData) {
 			@swimlaneSectorGroup(sector, data.FilterQuery)
 		}
 		if len(data.ActiveCampaigns) > 0 {
-			<div class="swimlane-section-divider">Campaigns</div>
+			<div class="swimlane-section-divider">{ T(ctx, "campaigns.section") }</div>
 			for _, c := range data.ActiveCampaigns {
 				@swimlaneCampaignLane(c)
 			}
@@ -184,7 +184,7 @@ templ swimlaneOrgLane(node *service.DashboardNode, filterQuery string) {
 				@AssessedBadge(node.AssessedStatus)
 			}
 			if node.Restricted {
-				<span class="restricted-content text-xs">Restricted</span>
+				<span class="restricted-content text-xs">{ T(ctx, "swimlane.restricted") }</span>
 			}
 		</div>
 		<div class="swimlane-lane-cards"
@@ -203,7 +203,7 @@ templ swimlaneCampaignLane(c *domain.Campaign) {
 			@CampaignStatusBadge(c.Status)
 			@TLPBadge(c.TLP)
 			if c.EventCount > 0 {
-				<span class="text-xs text-muted">{ fmt.Sprintf("%d events", c.EventCount) }</span>
+				<span class="text-xs text-muted">{ Tn(ctx, "swimlane.events_count", c.EventCount) }</span>
 			}
 		</div>
 		<div class="swimlane-lane-cards"
@@ -218,25 +218,25 @@ templ swimlaneCampaignLane(c *domain.Campaign) {
 // SwimlaneLaneEmpty renders a placeholder for lanes with no events.
 templ SwimlaneLaneEmpty() {
 	<div class="event-card event-card-empty">
-		<span class="text-muted text-sm">No events.</span>
+		<span class="text-muted text-sm">{ T(ctx, "swimlane.no_events") }</span>
 	</div>
 }
 
 // SyncTimelineDashboard renders the vis-timeline based synchronized horizontal timeline.
 templ SyncTimelineDashboard(data SyncTimelineData) {
 	<div class="page-header">
-		<h1>Dashboard</h1>
+		<h1>{ T(ctx, "dashboard.title") }</h1>
 		@ViewToggle("timeline")
 	</div>
 	<div class="sync-timeline-controls" style="margin-bottom:.75rem;display:flex;align-items:center;gap:1rem;">
 		<label class="text-sm text-muted" style="display:flex;align-items:center;gap:.4rem;">
-			Zoom:
+			{ T(ctx, "timeline.zoom") }
 			<input type="range" id="timeline-zoom" min="1" max="100" value="50"
 				style="width:150px;accent-color:var(--primary);"/>
 		</label>
-		<button class="btn btn-sm btn-secondary" id="timeline-fit-btn">Fit All</button>
+		<button class="btn btn-sm btn-secondary" id="timeline-fit-btn">{ T(ctx, "timeline.fit_all") }</button>
 		<details style="position:relative;">
-			<summary class="btn btn-sm btn-secondary" style="list-style:none;cursor:pointer;">Filter Groups</summary>
+			<summary class="btn btn-sm btn-secondary" style="list-style:none;cursor:pointer;">{ T(ctx, "timeline.filter_groups") }</summary>
 			<div id="timeline-group-filter"
 				style="position:absolute;top:100%;left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.5rem;min-width:200px;max-height:300px;overflow-y:auto;margin-top:.25rem;">
 			</div>

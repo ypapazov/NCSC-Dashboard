@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -8,10 +9,23 @@ import (
 	"time"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/i18n"
 	"fresnel/internal/service"
 
 	"github.com/google/uuid"
 )
+
+func T(ctx context.Context, key string) string {
+	return i18n.T(ctx, key)
+}
+
+func Tn(ctx context.Context, key string, n int) string {
+	return i18n.Tn(ctx, key, n)
+}
+
+func Locale(ctx context.Context) string {
+	return string(i18n.FromContext(ctx))
+}
 
 // Suppress unused import warnings for packages used only in .templ files.
 var _ = strings.ToLower
@@ -131,6 +145,29 @@ func EventTypeName(et domain.EventType) string {
 	default:
 		return string(et)
 	}
+}
+
+var eventTypeKeys = map[domain.EventType]string{
+	domain.EventTypePhishing:       "event_type.phishing",
+	domain.EventTypeMalware:        "event_type.malware",
+	domain.EventTypeRansomware:     "event_type.ransomware",
+	domain.EventTypeDDoS:           "event_type.ddos",
+	domain.EventTypeDataBreach:     "event_type.data_breach",
+	domain.EventTypeUnauthorized:   "event_type.unauthorized_access",
+	domain.EventTypeWebDefacement:  "event_type.web_defacement",
+	domain.EventTypeInsiderThreat:  "event_type.insider_threat",
+	domain.EventTypeSupplyChain:    "event_type.supply_chain",
+	domain.EventTypeVulnerability:  "event_type.vulnerability",
+	domain.EventTypeHybrid:         "event_type.hybrid",
+	domain.EventTypeMisinformation: "event_type.misinformation",
+	domain.EventTypeUnclassified:   "event_type.unclassified",
+}
+
+func LocalizedEventTypeName(ctx context.Context, et domain.EventType) string {
+	if key, ok := eventTypeKeys[et]; ok {
+		return i18n.T(ctx, key)
+	}
+	return string(et)
 }
 
 func safeReportField(r *domain.StatusReport, fn func(*domain.StatusReport) string) string {

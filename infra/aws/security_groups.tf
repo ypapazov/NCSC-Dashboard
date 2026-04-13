@@ -1,6 +1,6 @@
 resource "aws_security_group" "alb" {
   name_prefix = "${var.project}-alb-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
   description = "ALB: inbound HTTPS from internet"
 
   ingress {
@@ -11,7 +11,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP for ACM validation redirect only
   ingress {
     description = "HTTP redirect"
     from_port   = 80
@@ -34,10 +33,9 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "app" {
   name_prefix = "${var.project}-app-"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
   description = "Fresnel app instance"
 
-  # ALB -> app
   ingress {
     description     = "HTTP from ALB"
     from_port       = 8080
@@ -46,7 +44,6 @@ resource "aws_security_group" "app" {
     security_groups = [aws_security_group.alb.id]
   }
 
-  # SSH from management CIDRs (if any)
   dynamic "ingress" {
     for_each = length(var.ssh_allowed_cidrs) > 0 ? [1] : []
     content {
