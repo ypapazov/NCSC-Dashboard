@@ -47,3 +47,17 @@ variable "key_pair_name" {
   type        = string
   default     = ""
 }
+
+# --- SES ---
+
+variable "ses_domain" {
+  description = "Domain to verify in SES for sending email. Defaults to domain_name if empty."
+  type        = string
+  default     = ""
+}
+
+variable "ses_from_address" {
+  description = "Sender address for SES (e.g. noreply@fresnel.example.org). IAM policy restricts sending to this address."
+  type        = string
+  default     = "noreply@fresnel.example.org"
+}

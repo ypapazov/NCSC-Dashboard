@@ -74,13 +74,13 @@ resource "aws_lb_listener" "http_redirect" {
 
 resource "aws_lb_target_group" "app" {
   name     = "${var.project}-tg"
-  port     = 8080
+  port     = 80
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.default.id
 
   health_check {
     path                = "/api/v1/health"
-    port                = "8080"
+    port                = "80"
     protocol            = "HTTP"
     healthy_threshold   = 2
     unhealthy_threshold = 3
@@ -94,7 +94,7 @@ resource "aws_lb_target_group" "app" {
 resource "aws_lb_target_group_attachment" "app" {
   target_group_arn = aws_lb_target_group.app.arn
   target_id        = aws_instance.app.id
-  port             = 8080
+  port             = 80
 }
 
 # --- DNS record ---

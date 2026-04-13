@@ -8,3 +8,4 @@ key_pair_name       = ""          # set if you want SSH; leave empty for SSM-onl
 ssh_allowed_cidrs   = []          # e.g. ["10.0.0.0/8"]
 instance_type       = "t3.xlarge" # 4 vCPU / 16 GB per HOSTING_REQUIREMENTS.md
 data_volume_size_gb = 100
+ses_from_address    = "noreply@fresnel.example.org"  # sender address for SES

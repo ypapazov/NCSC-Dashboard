@@ -39,7 +39,7 @@ type NudgeService struct {
 	roles   storage.RoleStore
 	orgs    storage.OrganizationStore
 	sectors storage.SectorStore
-	mailer  *mail.Mailer
+	mailer  mail.Sender
 	audit   *AuditService
 	logger  *slog.Logger
 	appURL  string
@@ -61,7 +61,7 @@ func NewNudgeService(
 	roles storage.RoleStore,
 	orgs storage.OrganizationStore,
 	sectors storage.SectorStore,
-	mailer *mail.Mailer,
+	mailer mail.Sender,
 	audit *AuditService,
 	logger *slog.Logger,
 	appURL string,

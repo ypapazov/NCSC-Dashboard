@@ -76,11 +76,22 @@ func main() {
 
 	// --- Services ---
 	auditSvc := service.NewAuditService(auditStore, log)
-	smtpFrom := os.Getenv("SMTP_FROM")
-	if smtpFrom == "" {
-		smtpFrom = "noreply@fresnel.local"
+	mailFrom := os.Getenv("SMTP_FROM")
+	if mailFrom == "" {
+		mailFrom = "noreply@fresnel.local"
 	}
-	mailer := mail.NewMailer(cfg.SMTPHost, cfg.SMTPPort, smtpFrom, log)
+	mailer, err := mail.New(ctx, mail.Config{
+		SESRegion:    cfg.SESRegion,
+		SMTPHost:     cfg.SMTPHost,
+		SMTPPort:     cfg.SMTPPort,
+		SMTPUsername: cfg.SMTPUsername,
+		SMTPPassword: cfg.SMTPPassword,
+		From:         mailFrom,
+	}, log)
+	if err != nil {
+		log.Error("mail setup", "err", err)
+		os.Exit(1)
+	}
 	nudgeStore := postgres.NewNudgeStore(pool)
 	nudgeSvc := service.NewNudgeService(
 		nudgeStore, eventStore, eventUpdateStore, userStore, roleStore, orgStore, sectorStore,

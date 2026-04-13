@@ -58,7 +58,7 @@ $COMPOSE_CMD up -d --no-deps fresnel
 # 6. Wait for health check
 log "Waiting for health check..."
 for i in $(seq 1 30); do
-  if curl -sf http://localhost:8080/api/v1/health > /dev/null 2>&1; then
+  if curl -sf http://localhost:80/api/v1/health > /dev/null 2>&1; then
     log "Health check passed."
     break
   fi

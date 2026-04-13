@@ -24,9 +24,17 @@ type Config struct {
 	KeycloakExternalURL string
 
 	AppPublicURL   string // e.g. https://localhost
-	ClamAVAddress  string // TCP address (host:port) for clamd; empty disables scanning
-	SMTPHost       string
-	SMTPPort      int
+	ClamAVAddress string // TCP address (host:port) for clamd; empty disables scanning
+
+	// Email: SES API (preferred on AWS) or SMTP (on-prem fallback).
+	// If SESRegion is set, the app uses the SES v2 API with instance-role credentials.
+	// Otherwise, if SMTPHost is set, it falls back to SMTP.
+	SESRegion    string
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+
 	AttachmentDir string
 	// DashboardCacheTTL is the default TTL for computed dashboard node status.
 	DashboardCacheTTL time.Duration
@@ -66,8 +74,11 @@ func Load() (*Config, error) {
 		KeycloakExternalURL: getenv("KEYCLOAK_EXTERNAL_URL", ""),
 		AppPublicURL:        getenv("APP_PUBLIC_URL", "https://localhost"),
 		ClamAVAddress:       getenv("CLAMAV_ADDRESS", ""),
+		SESRegion:           getenv("SES_REGION", ""),
 		SMTPHost:            getenv("SMTP_HOST", ""),
 		SMTPPort:            smtpPort,
+		SMTPUsername:        getenv("SMTP_USERNAME", ""),
+		SMTPPassword:        getenv("SMTP_PASSWORD", ""),
 		AttachmentDir:       getenv("ATTACHMENT_DIR", "/var/lib/fresnel/attachments"),
 		DashboardCacheTTL:   cacheTTL,
 	}, nil
