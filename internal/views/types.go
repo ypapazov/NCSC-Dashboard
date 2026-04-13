@@ -26,6 +26,11 @@ type SwimlaneData struct {
 }
 
 type DashboardGraphData struct {
+	Events []*domain.Event
+	Edges  *service.GraphEdges
+}
+
+type SyncTimelineData struct {
 	Events  []*domain.Event
 	Sectors []*service.DashboardNode
 }

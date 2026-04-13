@@ -115,6 +115,7 @@ type CorrelationStore interface {
 	Create(ctx context.Context, c *domain.Correlation) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Correlation, error)
 	ListByEvent(ctx context.Context, eventID uuid.UUID) ([]*domain.Correlation, error)
+	ListByEventIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Correlation, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateType(ctx context.Context, id uuid.UUID, corrType domain.CorrelationType) error
 }
@@ -123,6 +124,7 @@ type EventRelationshipStore interface {
 	Create(ctx context.Context, r *domain.EventRelationship) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.EventRelationship, error)
 	ListByEvent(ctx context.Context, eventID uuid.UUID) ([]*domain.EventRelationship, error)
+	ListByEventIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.EventRelationship, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 

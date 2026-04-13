@@ -51,7 +51,7 @@ templ Dashboard(data DashboardData) {
 		<div id="side-panel" class="side-panel side-panel-hidden">
 			<div class="side-panel-header">
 				<span id="side-panel-title">Status Timeline</span>
-				<button class="side-panel-close" onclick={ closeSidePanel() }>&times;</button>
+				<button class="side-panel-close" data-action="close-side-panel">&times;</button>
 			</div>
 			<div id="side-panel-body" class="side-panel-body">
 				<div class="side-panel-empty">Select a sector or organization to view its status timeline.</div>
@@ -63,15 +63,14 @@ templ Dashboard(data DashboardData) {
 templ dashboardSectorNode(node *service.DashboardNode) {
 	<div class="tree-node">
 		<div class="tree-node-header">
-			<span class="tree-expand"
-				onclick="event.stopPropagation();this.classList.toggle('open');this.closest('.tree-node').querySelector(':scope > .tree-children').classList.toggle('collapsed');">&#9654;</span>
+			<span class="tree-expand" data-action="toggle-tree">&#9654;</span>
 			<span id={ "tree-" + node.ID.String() }
 				class="tree-node-name clickable"
 				hx-get={ fmt.Sprintf("/api/v1/status-reports?sector_ancestry=%s&partial=timeline&scope_name=%s",
 					url.QueryEscape(node.AncestryPath), url.QueryEscape(node.Name)) }
 				hx-target="#side-panel-body"
 				hx-swap="innerHTML"
-				onclick={ selectTreeItem("tree-"+node.ID.String(), node.Name) }>
+				data-action="select-tree-item" data-name={ node.Name }>
 				{ node.Name }
 			</span>
 			<span class="tree-node-meta">
@@ -107,7 +106,7 @@ templ dashboardChildNode(node *service.DashboardNode) {
 				node.ID.String(), url.QueryEscape(node.Name)) }
 			hx-target="#side-panel-body"
 			hx-swap="innerHTML"
-			onclick={ selectTreeItem("tree-"+node.ID.String(), node.Name) }>
+			data-action="select-tree-item" data-name={ node.Name }>
 			<span class="tree-node-name">{ node.Name }</span>
 			<span class="tree-node-meta">
 				if node.AssessedStatus != "" {
@@ -116,19 +115,6 @@ templ dashboardChildNode(node *service.DashboardNode) {
 			</span>
 		</div>
 	}
-}
-
-script selectTreeItem(elemId string, name string) {
-	document.querySelectorAll('.tree-selected').forEach(function(el) { el.classList.remove('tree-selected'); });
-	var el = document.getElementById(elemId);
-	if (el) el.classList.add('tree-selected');
-	document.getElementById('side-panel').classList.remove('side-panel-hidden');
-	document.getElementById('side-panel-title').textContent = name + ' \u2014 Timeline';
-}
-
-script closeSidePanel() {
-	document.getElementById('side-panel').classList.add('side-panel-hidden');
-	document.querySelectorAll('.tree-selected').forEach(function(el) { el.classList.remove('tree-selected'); });
 }
 
 templ dashboardRecentEvents(events []*domain.Event) {

@@ -76,6 +76,38 @@ ORDER BY created_at`, eventID)
 	return out, rows.Err()
 }
 
+func (s *CorrelationStore) ListByEventIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Correlation, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	rows, err := s.pool.Query(ctx, `
+SELECT id, event_a_id, event_b_id, label, correlation_type, created_by_user, created_by_agent, created_at
+FROM fresnel.correlations
+WHERE event_a_id = ANY($1) AND event_b_id = ANY($1)
+ORDER BY created_at`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []*domain.Correlation
+	for rows.Next() {
+		var c domain.Correlation
+		var createdByUser pgtype.UUID
+		var createdByAgent *string
+		if err := rows.Scan(&c.ID, &c.EventAID, &c.EventBID, &c.Label, &c.CorrelationType,
+			&createdByUser, &createdByAgent, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		c.CreatedByUser = nullableToUUID(createdByUser)
+		if createdByAgent != nil {
+			c.CreatedByAgent = *createdByAgent
+		}
+		out = append(out, &c)
+	}
+	return out, rows.Err()
+}
+
 func (s *CorrelationStore) Delete(ctx context.Context, id uuid.UUID) error {
 	ct, err := s.pool.Exec(ctx, `DELETE FROM fresnel.correlations WHERE id = $1`, id)
 	if err != nil {

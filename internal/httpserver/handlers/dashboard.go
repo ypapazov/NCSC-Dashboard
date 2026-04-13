@@ -7,16 +7,19 @@ import (
 	"fresnel/internal/httpserver/requestctx"
 	"fresnel/internal/service"
 	"fresnel/internal/views"
+
+	"github.com/google/uuid"
 )
 
 type DashboardHandler struct {
-	dashboard *service.DashboardService
-	events    *service.EventService
-	campaigns *service.CampaignService
+	dashboard    *service.DashboardService
+	events       *service.EventService
+	campaigns    *service.CampaignService
+	correlations *service.CorrelationService
 }
 
-func NewDashboardHandler(dashboard *service.DashboardService, events *service.EventService, campaigns *service.CampaignService) *DashboardHandler {
-	return &DashboardHandler{dashboard: dashboard, events: events, campaigns: campaigns}
+func NewDashboardHandler(dashboard *service.DashboardService, events *service.EventService, campaigns *service.CampaignService, correlations *service.CorrelationService) *DashboardHandler {
+	return &DashboardHandler{dashboard: dashboard, events: events, campaigns: campaigns, correlations: correlations}
 }
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -75,13 +78,16 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if viewMode == "lanes" || viewMode == "timeline" {
-		q := r.URL.Query()
-		filterQuery := views.SwimlaneBuildFilterQuery(q.Get("impact"), q.Get("tlp"), q.Get("status"), q.Get("event_type"))
-		respondView(w, r, http.StatusOK, views.SwimlaneDashboard(views.SwimlaneData{
-			User:            auth,
-			Sectors:         sectors,
-			ActiveCampaigns: activeCampaigns,
-			FilterQuery:     filterQuery,
+		recentResult, _ := h.events.List(ctx, auth, domain.EventFilter{
+			Pagination: domain.Pagination{Limit: 200},
+		})
+		var allEvents []*domain.Event
+		if recentResult != nil {
+			allEvents = recentResult.Items
+		}
+		respondView(w, r, http.StatusOK, views.SyncTimelineDashboard(views.SyncTimelineData{
+			Events:  allEvents,
+			Sectors: sectors,
 		}))
 		return
 	}
@@ -94,9 +100,14 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		if recentResult != nil {
 			allEvents = recentResult.Items
 		}
+		var ids []uuid.UUID
+		for _, e := range allEvents {
+			ids = append(ids, e.ID)
+		}
+		edges, _ := h.correlations.ListEdgesForEvents(ctx, ids)
 		respondView(w, r, http.StatusOK, views.DashboardGraph(views.DashboardGraphData{
-			Events:   allEvents,
-			Sectors:  sectors,
+			Events: allEvents,
+			Edges:  edges,
 		}))
 		return
 	}

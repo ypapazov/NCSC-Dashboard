@@ -86,9 +86,105 @@
     });
   }
 
+  function initDataActions() {
+    document.body.addEventListener("click", function (evt) {
+      var el = evt.target.closest("[data-action]");
+      if (!el) return;
+      var action = el.getAttribute("data-action");
+
+      switch (action) {
+        case "toggle-tree":
+          evt.stopPropagation();
+          el.classList.toggle("open");
+          var children = el.closest(".tree-node").querySelector(":scope > .tree-children");
+          if (children) children.classList.toggle("collapsed");
+          break;
+
+        case "select-tree-item":
+          document.querySelectorAll(".tree-selected").forEach(function (s) { s.classList.remove("tree-selected"); });
+          el.classList.add("tree-selected");
+          var panel = document.getElementById("side-panel");
+          if (panel) panel.classList.remove("side-panel-hidden");
+          var titleEl = document.getElementById("side-panel-title");
+          if (titleEl) titleEl.textContent = (el.getAttribute("data-name") || "") + " \u2014 Timeline";
+          break;
+
+        case "close-side-panel":
+          var sp = document.getElementById("side-panel");
+          if (sp) sp.classList.add("side-panel-hidden");
+          document.querySelectorAll(".tree-selected").forEach(function (s) { s.classList.remove("tree-selected"); });
+          break;
+
+        case "reload-page":
+          location.reload();
+          break;
+
+        case "show-link-event-form":
+          var lf = document.getElementById("link-event-form");
+          if (lf) lf.style.display = "block";
+          break;
+
+        case "hide-closest-card":
+          var card = el.closest(".card");
+          if (card) card.style.display = "none";
+          break;
+
+        case "show-correlation-form":
+          var cf = document.getElementById("add-correlation-form");
+          if (cf) cf.style.display = "block";
+          el.style.display = "none";
+          break;
+
+        case "stop-propagation":
+          evt.stopPropagation();
+          break;
+
+        case "start-campaign-selection":
+          if (window.__fresnelStartCampaignSelection) window.__fresnelStartCampaignSelection();
+          break;
+        case "show-campaign-form":
+          if (window.__fresnelShowCampaignForm) window.__fresnelShowCampaignForm();
+          break;
+        case "cancel-campaign-selection":
+          if (window.__fresnelCancelCampaignSelection) window.__fresnelCancelCampaignSelection();
+          break;
+        case "submit-campaign":
+          if (window.__fresnelSubmitCampaign) window.__fresnelSubmitCampaign();
+          break;
+      }
+    });
+
+    document.body.addEventListener("click", function (evt) {
+      var eventLink = evt.target.closest("[data-event-link]");
+      if (eventLink) {
+        evt.preventDefault();
+        var eid = eventLink.getAttribute("data-event-link");
+        htmx.ajax("GET", "/api/v1/events/" + eid, { target: "#app", swap: "innerHTML" });
+        history.pushState({}, "", "/events/" + eid);
+      }
+    });
+
+    document.body.addEventListener("change", function (evt) {
+      var el = evt.target.closest("[data-action]");
+      if (!el) return;
+      var action = el.getAttribute("data-action");
+
+      switch (action) {
+        case "update-selection-count":
+          if (window.__fresnelUpdateSelectionCount) window.__fresnelUpdateSelectionCount();
+          break;
+        case "toggle-tlp-red":
+          var recipients = document.getElementById("tlp-red-recipients");
+          if (recipients) recipients.style.display = el.value === "RED" ? "block" : "none";
+          break;
+      }
+    });
+  }
+
   function onAuthenticated(kc) {
     updateUserInfo(kc);
     initSidebarToggle();
+    initDataActions();
 
     document.body.addEventListener("htmx:configRequest", function (evt) {
       evt.detail.headers["Authorization"] = "Bearer " + kc.token;

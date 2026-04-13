@@ -10,10 +10,10 @@
   if (token) headers['Authorization'] = 'Bearer ' + token;
 
   if (mode === 'dashboard') {
-    var dataEl = document.getElementById('dashboard-graph-data');
-    if (!dataEl) return;
+    var jsonStr = container.getAttribute('data-graph-json');
+    if (!jsonStr) return;
     try {
-      var data = JSON.parse(dataEl.textContent);
+      var data = JSON.parse(jsonStr);
       initDashboardGraph(data);
     } catch (err) {
       container.innerHTML = '<div class="graph-loading" style="color:var(--tlp-red)">Failed to parse graph data.</div>';
@@ -141,22 +141,49 @@
       });
     });
 
+    (data.edges || []).forEach(function (e) {
+      elements.push({
+        group: 'edges',
+        data: {
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          label: e.label,
+          lineStyle: e.line_style || 'solid',
+          isRelationship: e.line_style === 'dotted'
+        }
+      });
+    });
+
     if (elements.length === 0) {
       container.innerHTML = '<div class="graph-loading">No events to display.</div>';
       return;
     }
 
+    var hasEdges = (data.edges || []).length > 0;
+    var layout = hasEdges
+      ? {
+          name: 'cose',
+          animate: true,
+          animationDuration: 500,
+          nodeRepulsion: 10000,
+          idealEdgeLength: 150,
+          gravity: 0.25,
+          padding: 30
+        }
+      : {
+          name: 'grid',
+          rows: Math.ceil(Math.sqrt((data.nodes || []).length)),
+          padding: 20,
+          animate: true,
+          animationDuration: 300
+        };
+
     var cy = cytoscape({
       container: container,
       elements: elements,
       style: graphStyles(),
-      layout: {
-        name: 'grid',
-        rows: Math.ceil(Math.sqrt(elements.length)),
-        padding: 20,
-        animate: true,
-        animationDuration: 300
-      },
+      layout: layout,
       minZoom: 0.1,
       maxZoom: 3,
       wheelSensitivity: 0.3
@@ -258,8 +285,7 @@
           (node.data('orgName') ? '<div class="text-sm text-muted mt-sm">' + escapeHtml(node.data('orgName')) + '</div>' : '') +
           '<div class="text-xs text-muted mt-sm">' + escapeHtml(node.data('eventType') || '') + '</div>' +
           '<div style="margin-top:.75rem;">' +
-          '<a class="btn btn-sm" href="/events/' + id + '" ' +
-          'onclick="htmx.ajax(\'GET\', \'/api/v1/events/' + id + '\', {target:\'#app\',swap:\'innerHTML\'});history.pushState({},\'\',\'/events/' + id + '\');return false;">' +
+          '<a class="btn btn-sm" href="/events/' + id + '" data-event-link="' + id + '">' +
           'Open Event</a>' +
           '</div></div>';
       }

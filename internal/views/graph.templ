@@ -40,7 +40,8 @@ templ DashboardGraph(data DashboardGraphData) {
 	<div class="graph-layout" style="height:calc(100vh - 140px);">
 		<div id="cy-container" class="graph-container"
 			data-mode="dashboard"
-			data-event-count={ fmt.Sprintf("%d", len(data.Events)) }>
+			data-event-count={ fmt.Sprintf("%d", len(data.Events)) }
+			data-graph-json={ dashboardGraphJSON(data.Events, data.Edges) }>
 			if len(data.Events) == 0 {
 				<div class="graph-loading">No events to display.</div>
 			} else {
@@ -54,11 +55,6 @@ templ DashboardGraph(data DashboardGraphData) {
 			</div>
 		</div>
 	</div>
-	if len(data.Events) > 0 {
-		<script id="dashboard-graph-data" type="application/json">
-			@templ.Raw(dashboardGraphJSON(data.Events))
-		</script>
-	}
 	<script src="/static/cytoscape.min.js"></script>
 	<script src="/static/graph.js"></script>
 }

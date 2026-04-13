@@ -1,0 +1,95 @@
+/* vis-timeline dark theme overrides for Fresnel */
+.vis-timeline {
+  border: none;
+  font-family: var(--font);
+  color: var(--text);
+}
+.vis-panel.vis-background,
+.vis-panel.vis-center {
+  background: var(--bg-deep);
+}
+.vis-panel.vis-left {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.vis-panel.vis-top,
+.vis-panel.vis-bottom {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.vis-time-axis .vis-text {
+  color: var(--text-muted);
+  font-size: .75rem;
+}
+.vis-time-axis .vis-grid.vis-minor {
+  border-color: rgba(48,54,61,.5);
+}
+.vis-time-axis .vis-grid.vis-major {
+  border-color: var(--border);
+}
+.vis-labelset .vis-label {
+  color: var(--text);
+  font-size: .82rem;
+  border-bottom: 1px solid var(--border);
+}
+.vis-labelset .vis-label:hover {
+  background: var(--surface-alt);
+}
+.vis-foreground .vis-group {
+  border-bottom: 1px solid var(--border);
+}
+.vis-item {
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: .78rem;
+  border: none;
+}
+.vis-item.vis-range {
+  border-radius: var(--radius-sm);
+}
+.vis-item .vis-item-overflow {
+  overflow: visible;
+}
+.vis-item.vis-selected {
+  border: 1px solid var(--primary);
+  box-shadow: 0 0 0 2px rgba(233,69,96,.2);
+}
+.vis-item.timeline-item-critical {
+  background: rgba(239,68,68,.35);
+  border-left: 3px solid var(--impact-critical);
+}
+.vis-item.timeline-item-high {
+  background: rgba(251,146,60,.3);
+  border-left: 3px solid var(--impact-high);
+}
+.vis-item.timeline-item-moderate {
+  background: rgba(250,204,21,.2);
+  border-left: 3px solid var(--impact-moderate);
+}
+.vis-item.timeline-item-low {
+  background: rgba(59,130,246,.25);
+  border-left: 3px solid var(--impact-low);
+}
+.vis-item.timeline-item-info {
+  background: rgba(107,114,128,.25);
+  border-left: 3px solid var(--impact-info);
+}
+.vis-custom-time {
+  background-color: var(--primary);
+}
+.vis-current-time {
+  background-color: var(--primary);
+  width: 2px;
+}
+.tl-item-inner {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .1rem .25rem;
+  white-space: nowrap;
+}
+.tl-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}

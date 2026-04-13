@@ -221,3 +221,32 @@ templ SwimlaneLaneEmpty() {
 		<span class="text-muted text-sm">No events.</span>
 	</div>
 }
+
+// SyncTimelineDashboard renders the vis-timeline based synchronized horizontal timeline.
+templ SyncTimelineDashboard(data SyncTimelineData) {
+	<div class="page-header">
+		<h1>Dashboard</h1>
+		@ViewToggle("timeline")
+	</div>
+	<div class="sync-timeline-controls" style="margin-bottom:.75rem;display:flex;align-items:center;gap:1rem;">
+		<label class="text-sm text-muted" style="display:flex;align-items:center;gap:.4rem;">
+			Zoom:
+			<input type="range" id="timeline-zoom" min="1" max="100" value="50"
+				style="width:150px;accent-color:var(--primary);"/>
+		</label>
+		<button class="btn btn-sm btn-secondary" id="timeline-fit-btn">Fit All</button>
+		<details style="position:relative;">
+			<summary class="btn btn-sm btn-secondary" style="list-style:none;cursor:pointer;">Filter Groups</summary>
+			<div id="timeline-group-filter"
+				style="position:absolute;top:100%;left:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.5rem;min-width:200px;max-height:300px;overflow-y:auto;margin-top:.25rem;">
+			</div>
+		</details>
+	</div>
+	<div id="sync-timeline-container"
+		data-timeline-json={ syncTimelineJSON(data.Events, data.Sectors) }
+		style="background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius-lg);min-height:400px;"></div>
+	<link rel="stylesheet" href="/static/css/vis-timeline.min.css"/>
+	<link rel="stylesheet" href="/static/css/vis-timeline-dark.css"/>
+	<script src="/static/vis-timeline.min.js"></script>
+	<script src="/static/timeline.js"></script>
+}

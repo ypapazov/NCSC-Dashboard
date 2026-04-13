@@ -95,7 +95,7 @@ templ CampaignDetail(data CampaignDetailData) {
 			Linked Events ({ fmt.Sprintf("%d", len(data.LinkedEvents)) })
 			if data.CanEdit {
 				<button class="btn btn-sm btn-secondary"
-					onclick="document.getElementById('link-event-form').style.display='block';">
+					data-action="show-link-event-form">
 					+ Link Event
 				</button>
 			}
@@ -150,7 +150,7 @@ templ CampaignDetail(data CampaignDetailData) {
 					data-campaign-id={ data.Campaign.ID.String() }></div>
 				<div class="form-actions" style="margin-top:.5rem;">
 					<button type="button" class="btn btn-sm"
-						onclick="this.closest('.card').style.display='none';">Cancel</button>
+						data-action="hide-closest-card">Cancel</button>
 				</div>
 			</div>
 		</div>

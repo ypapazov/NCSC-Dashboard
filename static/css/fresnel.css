@@ -804,6 +804,23 @@ img { max-width: 100%; }
   padding: .35rem .5rem;
 }
 
+/* --- Campaign Selection Bar -------------------------------- */
+.campaign-selection-bar {
+  background: var(--surface);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.campaign-selection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .6rem 1rem;
+  font-size: .85rem;
+  font-weight: 500;
+}
+
 /* --- Utilities --------------------------------------------- */
 .flex { display: flex; }
 .flex-col { display: flex; flex-direction: column; }

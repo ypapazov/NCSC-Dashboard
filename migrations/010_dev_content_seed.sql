@@ -20,7 +20,7 @@ INSERT INTO events (id, source_instance, sector_context, title, description, eve
 ('b4000000-0000-4000-8000-000000000002'::uuid, 'local', 'b0000000-0000-4000-8000-000000000002'::uuid,
  'Certificate transparency alert for gov subdomain',
  'CT monitor detected issuance of a certificate for portal.internal.gov by an unauthorised CA. Domain registrar contacted; pre-existing HSTS pins prevented user impact.',
- 'OTHER', 'b1000000-0000-4000-8000-000000000005'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid,
+ 'UNCLASSIFIED', 'b1000000-0000-4000-8000-000000000005'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid,
  'GREEN', 'LOW', 'RESOLVED', now() - interval '14 days')
 ON CONFLICT (id) DO NOTHING;
 
@@ -59,7 +59,7 @@ INSERT INTO events (id, source_instance, sector_context, title, description, eve
 ('b4000000-0000-4000-8000-000000000007'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
  'SWIFT messaging anomaly under investigation',
  'Reconciliation flagged two outbound MT103 messages with non-standard field formatting. Likely benign (software update) but under review per mandatory incident process.',
- 'OTHER', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000013'::uuid,
+ 'UNCLASSIFIED', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000013'::uuid,
  'AMBER_STRICT', 'HIGH', 'INVESTIGATING', now() - interval '12 hours')
 ON CONFLICT (id) DO NOTHING;
 

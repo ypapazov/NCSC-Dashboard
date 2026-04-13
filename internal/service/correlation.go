@@ -208,3 +208,22 @@ func (s *CorrelationService) ListRelationshipsByEvent(ctx context.Context, auth 
 	}
 	return result, nil
 }
+
+type GraphEdges struct {
+	Correlations  []*domain.Correlation
+	Relationships []*domain.EventRelationship
+}
+
+// ListEdgesForEvents returns all correlations and relationships whose both
+// endpoints are in the supplied (already auth-filtered) event set.
+func (s *CorrelationService) ListEdgesForEvents(ctx context.Context, eventIDs []uuid.UUID) (*GraphEdges, error) {
+	corrs, err := s.correlations.ListByEventIDs(ctx, eventIDs)
+	if err != nil {
+		return nil, fmt.Errorf("correlations: %w", err)
+	}
+	rels, err := s.relationships.ListByEventIDs(ctx, eventIDs)
+	if err != nil {
+		return nil, fmt.Errorf("relationships: %w", err)
+	}
+	return &GraphEdges{Correlations: corrs, Relationships: rels}, nil
+}

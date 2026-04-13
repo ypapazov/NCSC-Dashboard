@@ -262,6 +262,57 @@ func (h *CampaignHandler) GetLinkedEvents(w http.ResponseWriter, r *http.Request
 	respondJSON(w, http.StatusOK, infos)
 }
 
+type createFromSelectionRequest struct {
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	TLP         string   `json:"tlp"`
+	EventIDs    []string `json:"event_ids"`
+}
+
+func (h *CampaignHandler) CreateFromSelection(w http.ResponseWriter, r *http.Request) {
+	auth := getAuth(r)
+
+	var campaign domain.Campaign
+	var eventIDs []uuid.UUID
+
+	if isFormSubmission(r) {
+		_ = r.ParseForm()
+		campaign.Title = r.FormValue("title")
+		campaign.Description = r.FormValue("description")
+		campaign.TLP = domain.TLP(r.FormValue("tlp"))
+		for _, idStr := range r.Form["event_ids"] {
+			if id, err := uuid.Parse(idStr); err == nil {
+				eventIDs = append(eventIDs, id)
+			}
+		}
+	} else {
+		var req createFromSelectionRequest
+		if err := parseJSON(r, &req); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
+		campaign.Title = req.Title
+		campaign.Description = req.Description
+		campaign.TLP = domain.TLP(req.TLP)
+		for _, idStr := range req.EventIDs {
+			if id, err := uuid.Parse(idStr); err == nil {
+				eventIDs = append(eventIDs, id)
+			}
+		}
+	}
+
+	if err := h.campaigns.CreateFromSelection(r.Context(), auth, &campaign, eventIDs); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusCreated, campaign)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/campaigns/"+campaign.ID.String())
+	w.WriteHeader(http.StatusCreated)
+}
+
 func (h *CampaignHandler) Form(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
 	ctx := r.Context()

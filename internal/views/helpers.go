@@ -3,10 +3,12 @@ package views
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
 	"fresnel/internal/domain"
+	"fresnel/internal/service"
 
 	"github.com/google/uuid"
 )
@@ -145,7 +147,7 @@ func safeCampaignField(c *domain.Campaign, fn func(*domain.Campaign) string) str
 	return fn(c)
 }
 
-func dashboardGraphJSON(events []*domain.Event) string {
+func dashboardGraphJSON(events []*domain.Event, edges *service.GraphEdges) string {
 	type node struct {
 		ID        string `json:"id"`
 		Title     string `json:"title"`
@@ -154,6 +156,13 @@ func dashboardGraphJSON(events []*domain.Event) string {
 		EventType string `json:"event_type"`
 		TLP       string `json:"tlp"`
 		UpdatedAt string `json:"updated_at"`
+	}
+	type edge struct {
+		ID        string `json:"id"`
+		Source    string `json:"source"`
+		Target    string `json:"target"`
+		Label     string `json:"label"`
+		LineStyle string `json:"line_style"`
 	}
 	nodes := make([]node, 0, len(events))
 	for _, e := range events {
@@ -171,8 +180,112 @@ func dashboardGraphJSON(events []*domain.Event) string {
 			UpdatedAt: e.UpdatedAt.Format("2006-01-02"),
 		})
 	}
-	b, _ := json.Marshal(map[string]any{"nodes": nodes})
+	edgeList := make([]edge, 0)
+	if edges != nil {
+		for _, c := range edges.Correlations {
+			edgeList = append(edgeList, edge{
+				ID:        c.ID.String(),
+				Source:    c.EventAID.String(),
+				Target:    c.EventBID.String(),
+				Label:     c.Label,
+				LineStyle: "solid",
+			})
+		}
+		for _, r := range edges.Relationships {
+			edgeList = append(edgeList, edge{
+				ID:        r.ID.String(),
+				Source:    r.SourceEventID.String(),
+				Target:    r.TargetEventID.String(),
+				Label:     r.Label,
+				LineStyle: "dotted",
+			})
+		}
+	}
+	b, _ := json.Marshal(map[string]any{"nodes": nodes, "edges": edgeList})
 	return string(b)
+}
+
+type tlGroup struct {
+	ID      string `json:"id"`
+	Content string `json:"content"`
+	Order   int    `json:"order"`
+}
+
+func syncTimelineJSON(events []*domain.Event, sectors []*service.DashboardNode) string {
+	type item struct {
+		ID      string `json:"id"`
+		Group   string `json:"group"`
+		Content string `json:"content"`
+		Start   string `json:"start"`
+		End     string `json:"end,omitempty"`
+		Type    string `json:"type"`
+		Class   string `json:"className"`
+		Title   string `json:"title"`
+	}
+
+	groupMap := make(map[string]bool)
+	var groups []tlGroup
+	order := 0
+	for _, sec := range sectors {
+		collectOrgGroups(sec, &groups, groupMap, &order)
+	}
+
+	items := make([]item, 0, len(events))
+	for _, e := range events {
+		start := e.CreatedAt
+		if e.OriginalEventDate != nil && !e.OriginalEventDate.IsZero() {
+			start = *e.OriginalEventDate
+		}
+		var endStr string
+		if e.Status == domain.StatusResolved || e.Status == domain.StatusClosed {
+			endStr = e.UpdatedAt.Format(time.RFC3339)
+		} else {
+			endStr = time.Now().UTC().Format(time.RFC3339)
+		}
+
+		title := e.Title
+		if len(title) > 50 {
+			title = title[:47] + "..."
+		}
+
+		cssClass := "timeline-item-" + strings.ToLower(string(e.Impact))
+
+		orgID := e.OrganizationID.String()
+		if !groupMap[orgID] {
+			groupMap[orgID] = true
+			groups = append(groups, tlGroup{ID: orgID, Content: "Org " + orgID[:8], Order: order})
+			order++
+		}
+
+		items = append(items, item{
+			ID:      e.ID.String(),
+			Group:   orgID,
+			Content: "<div class='tl-item-inner'><span class='tl-title'>" + template.HTMLEscapeString(title) + "</span>" +
+				"<span class='badge badge-impact-" + strings.ToLower(string(e.Impact)) + "' style='font-size:.65rem;padding:.1rem .3rem;'>" + string(e.Impact) + "</span></div>",
+			Start:   start.Format(time.RFC3339),
+			End:     endStr,
+			Type:    "range",
+			Class:   cssClass,
+			Title:   template.HTMLEscapeString(e.Title) + " (" + string(e.Status) + ")",
+		})
+	}
+
+	b, _ := json.Marshal(map[string]any{"groups": groups, "items": items})
+	return string(b)
+}
+
+func collectOrgGroups(node *service.DashboardNode, groups *[]tlGroup, seen map[string]bool, order *int) {
+	if node.NodeType == "organization" {
+		id := node.ID.String()
+		if !seen[id] {
+			seen[id] = true
+			*groups = append(*groups, tlGroup{ID: id, Content: node.Name, Order: *order})
+			*order++
+		}
+	}
+	for _, child := range node.Children {
+		collectOrgGroups(child, groups, seen, order)
+	}
 }
 
 func RelativeTime(t time.Time) string {

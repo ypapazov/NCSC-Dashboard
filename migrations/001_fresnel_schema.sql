@@ -66,6 +66,9 @@ CREATE TABLE events (
     tlp TEXT NOT NULL,
     impact TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'OPEN',
+    intel_source TEXT NOT NULL DEFAULT 'Manual',
+    target TEXT NOT NULL DEFAULT '',
+    original_event_date TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

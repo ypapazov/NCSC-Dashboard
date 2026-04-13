@@ -55,6 +55,20 @@ func (s *CampaignService) Create(ctx context.Context, auth *domain.AuthContext, 
 	return nil
 }
 
+func (s *CampaignService) CreateFromSelection(ctx context.Context, auth *domain.AuthContext, campaign *domain.Campaign, eventIDs []uuid.UUID) error {
+	if err := s.Create(ctx, auth, campaign); err != nil {
+		return err
+	}
+	for _, eid := range eventIDs {
+		if err := s.LinkEvent(ctx, auth, campaign.ID, eid); err != nil {
+			s.audit.Log(ctx, auth, "link_event_skipped", "campaign", &campaign.ID, domain.SeverityInfo, map[string]any{
+				"event_id": eid, "reason": err.Error(),
+			})
+		}
+	}
+	return nil
+}
+
 func (s *CampaignService) GetByID(ctx context.Context, auth *domain.AuthContext, id uuid.UUID) (*domain.Campaign, error) {
 	campaign, err := s.campaigns.GetByID(ctx, id)
 	if err != nil {

@@ -61,7 +61,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	}
 
 	// --- Handlers ---
-	dashboardH := httphandlers.NewDashboardHandler(svc.Dashboard, svc.Events, svc.Campaigns)
+	dashboardH := httphandlers.NewDashboardHandler(svc.Dashboard, svc.Events, svc.Campaigns, svc.Correlations)
 	eventH := httphandlers.NewEventHandler(svc.Events, svc.Attachments, svc.Correlations, hlk)
 	statusReportH := httphandlers.NewStatusReportHandler(svc.StatusReports, svc.Events, hlk)
 	campaignH := httphandlers.NewCampaignHandler(svc.Campaigns, hlk)
@@ -129,6 +129,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	mux.HandleFunc("GET /api/v1/campaigns", campaignH.List)
 	mux.HandleFunc("GET /api/v1/campaigns/new", campaignH.Form)
 	mux.HandleFunc("POST /api/v1/campaigns", campaignH.Create)
+	mux.HandleFunc("POST /api/v1/campaigns/from-selection", campaignH.CreateFromSelection)
 	mux.HandleFunc("GET /api/v1/campaigns/{id}", campaignH.Get)
 	mux.HandleFunc("GET /api/v1/campaigns/{id}/edit", campaignH.Form)
 	mux.HandleFunc("PUT /api/v1/campaigns/{id}", campaignH.Update)

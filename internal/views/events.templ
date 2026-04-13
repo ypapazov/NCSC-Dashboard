@@ -10,18 +10,66 @@ import (
 templ EventList(events []*domain.Event, total int) {
 	<div class="page-header">
 		<h1>Events</h1>
-		<button class="btn btn-primary"
-			hx-get="/api/v1/events/new" hx-target="#app" hx-swap="innerHTML"
-			hx-push-url="/events/new">
-			+ New Event
-		</button>
+		<div class="flex gap-sm">
+			<button class="btn btn-secondary" id="start-campaign-btn"
+				data-action="start-campaign-selection">
+				Create Campaign from Selection
+			</button>
+			<button class="btn btn-primary"
+				hx-get="/api/v1/events/new" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/events/new">
+				+ New Event
+			</button>
+		</div>
 	</div>
 	@EventFilterBar()
+	<div id="campaign-selection-bar" class="campaign-selection-bar" style="display:none;">
+		<div class="campaign-selection-header">
+			<span id="campaign-sel-count">0 events selected</span>
+			<div class="flex gap-sm">
+				<button class="btn btn-sm btn-primary" id="finish-campaign-btn" disabled
+					data-action="show-campaign-form">
+					Next: Campaign Details
+				</button>
+				<button class="btn btn-sm" data-action="cancel-campaign-selection">Cancel</button>
+			</div>
+		</div>
+		<div id="campaign-form-inline" style="display:none;padding:.75rem;border-top:1px solid var(--border);">
+			<div class="form-group" style="margin-bottom:.5rem;">
+				<label class="form-label" for="cs-title">Title</label>
+				<input type="text" id="cs-title" class="form-input" required placeholder="Campaign title"/>
+			</div>
+			<div class="form-group" style="margin-bottom:.5rem;">
+				<label class="form-label" for="cs-description">Description</label>
+				<textarea id="cs-description" class="form-textarea" style="min-height:60px;"
+					placeholder="Campaign description (Markdown supported)"></textarea>
+			</div>
+			<div class="form-group" style="margin-bottom:.5rem;">
+				<label class="form-label" for="cs-tlp">TLP</label>
+				<select id="cs-tlp" class="form-select" style="max-width:200px;">
+					<option value="GREEN">TLP:GREEN</option>
+					<option value="CLEAR">TLP:CLEAR</option>
+					<option value="AMBER">TLP:AMBER</option>
+					<option value="AMBER_STRICT">TLP:AMBER+STRICT</option>
+					<option value="RED">TLP:RED</option>
+				</select>
+			</div>
+			<div class="form-actions" style="padding-top:0;">
+				<button class="btn btn-primary btn-sm" id="submit-campaign-btn"
+					data-action="submit-campaign">
+					Create Campaign
+				</button>
+				<button class="btn btn-sm" data-action="cancel-campaign-selection">Cancel</button>
+				<span class="htmx-indicator" id="campaign-create-spinner"><span class="spinner"></span></span>
+			</div>
+		</div>
+	</div>
 	<div id="event-results"
 		hx-get="/api/v1/events" hx-target="#event-results" hx-swap="innerHTML"
 		hx-include="#event-filters" hx-trigger="filterChanged from:#event-filters">
 		@EventTable(events, total)
 	</div>
+	<script src="/static/campaign-selection.js"></script>
 }
 
 templ EventFilterBar() {
@@ -85,9 +133,12 @@ templ EventFilterBar() {
 templ EventTable(events []*domain.Event, total int) {
 	if len(events) > 0 {
 		<div class="card" style="overflow:hidden;">
-			<table class="table">
+			<table class="table" id="event-table">
 				<thead>
 					<tr>
+						<th class="table-header col-select" style="display:none;width:36px;">
+							<input type="checkbox" id="select-all-events" title="Select all"/>
+						</th>
 						<th class="table-header">Title</th>
 						<th class="table-header">Sector</th>
 						<th class="table-header">Type</th>
@@ -102,7 +153,12 @@ templ EventTable(events []*domain.Event, total int) {
 					for _, e := range events {
 						<tr class="table-row clickable"
 							hx-get={ "/api/v1/events/" + e.ID.String() } hx-target="#app" hx-swap="innerHTML"
-							hx-push-url={ "/events/" + e.ID.String() }>
+							hx-push-url={ "/events/" + e.ID.String() }
+							data-event-id={ e.ID.String() }>
+							<td class="table-cell col-select" style="display:none;" data-action="stop-propagation">
+								<input type="checkbox" class="event-select-cb" value={ e.ID.String() }
+									data-action="update-selection-count"/>
+							</td>
 							<td class="table-cell truncate">{ e.Title }</td>
 							<td class="table-cell text-sm text-muted">—</td>
 							<td class="table-cell text-sm">{ EventTypeName(e.EventType) }</td>
@@ -288,7 +344,7 @@ templ EventDetail(data EventDetailData) {
 			if data.CanEdit {
 				<div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.75rem;">
 					<button class="btn btn-sm btn-secondary"
-						onclick="document.getElementById('add-correlation-form').style.display='block';this.style.display='none';">
+						data-action="show-correlation-form">
 						+ Add Correlation
 					</button>
 					<div id="add-correlation-form" style="display:none;margin-top:.5rem;">
@@ -428,7 +484,7 @@ templ eventFormFields(data EventFormData) {
 				<span class="form-label-help" title="Traffic Light Protocol — controls information sharing boundaries.&#10;&#10;TLP:CLEAR — Unrestricted within the platform&#10;TLP:GREEN — All authenticated platform users&#10;TLP:AMBER — Owning org + orgs with explicit access&#10;TLP:AMBER+STRICT — Owning organization only&#10;TLP:RED — Named recipients only">&#9432;</span>
 			</label>
 			<select id="tlp" name="tlp" class="form-select" required
-				onchange="document.getElementById('tlp-red-recipients').style.display=this.value==='RED'?'block':'none';">
+				data-action="toggle-tlp-red">
 				<option value="">Select TLP&hellip;</option>
 				<option value="CLEAR" selected?={ data.Event != nil && data.Event.TLP == "CLEAR" }>TLP:CLEAR</option>
 				<option value="GREEN" selected?={ data.Event != nil && data.Event.TLP == "GREEN" }>TLP:GREEN</option>
