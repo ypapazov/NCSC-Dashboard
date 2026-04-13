@@ -35,7 +35,7 @@ This creates:
 - Separate 100 GB EBS data volume (AWS-encrypted; appears as `/dev/nvme1n1` on Nitro instances)
 - ALB with ACM TLS certificate, HTTP→HTTPS redirect, forwarding HTTP to nginx on port 80
 - Security groups: ALB accepts 443/80 from internet; instance accepts port 80 from ALB only
-- SES domain identity with DKIM, plus an IAM user for SMTP credentials
+- SES domain identity with DKIM (Fresnel uses the SES API via instance role)
 - Route 53 A record and SES DKIM records (if zone ID provided)
 
 ### 1.3 First-time instance setup
@@ -176,33 +176,9 @@ cd /opt/fresnel && docker compose -f deploy/docker-compose.yml -f deploy/docker-
 
 > **On-prem / vSphere:** Leave `SES_REGION` empty and set `SMTP_HOST` (and optionally `SMTP_USERNAME` / `SMTP_PASSWORD`) instead. The app falls back to SMTP when `SES_REGION` is not set.
 
-**c) Configure Keycloak (SMTP):**
+**c) Keycloak email (optional):**
 
-Keycloak sends its own emails (password reset, verification) and only speaks SMTP. Terraform creates a dedicated IAM user (`fresnel-keycloak-smtp`) whose access key is used as SES SMTP credentials.
-
-Get the credentials:
-
-```bash
-cd infra/aws
-terraform output ses_smtp_host          # e.g. email-smtp.eu-west-2.amazonaws.com
-terraform output ses_smtp_username       # IAM access key ID
-terraform output -raw ses_smtp_password  # SES SMTP password (derived from IAM secret)
-```
-
-Then configure Keycloak via the Admin Console:
-
-1. Log in to `/admin/` (Keycloak Admin Console)
-2. Select the **fresnel** realm
-3. Go to **Realm settings** → **Email** tab
-4. Fill in:
-   - **From**: `noreply@fresnel.example.org` (must match the SES verified sender)
-   - **Host**: `email-smtp.eu-west-2.amazonaws.com`
-   - **Port**: `587`
-   - **Enable StartTLS**: ON
-   - **Enable Authentication**: ON
-   - **Username**: the `ses_smtp_username` output
-   - **Password**: the `ses_smtp_password` output
-5. Click **Test connection** to verify, then **Save**
+Keycloak can send emails (password reset, verification) but only speaks SMTP. For the PoC this is not critical — you control the admin console directly. If you need it later, create an IAM user with `ses:SendRawEmail` permission, generate an access key, and configure SMTP in the Keycloak Admin Console: **Realm settings** → **Email** tab (host `email-smtp.<region>.amazonaws.com`, port 587, StartTLS ON, authentication ON with the IAM-derived SMTP credentials).
 
 **d) SES sandbox:**
 

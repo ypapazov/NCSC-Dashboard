@@ -1,5 +1,5 @@
 # Fetch dependencies
-FROM golang:1.23-alpine AS fetch
+FROM golang:1.24-alpine AS fetch
 RUN apk add --no-cache ca-certificates git
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -12,7 +12,7 @@ WORKDIR /src
 RUN ["templ", "generate"]
 
 # Build
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-alpine AS build
 RUN apk add --no-cache ca-certificates git
 WORKDIR /src
 COPY --from=fetch /go /go
