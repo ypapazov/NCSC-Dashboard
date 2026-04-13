@@ -22,6 +22,7 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_SPI_IMPORT_DIR_STRATEGY: IGNORE_EXISTING
     volumes:
       - ./keycloak/fresnel-realm.json:/opt/keycloak/data/import/fresnel-realm.json:ro
 
