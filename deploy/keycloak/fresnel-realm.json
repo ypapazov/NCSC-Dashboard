@@ -29,17 +29,19 @@
       "redirectUris": [
         "https://localhost/*",
         "https://127.0.0.1/*",
-        "http://localhost:8080/*"
+        "http://localhost:8080/*",
+        "https://cyberbg.eu/*"
       ],
       "webOrigins": [
         "https://localhost",
         "https://127.0.0.1",
-        "http://localhost:8080"
+        "http://localhost:8080",
+        "https://cyberbg.eu"
       ],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://localhost/*##https://127.0.0.1/*##http://localhost:8080/*"
+        "post.logout.redirect.uris": "https://localhost/*##https://127.0.0.1/*##http://localhost:8080/*##https://cyberbg.eu/*"
       }
     }
   ],
