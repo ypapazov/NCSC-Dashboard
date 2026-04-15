@@ -1,0 +1,63 @@
+{
+  "id": "fresnel",
+  "realm": "fresnel",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "accessTokenLifespan": 600,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 28800,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "clients": [
+    {
+      "clientId": "fresnel-app",
+      "name": "Fresnel",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://CHANGEME.example.org/*",
+        "https://localhost/*"
+      ],
+      "webOrigins": [
+        "https://CHANGEME.example.org",
+        "https://localhost"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://CHANGEME.example.org/*##https://localhost/*"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "platform-root",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@fresnel.local",
+      "firstName": "Platform",
+      "lastName": "Root",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "CHANGEME",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [],
+      "clientRoles": {}
+    }
+  ]
+}

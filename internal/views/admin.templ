@@ -100,7 +100,7 @@ templ SectorForm(sector *domain.Sector) {
 	</div>
 }
 
-templ AdminOrgs(orgs []*domain.Organization) {
+templ AdminOrgs(orgs []*domain.Organization, sectorNames NameMap) {
 	<div class="page-header">
 		<h1>{ T(ctx, "admin.orgs") }</h1>
 	</div>
@@ -120,7 +120,7 @@ templ AdminOrgs(orgs []*domain.Organization) {
 						for _, o := range orgs {
 							<tr class="table-row">
 								<td class="table-cell">{ o.Name }</td>
-								<td class="table-cell text-sm font-mono">{ o.SectorID.String() }</td>
+								<td class="table-cell text-sm">{ ResolveName(sectorNames, o.SectorID) }</td>
 								<td class="table-cell text-sm text-muted">{ FmtTime(o.CreatedAt) }</td>
 								<td class="table-cell">
 									<button class="btn btn-sm"
@@ -144,7 +144,7 @@ templ AdminOrgs(orgs []*domain.Organization) {
 	</div>
 }
 
-templ OrgDetail(org *domain.Organization) {
+templ OrgDetail(org *domain.Organization, sectorName string) {
 	<div class="page-header">
 		<h1>{ org.Name }</h1>
 	</div>
@@ -162,7 +162,7 @@ templ OrgDetail(org *domain.Organization) {
 				</div>
 				<div class="meta-item">
 					<div class="meta-label">{ T(ctx, "label.sector") }</div>
-					<div class="meta-value font-mono text-sm">{ org.SectorID.String() }</div>
+					<div class="meta-value">{ sectorName }</div>
 				</div>
 			</div>
 		</div>
@@ -197,7 +197,7 @@ templ OrgForm(org *domain.Organization) {
 	</div>
 }
 
-templ AdminUsers(users []*domain.User, total int) {
+templ AdminUsers(users []*domain.User, total int, orgNames NameMap) {
 	<div class="page-header">
 		<h1>{ T(ctx, "admin.users") }</h1>
 	</div>
@@ -218,7 +218,7 @@ templ AdminUsers(users []*domain.User, total int) {
 							<tr class="table-row">
 								<td class="table-cell">{ u.DisplayName }</td>
 								<td class="table-cell text-sm">{ u.Email }</td>
-								<td class="table-cell text-sm font-mono">{ u.PrimaryOrgID.String() }</td>
+								<td class="table-cell text-sm">{ ResolveName(orgNames, u.PrimaryOrgID) }</td>
 								<td class="table-cell">
 									<button class="btn btn-sm"
 										hx-get={ "/api/v1/users/" + u.ID.String() } hx-target="#app" hx-swap="innerHTML"
@@ -242,7 +242,7 @@ templ AdminUsers(users []*domain.User, total int) {
 	</div>
 }
 
-templ UserDetail(user *domain.User) {
+templ UserDetail(user *domain.User, orgName string) {
 	<div class="page-header">
 		<h1>{ user.DisplayName }</h1>
 		<span class="text-muted text-sm">{ user.Email }</span>
@@ -265,7 +265,7 @@ templ UserDetail(user *domain.User) {
 				</div>
 				<div class="meta-item">
 					<div class="meta-label">{ T(ctx, "label.primary_org") }</div>
-					<div class="meta-value font-mono text-sm">{ user.PrimaryOrgID.String() }</div>
+					<div class="meta-value">{ orgName }</div>
 				</div>
 			</div>
 		</div>

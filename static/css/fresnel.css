@@ -368,11 +368,16 @@ img { max-width: 100%; }
   transition: background var(--transition);
 }
 .tree-leaf:hover { background: var(--surface-alt); }
-.tree-selected, .tree-leaf.tree-selected { background: var(--accent-bg, rgba(59,130,246,.1)); border-left: 2px solid var(--accent); }
+.tree-selected, .tree-leaf.tree-selected {
+  background: rgba(59,130,246,.2);
+  border-left: 3px solid var(--primary);
+  box-shadow: inset 0 0 0 1px rgba(59,130,246,.25);
+}
 .badge-computed { border-style: dashed; }
 
 /* --- Side Panel (Dashboard timeline) ----------------------- */
-.dashboard-layout { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; }
+.dashboard-layout { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+.dashboard-layout.panel-open { grid-template-columns: 1fr 380px; }
 .side-panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -383,8 +388,10 @@ img { max-width: 100%; }
   position: sticky;
   top: calc(var(--topnav-h) + 1.25rem);
   transition: opacity .2s, max-height .2s;
+  display: none;
 }
-.side-panel-hidden { opacity: 0; max-height: 0; border: none; pointer-events: none; }
+.panel-open .side-panel { display: block; }
+.side-panel-hidden { opacity: 0; max-height: 0; border: none; pointer-events: none; display: none; }
 .side-panel-header { display: flex; align-items: center; justify-content: space-between; }
 .side-panel-close {
   background: none; border: none; font-size: 1.2rem; cursor: pointer;

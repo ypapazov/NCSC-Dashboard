@@ -124,6 +124,7 @@
     var elements = [];
 
     (data.nodes || []).forEach(function (n) {
+      var isCampaign = n.node_type === 'campaign';
       elements.push({
         group: 'nodes',
         data: {
@@ -135,8 +136,10 @@
           eventType: n.event_type,
           tlp: n.tlp,
           updatedAt: n.updated_at,
-          borderColor: impactColor(n.impact),
-          fillOpacity: statusOpacity(n.status)
+          nodeType: n.node_type || 'event',
+          borderColor: isCampaign ? '#a78bfa' : impactColor(n.impact),
+          fillOpacity: isCampaign ? 0.9 : statusOpacity(n.status),
+          shape: isCampaign ? 'diamond' : 'ellipse'
         }
       });
     });
@@ -150,6 +153,7 @@
           target: e.target,
           label: e.label,
           lineStyle: e.line_style || 'solid',
+          edgeType: e.edge_type || '',
           isRelationship: e.line_style === 'dotted'
         }
       });
@@ -232,6 +236,19 @@
         }
       },
       {
+        selector: 'node[nodeType="campaign"]',
+        style: {
+          'shape': 'diamond',
+          'width': 44,
+          'height': 44,
+          'background-color': '#a78bfa',
+          'border-color': '#7c3aed',
+          'border-width': 3,
+          'font-weight': 'bold',
+          'color': '#ddd6fe'
+        }
+      },
+      {
         selector: 'edge',
         style: {
           'label': 'data(label)',
@@ -253,6 +270,16 @@
           'width': function (ele) {
             return ele.data('lineStyle') === 'solid' ? 2 : 1.5;
           }
+        }
+      },
+      {
+        selector: 'edge[edgeType="campaign"]',
+        style: {
+          'line-color': '#7c3aed',
+          'target-arrow-color': '#7c3aed',
+          'line-style': 'dashed',
+          'width': 1.5,
+          'opacity': 0.6
         }
       },
       {

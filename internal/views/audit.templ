@@ -4,7 +4,7 @@ import (
 	"fresnel/internal/domain"
 )
 
-templ AuditLog(entries []*domain.AuditEntry, total int) {
+templ AuditLog(entries []*domain.AuditEntry, total int, actorNames NameMap) {
 	<div class="page-header">
 		<h1>{ T(ctx, "audit.title") }</h1>
 	</div>
@@ -26,7 +26,7 @@ templ AuditLog(entries []*domain.AuditEntry, total int) {
 						for _, e := range entries {
 							<tr class="table-row audit-row">
 								<td class="table-cell text-sm font-mono">{ FmtTimestamp(e.Timestamp) }</td>
-								<td class="table-cell text-sm font-mono">{ e.ActorID.String() }</td>
+								<td class="table-cell text-sm">{ ResolveName(actorNames, e.ActorID) }</td>
 								<td class="table-cell text-sm">{ e.Action }</td>
 								<td class="table-cell text-sm">
 									{ e.ResourceType }

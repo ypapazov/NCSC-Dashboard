@@ -105,9 +105,17 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 			ids = append(ids, e.ID)
 		}
 		edges, _ := h.correlations.ListEdgesForEvents(ctx, ids)
+		campaignLinks := make(map[uuid.UUID][]uuid.UUID)
+		for _, c := range activeCampaigns {
+			if linked, err := h.campaigns.GetLinkedEventIDs(ctx, auth, c.ID); err == nil {
+				campaignLinks[c.ID] = linked
+			}
+		}
 		respondView(w, r, http.StatusOK, views.DashboardGraph(views.DashboardGraphData{
-			Events: allEvents,
-			Edges:  edges,
+			Events:        allEvents,
+			Edges:         edges,
+			Campaigns:     activeCampaigns,
+			CampaignLinks: campaignLinks,
 		}))
 		return
 	}

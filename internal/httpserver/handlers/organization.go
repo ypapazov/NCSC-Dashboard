@@ -12,11 +12,12 @@ import (
 )
 
 type OrgHandler struct {
-	orgs *service.OrganizationService
+	orgs    *service.OrganizationService
+	sectors *service.SectorService
 }
 
-func NewOrgHandler(orgs *service.OrganizationService) *OrgHandler {
-	return &OrgHandler{orgs: orgs}
+func NewOrgHandler(orgs *service.OrganizationService, sectors *service.SectorService) *OrgHandler {
+	return &OrgHandler{orgs: orgs, sectors: sectors}
 }
 
 func (h *OrgHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +44,15 @@ func (h *OrgHandler) List(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.AdminOrgs(orgs))
+	sectorNames := make(views.NameMap)
+	for _, o := range orgs {
+		if _, ok := sectorNames[o.SectorID]; !ok {
+			if s, err := h.sectors.GetByID(r.Context(), auth, o.SectorID); err == nil && s != nil {
+				sectorNames[o.SectorID] = s.Name
+			}
+		}
+	}
+	respondView(w, r, http.StatusOK, views.AdminOrgs(orgs, sectorNames))
 }
 
 func (h *OrgHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +75,11 @@ func (h *OrgHandler) Get(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.OrgDetail(org))
+	sectorName := org.SectorID.String()
+	if s, err := h.sectors.GetByID(r.Context(), auth, org.SectorID); err == nil && s != nil {
+		sectorName = s.Name
+	}
+	respondView(w, r, http.StatusOK, views.OrgDetail(org, sectorName))
 }
 
 func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {

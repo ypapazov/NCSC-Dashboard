@@ -41,7 +41,7 @@ templ DashboardGraph(data DashboardGraphData) {
 		<div id="cy-container" class="graph-container"
 			data-mode="dashboard"
 			data-event-count={ fmt.Sprintf("%d", len(data.Events)) }
-			data-graph-json={ dashboardGraphJSON(data.Events, data.Edges) }>
+			data-graph-json={ dashboardGraphJSON(data) }>
 			if len(data.Events) == 0 {
 				<div class="graph-loading">{ T(ctx, "graph.no_events") }</div>
 			} else {

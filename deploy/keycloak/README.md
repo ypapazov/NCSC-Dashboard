@@ -1,15 +1,41 @@
 # Keycloak (Fresnel realm)
 
-## Issuer / Docker networking
+## Realm configuration
 
-Browsers usually open Keycloak at **`http://localhost:8081`** (published port). Tokens then carry `iss: http://localhost:8081/realms/fresnel`. The Fresnel container validates that issuer **and** fetches JWKS from the internal URL **`http://keycloak:8080/...`** (same realm, same keys).
+The realm definition is **not committed to source control** — it contains deployment-specific URLs and credentials.
 
-For **token exchange and refresh**, the API POSTs to **`KEYCLOAK_TOKEN_URL`** (see `docker-compose.yml`), targeting **`host.docker.internal:8081`** so Keycloak accepts refresh tokens whose issuer matches the browser flow. If refresh still fails on your OS, set `KEYCLOAK_TOKEN_URL` to a URL the Fresnel container can reach that matches your Keycloak `iss`.
+**First-time setup:**
 
-- **Realm file:** `fresnel-realm.json` is mounted into the Keycloak container and imported on startup (`--import-realm` in `docker-compose.yml`).
-- **Self-registration:** disabled (`registrationAllowed: false`). Users are created by admins or by editing the realm / using the Admin API.
-- **Pre-created app login:** `platform-admin` / password in `fresnel-realm.json` (change immediately after first boot). Email `admin@fresnel.local` matches the PostgreSQL row from migration `008_m1_platform_admin.sql` for Fresnel linking.
-- **Keycloak super-admin (container):** `KC_BOOTSTRAP_ADMIN_*` in Compose is only for the **master** Keycloak admin UI (`/admin`), not the Fresnel realm users.
-- **Future user JSON sketches:** see `FUTURE_USERS.example.md` (not imported).
+```bash
+cp fresnel-realm.json.example fresnel-realm.json
+```
 
-If realm import fails to create users (some Keycloak versions expect users in a separate `*-users-*.json` file), create `platform-admin` manually in the Admin Console with the same email and assign a password; Fresnel will link by email on first OIDC login.
+Edit `fresnel-realm.json`:
+
+1. Replace `CHANGEME.example.org` with your actual domain (redirect URIs, web origins, post-logout URIs).
+2. Replace the `CHANGEME` password for `platform-root` with a strong initial password.
+3. Add any additional seed users you need (or create them later via the Admin Console).
+
+The file is imported by Keycloak on first startup (`--import-realm` with `IGNORE_EXISTING` strategy). Once the realm exists, Keycloak skips the import on subsequent restarts — changes made via the Admin Console are preserved.
+
+## Docker networking
+
+Keycloak is proxied by nginx at `/realms/`, `/resources/`, and `/js/`. The browser accesses Keycloak through the same origin as the app (no CORS issues).
+
+The Fresnel container validates tokens using the **internal** issuer URL (`http://keycloak:8080/realms/fresnel`) and also accepts the **external** issuer (`https://yourdomain/realms/fresnel`).
+
+## Key points
+
+- **Self-registration:** disabled (`registrationAllowed: false`). Users are created by admins.
+- **Pre-created user:** `platform-root` with email `admin@fresnel.local` matches the PostgreSQL row from migration `008_m1_platform_admin.sql`. Fresnel links OIDC identities by email on first login.
+- **Keycloak super-admin:** `KC_BOOTSTRAP_ADMIN_*` in Compose is for the **master** realm admin UI (`/admin`), not the Fresnel realm users.
+- **Admin console access:** not exposed externally. Use SSM port forwarding:
+
+```bash
+aws ssm start-session \
+  --target <instance-id> \
+  --document-name AWS-StartPortForwardingRemoteHost \
+  --parameters '{"host":["localhost"],"portNumber":["8080"],"localPortNumber":["8080"]}'
+```
+
+Then open `http://localhost:8080/admin/`.

@@ -67,7 +67,20 @@ scp fresnel.tar.gz ubuntu@<instance-ip>:/tmp/
 sudo tar xzf /tmp/fresnel.tar.gz -C /opt/fresnel
 ```
 
-**b) LUKS-encrypt the data volume:**
+**b) Configure the Keycloak realm:**
+
+```bash
+cd /opt/fresnel/deploy/keycloak
+cp fresnel-realm.json.example fresnel-realm.json
+```
+
+Edit `fresnel-realm.json`:
+- Replace `CHANGEME.example.org` with your domain in `redirectUris`, `webOrigins`, and `post.logout.redirect.uris`
+- Set a strong initial password for the `platform-root` user (Keycloak will force a change on first login since `temporary` is `true`)
+
+See `deploy/keycloak/README.md` for details.
+
+**c) LUKS-encrypt the data volume:**
 
 ```bash
 # Identify the data volume: Nitro instances (t3, m5, etc.) use /dev/nvme1n1,
@@ -82,14 +95,14 @@ sudo mkfs.ext4 /dev/mapper/fresnel-data
 sudo mount /dev/mapper/fresnel-data /data
 ```
 
-**c) Create data directories:**
+**d) Create data directories:**
 
 ```bash
 sudo mkdir -p /data/{pgdata,attachments,backups}
 sudo chown -R 1000:1000 /data  # Docker-accessible
 ```
 
-**d) Configure environment:**
+**e) Configure environment:**
 
 ```bash
 cd /opt/fresnel
@@ -106,7 +119,7 @@ Generate strong secrets:
 openssl rand -base64 24
 ```
 
-**e) TLS certificates:**
+**f) TLS certificates:**
 
 When behind an ALB, the ALB terminates TLS (using the ACM certificate from Terraform) and forwards plain HTTP to nginx on port 80. Nginx still has an HTTPS listener on 443 for local/direct access — the self-signed dev certs work for this. Generate them if they don't exist:
 
@@ -121,7 +134,7 @@ cp /path/to/cert.pem deploy/nginx/certs/server.crt
 cp /path/to/key.pem deploy/nginx/certs/server.key
 ```
 
-**f) Start the stack:**
+**g) Start the stack:**
 
 ```bash
 ./scripts/deploy.sh --skip-backup  # No data to back up yet
@@ -134,7 +147,7 @@ cd deploy
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-**g) Verify:**
+**h) Verify:**
 
 ```bash
 curl -s http://localhost:80/api/v1/health | python3 -m json.tool

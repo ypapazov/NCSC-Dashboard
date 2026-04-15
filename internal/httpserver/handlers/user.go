@@ -13,10 +13,11 @@ import (
 
 type UserHandler struct {
 	users *service.UserService
+	orgs  *service.OrganizationService
 }
 
-func NewUserHandler(users *service.UserService) *UserHandler {
-	return &UserHandler{users: users}
+func NewUserHandler(users *service.UserService, orgs *service.OrganizationService) *UserHandler {
+	return &UserHandler{users: users, orgs: orgs}
 }
 
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +46,15 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.AdminUsers(result.Items, result.TotalCount))
+	orgNames := make(views.NameMap)
+	for _, u := range result.Items {
+		if _, ok := orgNames[u.PrimaryOrgID]; !ok {
+			if o, err := h.orgs.GetByID(r.Context(), auth, u.PrimaryOrgID); err == nil && o != nil {
+				orgNames[u.PrimaryOrgID] = o.Name
+			}
+		}
+	}
+	respondView(w, r, http.StatusOK, views.AdminUsers(result.Items, result.TotalCount, orgNames))
 }
 
 func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +77,11 @@ func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.UserDetail(user))
+	orgName := user.PrimaryOrgID.String()
+	if o, err := h.orgs.GetByID(r.Context(), auth, user.PrimaryOrgID); err == nil && o != nil {
+		orgName = o.Name
+	}
+	respondView(w, r, http.StatusOK, views.UserDetail(user, orgName))
 }
 
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +99,11 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.UserDetail(user))
+	orgName := user.PrimaryOrgID.String()
+	if o, err := h.orgs.GetByID(r.Context(), auth, user.PrimaryOrgID); err == nil && o != nil {
+		orgName = o.Name
+	}
+	respondView(w, r, http.StatusOK, views.UserDetail(user, orgName))
 }
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {

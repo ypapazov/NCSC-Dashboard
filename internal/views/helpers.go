@@ -30,6 +30,17 @@ func Locale(ctx context.Context) string {
 // Suppress unused import warnings for packages used only in .templ files.
 var _ = strings.ToLower
 
+type NameMap = map[uuid.UUID]string
+
+func ResolveName(m NameMap, id uuid.UUID) string {
+	if m != nil {
+		if name, ok := m[id]; ok {
+			return name
+		}
+	}
+	return id.String()[:8] + "…"
+}
+
 func Lower(v any) string {
 	return strings.ToLower(fmt.Sprintf("%v", v))
 }
@@ -184,15 +195,16 @@ func safeCampaignField(c *domain.Campaign, fn func(*domain.Campaign) string) str
 	return fn(c)
 }
 
-func dashboardGraphJSON(events []*domain.Event, edges *service.GraphEdges) string {
+func dashboardGraphJSON(data DashboardGraphData) string {
 	type node struct {
 		ID        string `json:"id"`
 		Title     string `json:"title"`
-		Impact    string `json:"impact"`
-		Status    string `json:"status"`
-		EventType string `json:"event_type"`
-		TLP       string `json:"tlp"`
-		UpdatedAt string `json:"updated_at"`
+		Impact    string `json:"impact,omitempty"`
+		Status    string `json:"status,omitempty"`
+		EventType string `json:"event_type,omitempty"`
+		TLP       string `json:"tlp,omitempty"`
+		UpdatedAt string `json:"updated_at,omitempty"`
+		NodeType  string `json:"node_type"`
 	}
 	type edge struct {
 		ID        string `json:"id"`
@@ -200,9 +212,13 @@ func dashboardGraphJSON(events []*domain.Event, edges *service.GraphEdges) strin
 		Target    string `json:"target"`
 		Label     string `json:"label"`
 		LineStyle string `json:"line_style"`
+		EdgeType  string `json:"edge_type,omitempty"`
 	}
-	nodes := make([]node, 0, len(events))
-	for _, e := range events {
+
+	eventSet := make(map[uuid.UUID]bool, len(data.Events))
+	nodes := make([]node, 0, len(data.Events)+len(data.Campaigns))
+	for _, e := range data.Events {
+		eventSet[e.ID] = true
 		title := e.Title
 		if len(title) > 60 {
 			title = title[:57] + "..."
@@ -215,27 +231,60 @@ func dashboardGraphJSON(events []*domain.Event, edges *service.GraphEdges) strin
 			EventType: string(e.EventType),
 			TLP:       string(e.TLP),
 			UpdatedAt: e.UpdatedAt.Format("2006-01-02"),
+			NodeType:  "event",
 		})
 	}
+	for _, c := range data.Campaigns {
+		title := c.Title
+		if len(title) > 60 {
+			title = title[:57] + "..."
+		}
+		nodes = append(nodes, node{
+			ID:       "campaign-" + c.ID.String(),
+			Title:    title,
+			TLP:      string(c.TLP),
+			NodeType: "campaign",
+		})
+	}
+
 	edgeList := make([]edge, 0)
-	if edges != nil {
-		for _, c := range edges.Correlations {
+	if data.Edges != nil {
+		for _, c := range data.Edges.Correlations {
 			edgeList = append(edgeList, edge{
 				ID:        c.ID.String(),
 				Source:    c.EventAID.String(),
 				Target:    c.EventBID.String(),
 				Label:     c.Label,
 				LineStyle: "solid",
+				EdgeType:  "correlation",
 			})
 		}
-		for _, r := range edges.Relationships {
+		for _, r := range data.Edges.Relationships {
 			edgeList = append(edgeList, edge{
 				ID:        r.ID.String(),
 				Source:    r.SourceEventID.String(),
 				Target:    r.TargetEventID.String(),
 				Label:     r.Label,
 				LineStyle: "dotted",
+				EdgeType:  "relationship",
 			})
+		}
+	}
+	for _, c := range data.Campaigns {
+		cID := "campaign-" + c.ID.String()
+		if links, ok := data.CampaignLinks[c.ID]; ok {
+			for _, eid := range links {
+				if eventSet[eid] {
+					edgeList = append(edgeList, edge{
+						ID:        "cl-" + c.ID.String()[:8] + "-" + eid.String()[:8],
+						Source:    cID,
+						Target:    eid.String(),
+						Label:     "",
+						LineStyle: "dashed",
+						EdgeType:  "campaign",
+					})
+				}
+			}
 		}
 	}
 	b, _ := json.Marshal(map[string]any{"nodes": nodes, "edges": edgeList})

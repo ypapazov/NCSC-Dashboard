@@ -17,6 +17,10 @@ coverage.out
 .env.*
 !.env.example
 
+# Keycloak realm (contains deployment-specific URLs and credentials)
+deploy/keycloak/fresnel-realm.json
+!deploy/keycloak/fresnel-realm.json.example
+
 # Terraform
 infra/**/.terraform/
 infra/**/*.tfstate

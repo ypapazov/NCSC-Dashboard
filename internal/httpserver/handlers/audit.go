@@ -14,10 +14,11 @@ import (
 
 type AuditHandler struct {
 	audit *service.AuditService
+	users *service.UserService
 }
 
-func NewAuditHandler(audit *service.AuditService) *AuditHandler {
-	return &AuditHandler{audit: audit}
+func NewAuditHandler(audit *service.AuditService, users *service.UserService) *AuditHandler {
+	return &AuditHandler{audit: audit, users: users}
 }
 
 func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -73,5 +74,13 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.AuditLog(result.Items, result.TotalCount))
+	actorNames := make(views.NameMap)
+	for _, e := range result.Items {
+		if _, ok := actorNames[e.ActorID]; !ok {
+			if u, err := h.users.GetByID(r.Context(), auth, e.ActorID); err == nil && u != nil {
+				actorNames[e.ActorID] = u.DisplayName
+			}
+		}
+	}
+	respondView(w, r, http.StatusOK, views.AuditLog(result.Items, result.TotalCount, actorNames))
 }

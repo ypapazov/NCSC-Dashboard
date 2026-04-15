@@ -66,11 +66,11 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	statusReportH := httphandlers.NewStatusReportHandler(svc.StatusReports, svc.Events, hlk)
 	campaignH := httphandlers.NewCampaignHandler(svc.Campaigns, hlk)
 	sectorH := httphandlers.NewSectorHandler(svc.Sectors)
-	orgH := httphandlers.NewOrgHandler(svc.Orgs)
-	userH := httphandlers.NewUserHandler(svc.Users)
+	orgH := httphandlers.NewOrgHandler(svc.Orgs, svc.Sectors)
+	userH := httphandlers.NewUserHandler(svc.Users, svc.Orgs)
 	corrH := httphandlers.NewCorrelationHandler(svc.Correlations, svc.Events, hlk)
 	attachH := httphandlers.NewAttachmentHandler(svc.Attachments)
-	auditH := httphandlers.NewAuditHandler(svc.Audit)
+	auditH := httphandlers.NewAuditHandler(svc.Audit, svc.Users)
 
 	mux := http.NewServeMux()
 

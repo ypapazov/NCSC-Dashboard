@@ -197,6 +197,31 @@ func (s *CampaignService) CountLinkedEvents(ctx context.Context, auth *domain.Au
 	return count, nil
 }
 
+func (s *CampaignService) GetLinkedEventIDs(ctx context.Context, auth *domain.AuthContext, campaignID uuid.UUID) ([]uuid.UUID, error) {
+	ids, err := s.campaigns.GetLinkedEventIDs(ctx, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	var result []uuid.UUID
+	for _, eid := range ids {
+		event, err := s.events.GetByID(ctx, eid)
+		if err != nil || event == nil {
+			continue
+		}
+		sec, _ := s.sectors.GetByID(ctx, event.SectorContext)
+		ancestry := ""
+		if sec != nil {
+			ancestry = sec.AncestryPath
+		}
+		recipients, _ := s.tlpRed.GetRecipients(ctx, "event", event.ID)
+		res := authz.EventResource(event, ancestry, recipients)
+		if s.authz.Authorize(ctx, auth, authz.ActionView, res) {
+			result = append(result, eid)
+		}
+	}
+	return result, nil
+}
+
 type CampaignEventInfo struct {
 	Event      *domain.Event
 	Restricted bool

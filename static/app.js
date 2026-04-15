@@ -114,7 +114,11 @@
           document.querySelectorAll(".tree-selected").forEach(function (s) { s.classList.remove("tree-selected"); });
           el.classList.add("tree-selected");
           var panel = document.getElementById("side-panel");
-          if (panel) panel.classList.remove("side-panel-hidden");
+          if (panel) {
+            panel.classList.remove("side-panel-hidden");
+            var layout = panel.closest(".dashboard-layout");
+            if (layout) layout.classList.add("panel-open");
+          }
           var titleEl = document.getElementById("side-panel-title");
           var suffix = i18n.i18nTimelineSuffix || "\u2014 Timeline";
           if (titleEl) titleEl.textContent = (el.getAttribute("data-name") || "") + " " + suffix;
@@ -122,7 +126,11 @@
 
         case "close-side-panel":
           var sp = document.getElementById("side-panel");
-          if (sp) sp.classList.add("side-panel-hidden");
+          if (sp) {
+            sp.classList.add("side-panel-hidden");
+            var spLayout = sp.closest(".dashboard-layout");
+            if (spLayout) spLayout.classList.remove("panel-open");
+          }
           document.querySelectorAll(".tree-selected").forEach(function (s) { s.classList.remove("tree-selected"); });
           break;
 
