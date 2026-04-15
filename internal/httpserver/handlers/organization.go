@@ -84,16 +84,27 @@ func (h *OrgHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	var org domain.Organization
-	if err := parseJSON(r, &org); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var org *domain.Organization
+	if isFormSubmission(r) {
+		org = parseOrgFromForm(r)
+	} else {
+		org = &domain.Organization{}
+		if err := parseJSON(r, org); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
-	if err := h.orgs.Create(r.Context(), auth, &org); err != nil {
+	if err := h.orgs.Create(r.Context(), auth, org); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, &org)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusCreated, org)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/orgs")
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -103,17 +114,28 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var org domain.Organization
-	if err := parseJSON(r, &org); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var org *domain.Organization
+	if isFormSubmission(r) {
+		org = parseOrgFromForm(r)
+	} else {
+		org = &domain.Organization{}
+		if err := parseJSON(r, org); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
 	org.ID = id
-	if err := h.orgs.Update(r.Context(), auth, &org); err != nil {
+	if err := h.orgs.Update(r.Context(), auth, org); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, &org)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, org)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/orgs")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *OrgHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -147,9 +169,11 @@ func (h *OrgHandler) Form(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	sectors, _ := h.sectors.List(r.Context(), auth)
+
 	if getRenderKind(r) == requestctx.RenderJSON {
 		respondJSON(w, http.StatusOK, OrgFormData{User: auth, Org: org})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.OrgForm(org))
+	respondView(w, r, http.StatusOK, views.OrgForm(org, sectors))
 }

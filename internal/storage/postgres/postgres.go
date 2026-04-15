@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"log/slog"
+	"os"
 	"sort"
 	"strings"
 
@@ -46,9 +48,15 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
 	if err != nil {
 		return fmt.Errorf("read migrations: %w", err)
 	}
+	skipDev := os.Getenv("FRESNEL_SKIP_DEV_SEEDS") == "true"
+
 	var names []string
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".sql") {
+			continue
+		}
+		if skipDev && strings.Contains(e.Name(), "_dev_") {
+			slog.Info("skipping dev seed (FRESNEL_SKIP_DEV_SEEDS=true)", "file", e.Name())
 			continue
 		}
 		names = append(names, e.Name())

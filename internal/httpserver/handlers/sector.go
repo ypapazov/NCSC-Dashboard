@@ -77,16 +77,27 @@ func (h *SectorHandler) GetChildren(w http.ResponseWriter, r *http.Request) {
 
 func (h *SectorHandler) Create(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	var sector domain.Sector
-	if err := parseJSON(r, &sector); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var sector *domain.Sector
+	if isFormSubmission(r) {
+		sector = parseSectorFromForm(r)
+	} else {
+		sector = &domain.Sector{}
+		if err := parseJSON(r, sector); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
-	if err := h.sectors.Create(r.Context(), auth, &sector); err != nil {
+	if err := h.sectors.Create(r.Context(), auth, sector); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, &sector)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusCreated, sector)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/sectors")
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *SectorHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -96,17 +107,28 @@ func (h *SectorHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var sector domain.Sector
-	if err := parseJSON(r, &sector); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var sector *domain.Sector
+	if isFormSubmission(r) {
+		sector = parseSectorFromForm(r)
+	} else {
+		sector = &domain.Sector{}
+		if err := parseJSON(r, sector); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
 	sector.ID = id
-	if err := h.sectors.Update(r.Context(), auth, &sector); err != nil {
+	if err := h.sectors.Update(r.Context(), auth, sector); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, &sector)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, sector)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/sectors")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *SectorHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -140,9 +162,11 @@ func (h *SectorHandler) Form(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	allSectors, _ := h.sectors.List(r.Context(), auth)
+
 	if getRenderKind(r) == requestctx.RenderJSON {
 		respondJSON(w, http.StatusOK, SectorFormData{User: auth, Sector: sector})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.SectorForm(sector))
+	respondView(w, r, http.StatusOK, views.SectorForm(sector, allSectors))
 }

@@ -4,45 +4,78 @@
 
 SET search_path TO fresnel, public;
 
--- Sectors (parents before children)
+-- Sectors: Bulgarian NIS2 essential sectors (1-10) with sub-sectors
 INSERT INTO fresnel.sectors (id, parent_sector_id, name, ancestry_path, depth)
 VALUES
-    ('b0000000-0000-4000-8000-000000000001'::uuid, NULL, 'Government', '/gov/', 1),
-    ('b0000000-0000-4000-8000-000000000004'::uuid, NULL, 'Finance', '/finance/', 1),
-    ('b0000000-0000-4000-8000-000000000005'::uuid, NULL, 'Critical Infrastructure', '/critinfra/', 1)
+    ('b0000000-0000-4000-8000-000000000001'::uuid, NULL, 'Енергетика', '/energy/', 1),
+    ('b0000000-0000-4000-8000-000000000002'::uuid, NULL, 'Транспорт', '/transport/', 1),
+    ('b0000000-0000-4000-8000-000000000003'::uuid, NULL, 'Банков сектор', '/banking/', 1),
+    ('b0000000-0000-4000-8000-000000000004'::uuid, NULL, 'Инфраструктури на финансовия пазар', '/finmarket/', 1),
+    ('b0000000-0000-4000-8000-000000000005'::uuid, NULL, 'Здравеопазване', '/health/', 1),
+    ('b0000000-0000-4000-8000-000000000006'::uuid, NULL, 'Питейна вода', '/water/', 1),
+    ('b0000000-0000-4000-8000-000000000007'::uuid, NULL, 'Отпадъчни води', '/wastewater/', 1),
+    ('b0000000-0000-4000-8000-000000000008'::uuid, NULL, 'Цифрова инфраструктура', '/digital/', 1),
+    ('b0000000-0000-4000-8000-000000000009'::uuid, NULL, 'Управление на услуги в областта на ИКТ', '/ict/', 1),
+    ('b0000000-0000-4000-8000-00000000000a'::uuid, NULL, 'Космическо пространство', '/space/', 1)
 ON CONFLICT (id) DO NOTHING;
 
+-- Sub-sectors: Energy
 INSERT INTO fresnel.sectors (id, parent_sector_id, name, ancestry_path, depth)
 VALUES
-    ('b0000000-0000-4000-8000-000000000002'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'Federal', '/gov/federal/', 2),
-    ('b0000000-0000-4000-8000-000000000003'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'State', '/gov/state/', 2),
-    ('b0000000-0000-4000-8000-000000000006'::uuid, 'b0000000-0000-4000-8000-000000000005'::uuid, 'Energy', '/critinfra/energy/', 2),
-    ('b0000000-0000-4000-8000-000000000007'::uuid, 'b0000000-0000-4000-8000-000000000005'::uuid, 'Telecommunications', '/critinfra/telecom/', 2)
+    ('b0000000-0000-4000-8000-000000000101'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'Електроенергия', '/energy/electricity/', 2),
+    ('b0000000-0000-4000-8000-000000000102'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'Районно отопление и охлаждане', '/energy/heating/', 2),
+    ('b0000000-0000-4000-8000-000000000103'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'Нефт', '/energy/oil/', 2),
+    ('b0000000-0000-4000-8000-000000000104'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'Природен газ', '/energy/gas/', 2),
+    ('b0000000-0000-4000-8000-000000000105'::uuid, 'b0000000-0000-4000-8000-000000000001'::uuid, 'Водород', '/energy/hydrogen/', 2)
 ON CONFLICT (id) DO NOTHING;
 
--- Organizations
+-- Sub-sectors: Transport
+INSERT INTO fresnel.sectors (id, parent_sector_id, name, ancestry_path, depth)
+VALUES
+    ('b0000000-0000-4000-8000-000000000201'::uuid, 'b0000000-0000-4000-8000-000000000002'::uuid, 'Въздушен', '/transport/air/', 2),
+    ('b0000000-0000-4000-8000-000000000202'::uuid, 'b0000000-0000-4000-8000-000000000002'::uuid, 'Железопътен', '/transport/rail/', 2),
+    ('b0000000-0000-4000-8000-000000000203'::uuid, 'b0000000-0000-4000-8000-000000000002'::uuid, 'Воден', '/transport/water/', 2),
+    ('b0000000-0000-4000-8000-000000000204'::uuid, 'b0000000-0000-4000-8000-000000000002'::uuid, 'Автомобилен', '/transport/road/', 2)
+ON CONFLICT (id) DO NOTHING;
+
+-- Cross-sector: National authorities
+INSERT INTO fresnel.sectors (id, parent_sector_id, name, ancestry_path, depth)
+VALUES
+    ('b0000000-0000-4000-8000-00000000000b'::uuid, NULL, 'Национални органи', '/authorities/', 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- Organizations: National authorities
 INSERT INTO fresnel.organizations (id, sector_id, name)
 VALUES
-    ('b0000000-0000-4000-8000-000000000010'::uuid, 'b0000000-0000-4000-8000-000000000002'::uuid, 'Department of Technology'),
-    ('b0000000-0000-4000-8000-000000000011'::uuid, 'b0000000-0000-4000-8000-000000000002'::uuid, 'National Security Agency'),
-    ('b0000000-0000-4000-8000-000000000012'::uuid, 'b0000000-0000-4000-8000-000000000003'::uuid, 'State IT Authority'),
-    ('b0000000-0000-4000-8000-000000000013'::uuid, 'b0000000-0000-4000-8000-000000000004'::uuid, 'Central Bank'),
-    ('b0000000-0000-4000-8000-000000000014'::uuid, 'b0000000-0000-4000-8000-000000000004'::uuid, 'Financial Regulatory Authority'),
-    ('b0000000-0000-4000-8000-000000000015'::uuid, 'b0000000-0000-4000-8000-000000000006'::uuid, 'National Grid Operator'),
-    ('b0000000-0000-4000-8000-000000000016'::uuid, 'b0000000-0000-4000-8000-000000000007'::uuid, 'Telecom Authority')
+    ('b0000000-0000-4000-8000-000000000020'::uuid, 'b0000000-0000-4000-8000-00000000000b'::uuid, 'CERT.bg'),
+    ('b0000000-0000-4000-8000-000000000021'::uuid, 'b0000000-0000-4000-8000-00000000000b'::uuid, 'ДАНС'),
+    ('b0000000-0000-4000-8000-000000000022'::uuid, 'b0000000-0000-4000-8000-00000000000b'::uuid, 'ГДБОП'),
+    ('b0000000-0000-4000-8000-000000000023'::uuid, 'b0000000-0000-4000-8000-00000000000b'::uuid, 'МО')
+ON CONFLICT (id) DO NOTHING;
+
+-- Organizations (mapped to Bulgarian NIS2 sectors)
+INSERT INTO fresnel.organizations (id, sector_id, name)
+VALUES
+    ('b0000000-0000-4000-8000-000000000010'::uuid, 'b0000000-0000-4000-8000-000000000101'::uuid, 'ЕСО ЕАД'),
+    ('b0000000-0000-4000-8000-000000000011'::uuid, 'b0000000-0000-4000-8000-000000000008'::uuid, 'Държавна агенция "Електронно управление"'),
+    ('b0000000-0000-4000-8000-000000000012'::uuid, 'b0000000-0000-4000-8000-000000000201'::uuid, 'ДП "Ръководство на въздушното движение"'),
+    ('b0000000-0000-4000-8000-000000000013'::uuid, 'b0000000-0000-4000-8000-000000000003'::uuid, 'Българска народна банка'),
+    ('b0000000-0000-4000-8000-000000000014'::uuid, 'b0000000-0000-4000-8000-000000000004'::uuid, 'Комисия за финансов надзор'),
+    ('b0000000-0000-4000-8000-000000000015'::uuid, 'b0000000-0000-4000-8000-000000000005'::uuid, 'Национална здравноосигурителна каса'),
+    ('b0000000-0000-4000-8000-000000000016'::uuid, 'b0000000-0000-4000-8000-000000000006'::uuid, 'Софийска вода АД')
 ON CONFLICT (id) DO NOTHING;
 
 -- Platform root user already exists from 008 as a0..0004 (admin@fresnel.local).
 -- We skip re-inserting it and reference a0..0004 directly for IAM below.
 INSERT INTO fresnel.users (id, keycloak_sub, display_name, email, primary_org_id)
 VALUES
-    ('b1000000-0000-4000-8000-000000000002'::uuid, 'placeholder-gov-root', 'Government Sector Root', 'gov-root@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
-    ('b1000000-0000-4000-8000-000000000003'::uuid, 'placeholder-fed-root', 'Federal Sector Root', 'fed-root@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
-    ('b1000000-0000-4000-8000-000000000004'::uuid, 'placeholder-orga-root', 'Org A Root', 'orga-root@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
-    ('b1000000-0000-4000-8000-000000000005'::uuid, 'placeholder-orga-admin', 'Org A Admin', 'orga-admin@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
-    ('b1000000-0000-4000-8000-000000000006'::uuid, 'placeholder-orga-contrib', 'Org A Contributor', 'orga-contrib@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
-    ('b1000000-0000-4000-8000-000000000007'::uuid, 'placeholder-orga-viewer', 'Org A Viewer', 'orga-viewer@fresnel.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
-    ('b1000000-0000-4000-8000-000000000008'::uuid, 'placeholder-orgb-root', 'Org B Root', 'orgb-root@fresnel.local', 'b0000000-0000-4000-8000-000000000011'::uuid)
+    ('b1000000-0000-4000-8000-000000000002'::uuid, 'placeholder-energy-root', 'Енергетика Sector Root', 'energy-root@cyberbg.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('b1000000-0000-4000-8000-000000000003'::uuid, 'placeholder-digital-root', 'Цифрова инфраструктура Sector Root', 'digital-root@cyberbg.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('b1000000-0000-4000-8000-000000000004'::uuid, 'placeholder-eso-root', 'ЕСО Root', 'eso-root@cyberbg.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('b1000000-0000-4000-8000-000000000005'::uuid, 'placeholder-eso-admin', 'ЕСО Admin', 'eso-admin@cyberbg.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('b1000000-0000-4000-8000-000000000006'::uuid, 'placeholder-eso-contrib', 'ЕСО Contributor', 'eso-contrib@cyberbg.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('b1000000-0000-4000-8000-000000000007'::uuid, 'placeholder-eso-viewer', 'ЕСО Viewer', 'eso-viewer@cyberbg.local', 'b0000000-0000-4000-8000-000000000010'::uuid),
+    ('b1000000-0000-4000-8000-000000000008'::uuid, 'placeholder-daeu-root', 'ДАЕУ Root', 'daeu-root@cyberbg.local', 'b0000000-0000-4000-8000-000000000011'::uuid)
 ON CONFLICT ((lower(email))) DO NOTHING;
 
 INSERT INTO fresnel.user_org_memberships (user_id, organization_id, assigned_by)
@@ -67,7 +100,7 @@ SELECT a.id, a.user_id, a.role, a.scope_type, a.scope_id, a.assigned_by
 FROM (VALUES
     ('b2100000-0000-4000-8000-000000000000'::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid, 'PLATFORM_ROOT', 'PLATFORM', 'b0000000-0000-4000-8000-000000000010'::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid),
     ('b2100000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid, 'SECTOR_ROOT', 'SECTOR', 'b0000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid),
-    ('b2100000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid, 'SECTOR_ROOT', 'SECTOR', 'b0000000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid),
+    ('b2100000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid, 'SECTOR_ROOT', 'SECTOR', 'b0000000-0000-4000-8000-000000000008'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid),
     ('b2100000-0000-4000-8000-000000000003'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid, 'ORG_ROOT', 'ORG', 'b0000000-0000-4000-8000-000000000010'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid),
     ('b2100000-0000-4000-8000-000000000004'::uuid, 'b1000000-0000-4000-8000-000000000005'::uuid, 'ORG_ADMIN', 'ORG', 'b0000000-0000-4000-8000-000000000010'::uuid, 'b1000000-0000-4000-8000-000000000005'::uuid),
     ('b2100000-0000-4000-8000-000000000005'::uuid, 'b1000000-0000-4000-8000-000000000006'::uuid, 'CONTRIBUTOR', 'ORG', 'b0000000-0000-4000-8000-000000000010'::uuid, 'b1000000-0000-4000-8000-000000000006'::uuid),
@@ -82,7 +115,7 @@ SELECT d.id, d.user_id, d.scope_type, d.scope_id, d.designated_by
 FROM (VALUES
     ('b2200000-0000-4000-8000-000000000001'::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid, 'PLATFORM', NULL::uuid, 'a0000000-0000-4000-8000-000000000004'::uuid),
     ('b2200000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid, 'SECTOR', 'b0000000-0000-4000-8000-000000000001'::uuid, 'b1000000-0000-4000-8000-000000000002'::uuid),
-    ('b2200000-0000-4000-8000-000000000003'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid, 'SECTOR', 'b0000000-0000-4000-8000-000000000002'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid),
+    ('b2200000-0000-4000-8000-000000000003'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid, 'SECTOR', 'b0000000-0000-4000-8000-000000000008'::uuid, 'b1000000-0000-4000-8000-000000000003'::uuid),
     ('b2200000-0000-4000-8000-000000000004'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid, 'ORG', 'b0000000-0000-4000-8000-000000000010'::uuid, 'b1000000-0000-4000-8000-000000000004'::uuid),
     ('b2200000-0000-4000-8000-000000000005'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid, 'ORG', 'b0000000-0000-4000-8000-000000000011'::uuid, 'b1000000-0000-4000-8000-000000000008'::uuid)
 ) AS d(id, user_id, scope_type, scope_id, designated_by)
@@ -91,7 +124,7 @@ ON CONFLICT (id) DO NOTHING;
 
 SET search_path TO fresnel, public;
 
--- Demo events (submitter: Org A admin when present)
+-- Demo events spread across different sectors
 INSERT INTO fresnel.events (
     id, source_instance, sector_context, title, description, event_type,
     submitter_id, organization_id, tlp, impact, status
@@ -102,7 +135,7 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000001'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000101'::uuid,
         'Credential phishing against executive mailboxes',
         'Multiple staff reported suspicious OAuth consent prompts mimicking the internal SSO portal. IOCs shared with sector partners.',
         'PHISHING',
@@ -115,7 +148,7 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000002'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000101'::uuid,
         'Ransomware precursor: abnormal RDP exposure',
         'Honeypot RDP endpoints saw coordinated password spraying from a known bulletproof hoster ASN.',
         'RANSOMWARE',
@@ -128,7 +161,7 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000003'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000008'::uuid,
         'Supply chain package typosquat',
         'Build pipeline flagged a near-name dependency published 48h ago; no production deploys affected.',
         'SUPPLY_CHAIN',
@@ -141,7 +174,7 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000004'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000008'::uuid,
         'DDoS against citizen-facing portal',
         'Mitigation in place; origin shield and rate limits holding; post-incident review scheduled.',
         'DDOS',
@@ -154,7 +187,7 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000005'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000008'::uuid,
         'Insider data exfiltration investigation',
         'Anomalous bulk export from internal wiki; account suspended pending HR and legal review.',
         'INSIDER_THREAT',
@@ -167,7 +200,7 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000006'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000003'::uuid,
         'Zero-day exploitation attempt (blocked)',
         'WAF blocked chained exploit against edge routers; vendor PSIRT engaged under TLP:AMBER.',
         'VULNERABILITY',
@@ -193,10 +226,10 @@ FROM (VALUES
     (
         'b3000000-0000-4000-8000-000000000010'::uuid,
         'local',
-        'b0000000-0000-4000-8000-000000000002'::uuid,
+        'b0000000-0000-4000-8000-000000000101'::uuid,
         'ORG',
         'b0000000-0000-4000-8000-000000000010'::uuid,
-        'Department of Technology — weekly operational posture',
+        'ЕСО ЕАД — седмична оперативна оценка',
         'Summary: phishing campaign contained; DDoS on citizen portal resolved; supply chain alert cleared after dependency removal. Risk outlook stable with elevated vigilance on RDP exposure.',
         '2026-04-01 00:00:00+00'::timestamptz,
         '2026-04-08 23:59:59+00'::timestamptz,

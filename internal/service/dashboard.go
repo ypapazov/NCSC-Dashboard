@@ -130,7 +130,7 @@ func (s *DashboardService) buildTree(ctx context.Context) (*DashboardNode, error
 				orgNode.AssessedStatus = orgLatest.AssessedStatus
 				orgNode.ReportedStatus = orgLatest.AssessedStatus
 			} else {
-				orgNode.AssessedStatus = domain.AssessedUnknown
+				orgNode.AssessedStatus = domain.AssessedNormal
 			}
 			node.Children = append(node.Children, orgNode)
 		}
@@ -152,6 +152,9 @@ func (s *DashboardService) buildTree(ctx context.Context) (*DashboardNode, error
 
 func computeStatus(node *DashboardNode) domain.AssessedStatus {
 	if len(node.Children) == 0 {
+		if node.AssessedStatus == "" || node.AssessedStatus == domain.AssessedUnknown {
+			node.AssessedStatus = domain.AssessedNormal
+		}
 		return node.AssessedStatus
 	}
 	var sum float64
@@ -165,7 +168,7 @@ func computeStatus(node *DashboardNode) domain.AssessedStatus {
 		}
 	}
 	if count == 0 {
-		node.AssessedStatus = domain.AssessedUnknown
+		node.AssessedStatus = domain.AssessedNormal
 		return node.AssessedStatus
 	}
 	avg := sum / float64(count)

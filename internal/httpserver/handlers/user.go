@@ -108,16 +108,27 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	var user domain.User
-	if err := parseJSON(r, &user); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var user *domain.User
+	if isFormSubmission(r) {
+		user = parseUserFromForm(r)
+	} else {
+		user = &domain.User{}
+		if err := parseJSON(r, user); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
-	if err := h.users.Create(r.Context(), auth, &user); err != nil {
+	if err := h.users.Create(r.Context(), auth, user); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, &user)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusCreated, user)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/admin/users")
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -127,17 +138,28 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, service.ErrValidation)
 		return
 	}
-	var user domain.User
-	if err := parseJSON(r, &user); err != nil {
-		respondError(w, r, service.ErrValidation)
-		return
+	var user *domain.User
+	if isFormSubmission(r) {
+		user = parseUserFromForm(r)
+	} else {
+		user = &domain.User{}
+		if err := parseJSON(r, user); err != nil {
+			respondError(w, r, service.ErrValidation)
+			return
+		}
 	}
 	user.ID = id
-	if err := h.users.Update(r.Context(), auth, &user); err != nil {
+	if err := h.users.Update(r.Context(), auth, user); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, &user)
+
+	if getRenderKind(r) == requestctx.RenderJSON {
+		respondJSON(w, http.StatusOK, user)
+		return
+	}
+	w.Header().Set("HX-Redirect", "/admin/users")
+	w.WriteHeader(http.StatusOK)
 }
 
 type roleRequest struct {
@@ -201,9 +223,11 @@ func (h *UserHandler) Form(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	orgs, _ := h.orgs.List(r.Context(), auth, nil)
+
 	if getRenderKind(r) == requestctx.RenderJSON {
 		respondJSON(w, http.StatusOK, UserFormData{User: auth, ProfileUser: user})
 		return
 	}
-	respondView(w, r, http.StatusOK, views.UserForm(user))
+	respondView(w, r, http.StatusOK, views.UserForm(user, orgs))
 }

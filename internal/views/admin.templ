@@ -8,6 +8,8 @@ import (
 templ AdminSectors(sectors []*domain.Sector) {
 	<div class="page-header">
 		<h1>{ T(ctx, "admin.sectors") }</h1>
+		<a class="btn btn-primary" hx-get="/api/v1/sectors/new" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/sectors/new">{ T(ctx, "admin.new_sector") }</a>
 	</div>
 	<div id="sector-tree">
 		if len(sectors) > 0 {
@@ -72,7 +74,7 @@ templ SectorDetail(sector *domain.Sector) {
 	</div>
 }
 
-templ SectorForm(sector *domain.Sector) {
+templ SectorForm(sector *domain.Sector, allSectors []*domain.Sector) {
 	<div class="page-header">
 		if sector != nil {
 			<h1>{ T(ctx, "admin.edit_sector") }</h1>
@@ -82,27 +84,54 @@ templ SectorForm(sector *domain.Sector) {
 	</div>
 	<div class="card">
 		<div class="card-body">
-			<form hx-post="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML">
-				<div class="form-group">
-					<label class="form-label">{ T(ctx, "label.name") }</label>
-					if sector != nil {
-						<input type="text" name="name" class="form-input" required value={ sector.Name }/>
-					} else {
-						<input type="text" name="name" class="form-input" required value=""/>
-					}
-				</div>
-				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
-					<a class="btn" hx-get="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML" hx-push-url="/sectors">{ T(ctx, "action.cancel") }</a>
-				</div>
-			</form>
+			if sector != nil {
+				<form hx-put={ "/api/v1/sectors/" + sector.ID.String() } hx-target="#app" hx-swap="innerHTML">
+					@sectorFormFields(sector, allSectors)
+				</form>
+			} else {
+				<form hx-post="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML">
+					@sectorFormFields(nil, allSectors)
+				</form>
+			}
 		</div>
+	</div>
+}
+
+templ sectorFormFields(sector *domain.Sector, allSectors []*domain.Sector) {
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.name") }</label>
+		if sector != nil {
+			<input type="text" name="name" class="form-input" required value={ sector.Name }/>
+		} else {
+			<input type="text" name="name" class="form-input" required value=""/>
+		}
+	</div>
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.parent_sector") }</label>
+		<select name="parent_sector_id" class="form-input">
+			<option value="">— { T(ctx, "label.none_top_level") } —</option>
+			for _, s := range allSectors {
+				if sector == nil || s.ID != sector.ID {
+					if sector != nil && sector.ParentSectorID != nil && *sector.ParentSectorID == s.ID {
+						<option value={ s.ID.String() } selected>{ s.Name }</option>
+					} else {
+						<option value={ s.ID.String() }>{ s.Name }</option>
+					}
+				}
+			}
+		</select>
+	</div>
+	<div class="form-actions">
+		<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
+		<a class="btn" hx-get="/api/v1/sectors" hx-target="#app" hx-swap="innerHTML" hx-push-url="/sectors">{ T(ctx, "action.cancel") }</a>
 	</div>
 }
 
 templ AdminOrgs(orgs []*domain.Organization, sectorNames NameMap) {
 	<div class="page-header">
 		<h1>{ T(ctx, "admin.orgs") }</h1>
+		<a class="btn btn-primary" hx-get="/api/v1/orgs/new" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/orgs/new">{ T(ctx, "admin.new_org_btn") }</a>
 	</div>
 	<div id="org-list">
 		if len(orgs) > 0 {
@@ -169,7 +198,7 @@ templ OrgDetail(org *domain.Organization, sectorName string) {
 	</div>
 }
 
-templ OrgForm(org *domain.Organization) {
+templ OrgForm(org *domain.Organization, sectors []*domain.Sector) {
 	<div class="page-header">
 		if org != nil {
 			<h1>{ T(ctx, "admin.edit_org") }</h1>
@@ -179,27 +208,52 @@ templ OrgForm(org *domain.Organization) {
 	</div>
 	<div class="card">
 		<div class="card-body">
-			<form hx-post="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML">
-				<div class="form-group">
-					<label class="form-label">{ T(ctx, "label.name") }</label>
-					if org != nil {
-						<input type="text" name="name" class="form-input" required value={ org.Name }/>
-					} else {
-						<input type="text" name="name" class="form-input" required value=""/>
-					}
-				</div>
-				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
-					<a class="btn" hx-get="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML" hx-push-url="/orgs">{ T(ctx, "action.cancel") }</a>
-				</div>
-			</form>
+			if org != nil {
+				<form hx-put={ "/api/v1/orgs/" + org.ID.String() } hx-target="#app" hx-swap="innerHTML">
+					@orgFormFields(org, sectors)
+				</form>
+			} else {
+				<form hx-post="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML">
+					@orgFormFields(nil, sectors)
+				</form>
+			}
 		</div>
+	</div>
+}
+
+templ orgFormFields(org *domain.Organization, sectors []*domain.Sector) {
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.name") }</label>
+		if org != nil {
+			<input type="text" name="name" class="form-input" required value={ org.Name }/>
+		} else {
+			<input type="text" name="name" class="form-input" required value=""/>
+		}
+	</div>
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.sector") }</label>
+		<select name="sector_id" class="form-input" required>
+			<option value="">— { T(ctx, "label.select_sector") } —</option>
+			for _, s := range sectors {
+				if org != nil && org.SectorID == s.ID {
+					<option value={ s.ID.String() } selected>{ s.Name }</option>
+				} else {
+					<option value={ s.ID.String() }>{ s.Name }</option>
+				}
+			}
+		</select>
+	</div>
+	<div class="form-actions">
+		<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
+		<a class="btn" hx-get="/api/v1/orgs" hx-target="#app" hx-swap="innerHTML" hx-push-url="/orgs">{ T(ctx, "action.cancel") }</a>
 	</div>
 }
 
 templ AdminUsers(users []*domain.User, total int, orgNames NameMap) {
 	<div class="page-header">
 		<h1>{ T(ctx, "admin.users") }</h1>
+		<a class="btn btn-primary" hx-get="/api/v1/users/new" hx-target="#app" hx-swap="innerHTML"
+			hx-push-url="/users/new">{ T(ctx, "admin.new_user_btn") }</a>
 	</div>
 	<div id="user-list">
 		if len(users) > 0 {
@@ -272,7 +326,7 @@ templ UserDetail(user *domain.User, orgName string) {
 	</div>
 }
 
-templ UserForm(user *domain.User) {
+templ UserForm(user *domain.User, orgs []*domain.Organization) {
 	<div class="page-header">
 		if user != nil {
 			<h1>{ T(ctx, "admin.edit_user") }</h1>
@@ -282,29 +336,52 @@ templ UserForm(user *domain.User) {
 	</div>
 	<div class="card">
 		<div class="card-body">
-			<form hx-post="/api/v1/users" hx-target="#app" hx-swap="innerHTML">
-				<div class="form-group">
-					<label class="form-label">{ T(ctx, "label.display_name") }</label>
-					if user != nil {
-						<input type="text" name="display_name" class="form-input" required value={ user.DisplayName }/>
-					} else {
-						<input type="text" name="display_name" class="form-input" required value=""/>
-					}
-				</div>
-				<div class="form-group">
-					<label class="form-label">{ T(ctx, "label.email") }</label>
-					if user != nil {
-						<input type="email" name="email" class="form-input" required value={ user.Email }/>
-					} else {
-						<input type="email" name="email" class="form-input" required value=""/>
-					}
-				</div>
-				<div class="form-actions">
-					<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
-					<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/users">{ T(ctx, "action.cancel") }</a>
-				</div>
-			</form>
+			if user != nil {
+				<form hx-put={ "/api/v1/users/" + user.ID.String() } hx-target="#app" hx-swap="innerHTML">
+					@userFormFields(user, orgs)
+				</form>
+			} else {
+				<form hx-post="/api/v1/users" hx-target="#app" hx-swap="innerHTML">
+					@userFormFields(nil, orgs)
+				</form>
+			}
 		</div>
+	</div>
+}
+
+templ userFormFields(user *domain.User, orgs []*domain.Organization) {
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.display_name") }</label>
+		if user != nil {
+			<input type="text" name="display_name" class="form-input" required value={ user.DisplayName }/>
+		} else {
+			<input type="text" name="display_name" class="form-input" required value=""/>
+		}
+	</div>
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.email") }</label>
+		if user != nil {
+			<input type="email" name="email" class="form-input" required value={ user.Email }/>
+		} else {
+			<input type="email" name="email" class="form-input" required value=""/>
+		}
+	</div>
+	<div class="form-group">
+		<label class="form-label">{ T(ctx, "label.primary_org") }</label>
+		<select name="primary_org_id" class="form-input" required>
+			<option value="">— { T(ctx, "label.select_org") } —</option>
+			for _, o := range orgs {
+				if user != nil && user.PrimaryOrgID == o.ID {
+					<option value={ o.ID.String() } selected>{ o.Name }</option>
+				} else {
+					<option value={ o.ID.String() }>{ o.Name }</option>
+				}
+			}
+		</select>
+	</div>
+	<div class="form-actions">
+		<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
+		<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/admin/users">{ T(ctx, "action.cancel") }</a>
 	</div>
 }
 

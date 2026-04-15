@@ -9,61 +9,61 @@ SET search_path TO fresnel, public;
 -- EVENTS (12 additional events spread across all 7 organizations)
 -- ============================================================================
 
--- Dept of Technology (b0..0010) — Federal / Government
+-- ЕСО ЕАД (b0..0010) — Електроенергия / Енергетика
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
-('b4000000-0000-4000-8000-000000000001'::uuid, 'local', 'b0000000-0000-4000-8000-000000000002'::uuid,
+('b4000000-0000-4000-8000-000000000001'::uuid, 'local', 'b0000000-0000-4000-8000-000000000101'::uuid,
  'Unauthorised access to legacy HR system',
  'Audit logs show an external IP authenticated via a dormant service account. The account has been disabled and credential rotation is underway. Forensic imaging of the host is in progress.',
  'UNAUTHORIZED_ACCESS', 'b1000000-0000-4000-8000-000000000006'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid,
  'AMBER', 'HIGH', 'INVESTIGATING', now() - interval '6 days'),
 
-('b4000000-0000-4000-8000-000000000002'::uuid, 'local', 'b0000000-0000-4000-8000-000000000002'::uuid,
+('b4000000-0000-4000-8000-000000000002'::uuid, 'local', 'b0000000-0000-4000-8000-000000000101'::uuid,
  'Certificate transparency alert for gov subdomain',
  'CT monitor detected issuance of a certificate for portal.internal.gov by an unauthorised CA. Domain registrar contacted; pre-existing HSTS pins prevented user impact.',
  'UNCLASSIFIED', 'b1000000-0000-4000-8000-000000000005'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid,
  'GREEN', 'LOW', 'RESOLVED', now() - interval '14 days')
 ON CONFLICT (id) DO NOTHING;
 
--- National Security Agency (b0..0011) — Federal / Government
+-- ДАЕУ (b0..0011) — Цифрова инфраструктура
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
-('b4000000-0000-4000-8000-000000000003'::uuid, 'local', 'b0000000-0000-4000-8000-000000000002'::uuid,
+('b4000000-0000-4000-8000-000000000003'::uuid, 'local', 'b0000000-0000-4000-8000-000000000008'::uuid,
  'Spear-phishing with weaponised PDF attachment',
  'Three recipients in the strategic analysis unit received PDF documents exploiting CVE-2025-XXXXX. Sandbox detonation confirmed C2 callback. All endpoints quarantined within 8 minutes.',
  'PHISHING', 'b1000000-0000-4000-8000-000000000008'::uuid, 'b0000000-0000-4000-8000-000000000011'::uuid,
  'AMBER_STRICT', 'CRITICAL', 'MITIGATING', now() - interval '3 days'),
 
-('b4000000-0000-4000-8000-000000000004'::uuid, 'local', 'b0000000-0000-4000-8000-000000000002'::uuid,
+('b4000000-0000-4000-8000-000000000004'::uuid, 'local', 'b0000000-0000-4000-8000-000000000008'::uuid,
  'DNS exfiltration via encoded TXT queries',
  'Network analytics identified anomalous TXT query patterns to a recently registered domain. Traffic volume suggests approximately 12 MB exfiltrated over 72 hours.',
  'DATA_BREACH', 'b1000000-0000-4000-8000-000000000008'::uuid, 'b0000000-0000-4000-8000-000000000011'::uuid,
  'RED', 'CRITICAL', 'INVESTIGATING', now() - interval '1 day')
 ON CONFLICT (id) DO NOTHING;
 
--- State IT Authority (b0..0012) — State / Government
+-- ДП "Ръководство на въздушното движение" (b0..0012) — Въздушен / Транспорт
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
-('b4000000-0000-4000-8000-000000000005'::uuid, 'local', 'b0000000-0000-4000-8000-000000000003'::uuid,
+('b4000000-0000-4000-8000-000000000005'::uuid, 'local', 'b0000000-0000-4000-8000-000000000201'::uuid,
  'Misconfigured cloud storage bucket publicly accessible',
  'Routine external scan found an S3-compatible bucket exposing non-sensitive operational documents. Bucket ACL corrected within 20 minutes of discovery. No PII confirmed in exposed objects.',
  'VULNERABILITY', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000012'::uuid,
  'GREEN', 'LOW', 'RESOLVED', now() - interval '10 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Central Bank (b0..0013) — Finance
+-- БНБ (b0..0013) — Банков сектор
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
-('b4000000-0000-4000-8000-000000000006'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
+('b4000000-0000-4000-8000-000000000006'::uuid, 'local', 'b0000000-0000-4000-8000-000000000003'::uuid,
  'Credential stuffing against online banking API',
  'Automated attack using breached credential lists from third-party data brokers. WAF rate limiting activated; 14 customer accounts locked as precaution. No confirmed account takeover.',
  'UNAUTHORIZED_ACCESS', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000013'::uuid,
  'AMBER', 'MODERATE', 'OPEN', now() - interval '2 days'),
 
-('b4000000-0000-4000-8000-000000000007'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
+('b4000000-0000-4000-8000-000000000007'::uuid, 'local', 'b0000000-0000-4000-8000-000000000003'::uuid,
  'SWIFT messaging anomaly under investigation',
  'Reconciliation flagged two outbound MT103 messages with non-standard field formatting. Likely benign (software update) but under review per mandatory incident process.',
  'UNCLASSIFIED', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000013'::uuid,
  'AMBER_STRICT', 'HIGH', 'INVESTIGATING', now() - interval '12 hours')
 ON CONFLICT (id) DO NOTHING;
 
--- Financial Regulatory Authority (b0..0014) — Finance
+-- КФН (b0..0014) — Инфраструктури на финансовия пазар
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
 ('b4000000-0000-4000-8000-000000000008'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
  'Phishing kit impersonating regulatory portal',
@@ -72,30 +72,30 @@ INSERT INTO events (id, source_instance, sector_context, title, description, eve
  'GREEN', 'MODERATE', 'MITIGATING', now() - interval '4 days')
 ON CONFLICT (id) DO NOTHING;
 
--- National Grid Operator (b0..0015) — Energy / Critical Infrastructure
+-- НЗОК (b0..0015) — Здравеопазване
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
-('b4000000-0000-4000-8000-000000000009'::uuid, 'local', 'b0000000-0000-4000-8000-000000000006'::uuid,
+('b4000000-0000-4000-8000-000000000009'::uuid, 'local', 'b0000000-0000-4000-8000-000000000005'::uuid,
  'SCADA network scan from compromised contractor VPN',
  'IDS alerted on port scans targeting Modbus/TCP endpoints from a contractor VPN segment. Contractor credentials revoked. No evidence of process manipulation.',
  'UNAUTHORIZED_ACCESS', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000015'::uuid,
  'AMBER_STRICT', 'CRITICAL', 'INVESTIGATING', now() - interval '1 day'),
 
-('b4000000-0000-4000-8000-000000000010'::uuid, 'local', 'b0000000-0000-4000-8000-000000000006'::uuid,
+('b4000000-0000-4000-8000-000000000010'::uuid, 'local', 'b0000000-0000-4000-8000-000000000005'::uuid,
  'Firmware integrity check failure on substation RTUs',
  'Scheduled integrity validation of remote terminal unit firmware flagged hash mismatches on 3 of 47 units. No operational impact. Physical inspection team dispatched.',
  'VULNERABILITY', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000015'::uuid,
  'AMBER', 'HIGH', 'OPEN', now() - interval '8 hours')
 ON CONFLICT (id) DO NOTHING;
 
--- Telecom Authority (b0..0016) — Telecommunications / Critical Infrastructure
+-- Софийска вода АД (b0..0016) — Питейна вода
 INSERT INTO events (id, source_instance, sector_context, title, description, event_type, submitter_id, organization_id, tlp, impact, status, created_at) VALUES
-('b4000000-0000-4000-8000-000000000011'::uuid, 'local', 'b0000000-0000-4000-8000-000000000007'::uuid,
+('b4000000-0000-4000-8000-000000000011'::uuid, 'local', 'b0000000-0000-4000-8000-000000000006'::uuid,
  'BGP hijack affecting national prefix space',
  'Route collector observed unauthorised origination of national /16 prefixes from an AS not in the authorised set. RPKI ROV rejected at 73% of peers. ISP coordination underway.',
  'DDOS', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000016'::uuid,
  'GREEN', 'HIGH', 'MITIGATING', now() - interval '5 hours'),
 
-('b4000000-0000-4000-8000-000000000012'::uuid, 'local', 'b0000000-0000-4000-8000-000000000007'::uuid,
+('b4000000-0000-4000-8000-000000000012'::uuid, 'local', 'b0000000-0000-4000-8000-000000000006'::uuid,
  'SS7 probing against mobile subscriber database',
  'Signalling firewall blocked anomalous SRI-SM and PSI queries from an international roaming partner. Pattern consistent with location tracking reconnaissance.',
  'UNAUTHORIZED_ACCESS', 'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000016'::uuid,
@@ -162,83 +162,83 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO status_reports (id, source_instance, sector_context, scope_type, scope_ref, title, body, period_covered_start, period_covered_end, as_of, assessed_status, impact, tlp, author_id, organization_id) VALUES
 
--- National Security Agency
-('b5000000-0000-4000-8000-000000000001'::uuid, 'local', 'b0000000-0000-4000-8000-000000000002'::uuid,
+-- ДАЕУ
+('b5000000-0000-4000-8000-000000000001'::uuid, 'local', 'b0000000-0000-4000-8000-000000000008'::uuid,
  'ORG', 'b0000000-0000-4000-8000-000000000011'::uuid,
- 'National Security Agency — weekly posture',
+ 'ДАЕУ — седмична оценка',
  'Two high-severity incidents in progress. Spear-phishing campaign contained but C2 infrastructure still active. DNS exfiltration investigation ongoing with data classification pending. Insider threat case (from prior week) referred to internal affairs. Overall posture: IMPAIRED.',
  now() - interval '7 days', now(), now() - interval '2 hours',
  'IMPAIRED', 'CRITICAL', 'AMBER_STRICT',
  'b1000000-0000-4000-8000-000000000008'::uuid, 'b0000000-0000-4000-8000-000000000011'::uuid),
 
--- State IT Authority
-('b5000000-0000-4000-8000-000000000002'::uuid, 'local', 'b0000000-0000-4000-8000-000000000003'::uuid,
+-- ДП РВД
+('b5000000-0000-4000-8000-000000000002'::uuid, 'local', 'b0000000-0000-4000-8000-000000000201'::uuid,
  'ORG', 'b0000000-0000-4000-8000-000000000012'::uuid,
- 'State IT Authority — weekly posture',
+ 'ДП РВД — седмична оценка',
  'Cloud storage misconfiguration resolved. No ongoing incidents. Preventive measures: automated bucket policy scanner deployed to CI/CD pipeline. Posture: NORMAL.',
  now() - interval '7 days', now(), now() - interval '4 hours',
  'NORMAL', 'LOW', 'GREEN',
  'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000012'::uuid),
 
--- Central Bank
-('b5000000-0000-4000-8000-000000000003'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
+-- БНБ
+('b5000000-0000-4000-8000-000000000003'::uuid, 'local', 'b0000000-0000-4000-8000-000000000003'::uuid,
  'ORG', 'b0000000-0000-4000-8000-000000000013'::uuid,
- 'Central Bank — weekly posture',
+ 'БНБ — седмична оценка',
  'Credential stuffing campaign ongoing with WAF mitigation in place. SWIFT anomaly under mandatory investigation — likely benign. Customer impact limited to 14 precautionary account locks. Posture: DEGRADED.',
  now() - interval '7 days', now(), now() - interval '1 hour',
  'DEGRADED', 'MODERATE', 'AMBER',
  'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000013'::uuid),
 
--- Financial Regulatory Authority
+-- КФН
 ('b5000000-0000-4000-8000-000000000004'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
  'ORG', 'b0000000-0000-4000-8000-000000000014'::uuid,
- 'Financial Regulatory Authority — weekly posture',
+ 'КФН — седмична оценка',
  'Phishing kit takedown in progress. Social media advisory issued to regulated entities. No confirmed credential compromise. Posture: DEGRADED while takedown is pending.',
  now() - interval '7 days', now(), now() - interval '3 hours',
  'DEGRADED', 'MODERATE', 'GREEN',
  'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000014'::uuid),
 
--- National Grid Operator
-('b5000000-0000-4000-8000-000000000005'::uuid, 'local', 'b0000000-0000-4000-8000-000000000006'::uuid,
+-- НЗОК
+('b5000000-0000-4000-8000-000000000005'::uuid, 'local', 'b0000000-0000-4000-8000-000000000005'::uuid,
  'ORG', 'b0000000-0000-4000-8000-000000000015'::uuid,
- 'National Grid Operator — weekly posture',
+ 'НЗОК — седмична оценка',
  'Two active incidents: SCADA network scan from compromised contractor VPN (investigation ongoing, no process impact) and firmware integrity failures on 3 RTUs (physical inspection dispatched). OT network segmentation held. Posture: IMPAIRED.',
  now() - interval '7 days', now(), now() - interval '30 minutes',
  'IMPAIRED', 'CRITICAL', 'AMBER_STRICT',
  'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000015'::uuid),
 
--- Telecom Authority
-('b5000000-0000-4000-8000-000000000006'::uuid, 'local', 'b0000000-0000-4000-8000-000000000007'::uuid,
+-- Софийска вода АД
+('b5000000-0000-4000-8000-000000000006'::uuid, 'local', 'b0000000-0000-4000-8000-000000000006'::uuid,
  'ORG', 'b0000000-0000-4000-8000-000000000016'::uuid,
- 'Telecom Authority — weekly posture',
+ 'Софийска вода АД — седмична оценка',
  'BGP hijack mitigation ongoing — RPKI ROV effective at majority of peers, coordination with upstream transits in progress. SS7 probing blocked by signalling firewall; roaming partner notified. Posture: DEGRADED.',
  now() - interval '7 days', now(), now() - interval '1 hour',
  'DEGRADED', 'HIGH', 'GREEN',
  'b1000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000016'::uuid),
 
--- Sector-level report: Government
+-- Sector-level report: Енергетика
 ('b5000000-0000-4000-8000-000000000010'::uuid, 'local', 'b0000000-0000-4000-8000-000000000001'::uuid,
  'SECTOR', 'b0000000-0000-4000-8000-000000000001'::uuid,
- 'Government sector — weekly consolidated posture',
- 'Three orgs reporting: Dept of Technology (DEGRADED — phishing contained, RDP exposure under watch), National Security Agency (IMPAIRED — active spear-phishing and DNS exfiltration), State IT Authority (NORMAL). Sector posture reflects the weighted average. Recommend sector-wide dormant-account audit.',
+ 'Енергетика — седмична консолидирана оценка',
+ 'ЕСО ЕАД (DEGRADED — phishing contained, RDP exposure under watch). Sector posture reflects the weighted average. Recommend sector-wide dormant-account audit.',
  now() - interval '7 days', now(), now() - interval '1 hour',
  'DEGRADED', 'HIGH', 'AMBER',
  'b1000000-0000-4000-8000-000000000002'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
 
--- Sector-level report: Critical Infrastructure
-('b5000000-0000-4000-8000-000000000011'::uuid, 'local', 'b0000000-0000-4000-8000-000000000005'::uuid,
- 'SECTOR', 'b0000000-0000-4000-8000-000000000005'::uuid,
- 'Critical Infrastructure sector — weekly consolidated posture',
- 'Two orgs reporting elevated activity. National Grid Operator (IMPAIRED — SCADA scan and RTU firmware anomalies) and Telecom Authority (DEGRADED — BGP hijack mitigation and SS7 probing). Sector posture reflects weighted average of child statuses. Recommend cross-sector OT monitoring coordination.',
+-- Sector-level report: Цифрова инфраструктура
+('b5000000-0000-4000-8000-000000000011'::uuid, 'local', 'b0000000-0000-4000-8000-000000000008'::uuid,
+ 'SECTOR', 'b0000000-0000-4000-8000-000000000008'::uuid,
+ 'Цифрова инфраструктура — седмична консолидирана оценка',
+ 'ДАЕУ (IMPAIRED — active spear-phishing and DNS exfiltration). Sector posture reflects weighted average of child statuses. Recommend cross-sector monitoring coordination.',
  now() - interval '7 days', now(), now() - interval '1 hour',
  'IMPAIRED', 'CRITICAL', 'AMBER_STRICT',
  'a0000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid),
 
--- Sector-level report: Finance
-('b5000000-0000-4000-8000-000000000012'::uuid, 'local', 'b0000000-0000-4000-8000-000000000004'::uuid,
- 'SECTOR', 'b0000000-0000-4000-8000-000000000004'::uuid,
- 'Finance sector — weekly consolidated posture',
- 'Central Bank reporting credential stuffing and SWIFT anomaly investigations (DEGRADED). Financial Regulatory Authority managing phishing kit takedown (DEGRADED). No systemic risk identified. Sector posture: DEGRADED.',
+-- Sector-level report: Банков сектор
+('b5000000-0000-4000-8000-000000000012'::uuid, 'local', 'b0000000-0000-4000-8000-000000000003'::uuid,
+ 'SECTOR', 'b0000000-0000-4000-8000-000000000003'::uuid,
+ 'Банков сектор — седмична консолидирана оценка',
+ 'БНБ reporting credential stuffing and SWIFT anomaly investigations (DEGRADED). КФН managing phishing kit takedown (DEGRADED). No systemic risk identified. Sector posture: DEGRADED.',
  now() - interval '7 days', now(), now() - interval '2 hours',
  'DEGRADED', 'MODERATE', 'AMBER',
  'a0000000-0000-4000-8000-000000000004'::uuid, 'b0000000-0000-4000-8000-000000000010'::uuid)

@@ -101,6 +101,46 @@ func parseLinkEventFromForm(r *http.Request) uuid.UUID {
 	return uuid.Nil
 }
 
+func parseSectorFromForm(r *http.Request) *domain.Sector {
+	_ = r.ParseForm()
+	s := &domain.Sector{
+		Name: r.FormValue("name"),
+	}
+	if v := r.FormValue("parent_sector_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			s.ParentSectorID = &id
+		}
+	}
+	return s
+}
+
+func parseOrgFromForm(r *http.Request) *domain.Organization {
+	_ = r.ParseForm()
+	o := &domain.Organization{
+		Name: r.FormValue("name"),
+	}
+	if v := r.FormValue("sector_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			o.SectorID = id
+		}
+	}
+	return o
+}
+
+func parseUserFromForm(r *http.Request) *domain.User {
+	_ = r.ParseForm()
+	u := &domain.User{
+		DisplayName: r.FormValue("display_name"),
+		Email:       r.FormValue("email"),
+	}
+	if v := r.FormValue("primary_org_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			u.PrimaryOrgID = id
+		}
+	}
+	return u
+}
+
 func parseEventUpdateFromForm(r *http.Request) *domain.EventUpdate {
 	_ = r.ParseForm()
 	u := &domain.EventUpdate{

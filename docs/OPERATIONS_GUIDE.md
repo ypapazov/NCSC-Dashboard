@@ -1,6 +1,6 @@
-# Fresnel Operations Guide
+# CyberBG Picture — Operations Guide
 
-**Scope**: How to provision, deploy, upgrade, back up, restore, and maintain a Fresnel instance on AWS (EC2 + Docker Compose). The same procedures apply on vSphere with minor path adjustments — see `AWS_TO_VSPHERE_MIGRATION.md` for the migration path.
+**Scope**: How to provision, deploy, upgrade, back up, restore, and maintain a CyberBG Picture instance on AWS (EC2 + Docker Compose). The same procedures apply on vSphere with minor path adjustments — see `AWS_TO_VSPHERE_MIGRATION.md` for the migration path.
 
 **Related documents**:
 - `HOSTING_REQUIREMENTS.md` — VM specs, network, firewall, TLS, backups
@@ -111,6 +111,29 @@ cp .env.example .env
 # APP_PUBLIC_URL, KEYCLOAK_EXTERNAL_URL, SMTP_* (see §1.4), backup GPG recipient.
 chmod 600 .env
 ```
+
+**Skip development seed data (production deployments):**
+
+The database migrations include development seed files (`007_m1_dev_seed.sql`, `009_full_dev_seed.sql`, `010_dev_content_seed.sql`) that create test users, organizations, events, campaigns, and correlations. These should **not** run in production.
+
+Add to `.env`:
+
+```bash
+FRESNEL_SKIP_DEV_SEEDS=true
+```
+
+When set, the migrator skips any migration file whose name contains `_dev_`. The production-essential files still run:
+
+| File | Contents | Runs in production? |
+|------|----------|---------------------|
+| `001`–`006` | Schema, IAM, audit, pgvector, platform config | Yes |
+| `006a_seed_sectors.sql` | NIS2 sectors, sub-sectors, national authority orgs | Yes |
+| `007_m1_dev_seed.sql` | Dev sector/org/user | **No** (skipped) |
+| `008_m1_platform_admin.sql` | Bootstrap platform administrator | Yes |
+| `009_full_dev_seed.sql` | Test hierarchy, users, events, IAM assignments | **No** (skipped) |
+| `010_dev_content_seed.sql` | Test events, reports, campaigns, correlations | **No** (skipped) |
+
+After the first deploy, the platform starts with the 10 NIS2 sectors (with sub-sectors for Energy and Transport), the "Национални органи" sector with CERT.bg / ДАНС / ГДБОП / МО, and a single platform administrator. All other organizations, users, and content are created through the UI.
 
 Generate strong secrets:
 

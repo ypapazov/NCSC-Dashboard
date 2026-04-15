@@ -3,7 +3,7 @@ package i18n
 var enMessages = Messages{
 	// Shell / Layout
 	"shell.authenticating": "Authenticating\u2026",
-	"shell.brand":          "Fresnel",
+	"shell.brand":          "CyberBG Picture",
 
 	// Nav
 	"nav.dashboard":      "Dashboard",
@@ -57,7 +57,11 @@ var enMessages = Messages{
 	"label.depth":        "Depth",
 	"label.ancestry_path": "Ancestry Path",
 	"label.primary_org":  "Primary Organization",
-	"label.display_name": "Display Name",
+	"label.display_name":   "Display Name",
+	"label.parent_sector":  "Parent Sector",
+	"label.none_top_level": "None (top-level)",
+	"label.select_sector":  "Select sector",
+	"label.select_org":     "Select organization",
 	"label.role":         "Role",
 	"label.scope_type":   "Scope Type",
 	"label.scope_target": "Scope Target",
@@ -211,6 +215,7 @@ var enMessages = Messages{
 	"admin.sector_details":    "Sector Details",
 	"admin.edit_sector":       "Edit Sector",
 	"admin.create_sector":     "Create Sector",
+	"admin.new_sector":        "+ New Sector",
 	"admin.no_sectors":        "No sectors defined yet.",
 
 	// Admin - Orgs
@@ -218,6 +223,7 @@ var enMessages = Messages{
 	"admin.org_details":       "Organization Details",
 	"admin.edit_org":          "Edit Organization",
 	"admin.create_org":        "Create Organization",
+	"admin.new_org_btn":       "+ New Organization",
 	"admin.no_orgs":           "No organizations found.",
 
 	// Admin - Users
@@ -225,6 +231,7 @@ var enMessages = Messages{
 	"admin.user_profile":      "Profile",
 	"admin.edit_user":         "Edit User",
 	"admin.create_user":       "Create User",
+	"admin.new_user_btn":      "+ New User",
 	"admin.no_users":          "No users found.",
 	"admin.users_total":       "%d user(s) total",
 	"admin.back_users":        "\u2190 Back to Users",
