@@ -372,6 +372,7 @@ var enMessages = Messages{
 	"js.kc_failed":    "Keycloak adapter failed to load.",
 	"js.auth_failed":  "Authentication failed. Please refresh the page.",
 	"js.logout":       "Log out",
+	"js.account":      "Change password",
 	"js.timeline_suffix": "\u2014 Timeline",
 
 	// Language switcher

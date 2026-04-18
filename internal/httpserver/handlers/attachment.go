@@ -42,12 +42,17 @@ func (h *AttachmentHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/events/"+eventID.String())
+		w.WriteHeader(http.StatusCreated)
+		return
+	}
 	respondJSON(w, http.StatusCreated, att)
 }
 
 func (h *AttachmentHandler) Download(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	id, err := parseUUID(r, "id")
+	id, err := parseUUID(r, "attachmentId")
 	if err != nil {
 		respondError(w, r, service.ErrValidation)
 		return
@@ -97,7 +102,7 @@ func (h *AttachmentHandler) ListByEvent(w http.ResponseWriter, r *http.Request) 
 
 func (h *AttachmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	auth := getAuth(r)
-	id, err := parseUUID(r, "id")
+	id, err := parseUUID(r, "attachmentId")
 	if err != nil {
 		respondError(w, r, service.ErrValidation)
 		return

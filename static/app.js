@@ -180,6 +180,27 @@
         var eid = eventLink.getAttribute("data-event-link");
         htmx.ajax("GET", "/api/v1/events/" + eid, { target: "#app", swap: "innerHTML" });
         history.pushState({}, "", "/events/" + eid);
+        return;
+      }
+      var dl = evt.target.closest("[data-download-url]");
+      if (dl) {
+        evt.preventDefault();
+        var url = dl.getAttribute("data-download-url");
+        var fname = dl.getAttribute("data-download-name") || "download";
+        fetch(url, { headers: { Authorization: "Bearer " + window.__fresnelToken } })
+          .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.blob();
+          })
+          .then(function (blob) {
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = fname;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+          })
+          .catch(function (err) { alert("Download failed: " + err.message); });
       }
     });
 
@@ -327,6 +348,17 @@
     var nameSpan = document.createElement("span");
     nameSpan.textContent = name;
 
+    var accountLink = document.createElement("a");
+    accountLink.href = "#";
+    accountLink.textContent = i18n.i18nAccount || "My account";
+    accountLink.addEventListener("click", function (e) {
+      e.preventDefault();
+      kc.login({
+        action: "UPDATE_PASSWORD",
+        redirectUri: window.location.origin + window.location.pathname,
+      });
+    });
+
     var logout = document.createElement("a");
     logout.href = "#";
     logout.textContent = i18n.i18nLogout || "Log out";
@@ -337,6 +369,8 @@
 
     info.textContent = "";
     info.appendChild(nameSpan);
+    info.appendChild(document.createTextNode(" "));
+    info.appendChild(accountLink);
     info.appendChild(document.createTextNode(" "));
     info.appendChild(logout);
   }

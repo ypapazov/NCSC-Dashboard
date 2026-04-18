@@ -293,7 +293,9 @@ templ EventDetail(data EventDetailData) {
 					for _, att := range data.Attachments {
 						<li class="attachment-item">
 							<span class="attachment-icon">&#128206;</span>
-							<a class="attachment-name" href={ templ.SafeURL("/api/v1/events/" + data.Event.ID.String() + "/attachments/" + att.ID.String()) }>{ att.Filename }</a>
+							<a class="attachment-name" href="#"
+							data-download-url={ "/api/v1/events/" + data.Event.ID.String() + "/attachments/" + att.ID.String() }
+							data-download-name={ att.Filename }>{ att.Filename }</a>
 							<span class="attachment-size">{ FmtBytes(att.SizeBytes) }</span>
 							<span class={ "badge badge-severity-" + attachmentSeverityClass(att.ScanStatus) }>{ string(att.ScanStatus) }</span>
 						</li>

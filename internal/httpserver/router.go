@@ -104,6 +104,8 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	// Event attachments
 	mux.HandleFunc("GET /api/v1/events/{id}/attachments", attachH.ListByEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/attachments", attachH.Upload)
+	mux.HandleFunc("GET /api/v1/events/{id}/attachments/{attachmentId}", attachH.Download)
+	mux.HandleFunc("DELETE /api/v1/events/{id}/attachments/{attachmentId}", attachH.Delete)
 
 	// Event correlations
 	mux.HandleFunc("GET /api/v1/events/{id}/correlations", corrH.ListByEvent)
