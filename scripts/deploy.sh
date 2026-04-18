@@ -51,9 +51,9 @@ $COMPOSE_CMD build fresnel
 log "Running migrations..."
 $COMPOSE_CMD run --rm fresnel /app/fresnel migrate
 
-# 5. Restart the Fresnel API container
-log "Restarting Fresnel API..."
-$COMPOSE_CMD up -d --no-deps fresnel
+# 5. Restart the Fresnel API and nginx containers
+log "Restarting Fresnel API and nginx..."
+$COMPOSE_CMD up -d --no-deps fresnel nginx
 
 # 6. Wait for health check
 log "Waiting for health check..."
