@@ -23,6 +23,11 @@ type Config struct {
 	// keycloak-js on the client. Falls back to KeycloakIssuer when not set.
 	KeycloakExternalURL string
 
+	// Keycloak Admin API credentials — when set, the platform can
+	// provision Keycloak users directly from the admin UI.
+	KeycloakAdminUser     string
+	KeycloakAdminPassword string
+
 	AppPublicURL   string // e.g. https://localhost
 	ClamAVAddress string // TCP address (host:port) for clamd; empty disables scanning
 
@@ -71,8 +76,10 @@ func Load() (*Config, error) {
 		DatabaseURL:         getenv("DATABASE_URL", ""),
 		KeycloakIssuer:      getenv("KEYCLOAK_ISSUER", ""),
 		KeycloakClientID:    getenv("KEYCLOAK_CLIENT_ID", ""),
-		KeycloakExternalURL: getenv("KEYCLOAK_EXTERNAL_URL", ""),
-		AppPublicURL:        getenv("APP_PUBLIC_URL", "https://localhost"),
+		KeycloakExternalURL:   getenv("KEYCLOAK_EXTERNAL_URL", ""),
+		KeycloakAdminUser:     getenv("KC_ADMIN_USER", ""),
+		KeycloakAdminPassword: getenv("KC_ADMIN_PASSWORD", ""),
+		AppPublicURL:          getenv("APP_PUBLIC_URL", "https://localhost"),
 		ClamAVAddress:       getenv("CLAMAV_ADDRESS", ""),
 		SESRegion:           getenv("SES_REGION", ""),
 		SMTPHost:            getenv("SMTP_HOST", ""),

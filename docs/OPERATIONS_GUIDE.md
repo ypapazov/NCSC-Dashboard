@@ -179,6 +179,12 @@ curl -s http://localhost:80/api/v1/health | python3 -m json.tool
 
 Log in via `https://fresnel.example.org` (or your domain) with the `platform-root` user from the Keycloak realm import, then immediately change the password.
 
+**i) Creating users:**
+
+Navigate to **Administration → Users → + New User**. Fill in the display name, email, primary organization, and optionally a **password**. When a password is provided and `KC_ADMIN_USER`/`KC_ADMIN_PASSWORD` are set in `.env`, the platform automatically provisions the user in Keycloak — no CLI commands needed. The user can log in immediately with the specified credentials.
+
+If the password field is left blank, the Fresnel DB record is created with a placeholder Keycloak subject. On the user's first Keycloak login (after a manual Keycloak account is created), the platform links the two records by matching the email address.
+
 ### 1.4 Email setup (SES)
 
 Terraform creates an SES domain identity, DKIM records (if using Route 53), and an IAM user for Keycloak SMTP. The Fresnel Go app uses the SES **API** directly via the EC2 instance role — no static credentials needed.

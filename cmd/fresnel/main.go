@@ -12,6 +12,7 @@ import (
 	"fresnel/internal/clamav"
 	"fresnel/internal/config"
 	apphttp "fresnel/internal/httpserver"
+	"fresnel/internal/keycloak"
 	"fresnel/internal/mail"
 	"fresnel/internal/service"
 	"fresnel/internal/storage/postgres"
@@ -113,7 +114,14 @@ func main() {
 	statusReportSvc := service.NewStatusReportService(statusReportStore, sectorStore, tlpRedStore, az, auditSvc)
 	campaignSvc := service.NewCampaignService(campaignStore, eventStore, sectorStore, tlpRedStore, az, auditSvc)
 	orgSvc := service.NewOrganizationService(orgStore, sectorStore, az, auditSvc)
-	userSvc := service.NewUserService(userStore, roleStore, az, auditSvc)
+	var kcAdmin *keycloak.AdminClient
+	if cfg.KeycloakAdminUser != "" && cfg.KeycloakAdminPassword != "" {
+		kcAdmin = keycloak.NewAdminClient(cfg.KeycloakIssuer, cfg.KeycloakAdminUser, cfg.KeycloakAdminPassword)
+		log.Info("Keycloak admin provisioning enabled")
+	} else {
+		log.Warn("Keycloak admin provisioning disabled (KC_ADMIN_USER/KC_ADMIN_PASSWORD not set)")
+	}
+	userSvc := service.NewUserService(userStore, roleStore, az, auditSvc, kcAdmin)
 	corrSvc := service.NewCorrelationService(correlationStore, relationshipStore, eventStore, sectorStore, tlpRedStore, az, auditSvc)
 	var scanner *clamav.Client
 	if cfg.ClamAVAddress != "" {
@@ -142,6 +150,7 @@ func main() {
 		Orgs:    orgStore,
 		Sectors: sectorStore,
 		Users:   userStore,
+		Roles:   roleStore,
 		TLPRed:  tlpRedStore,
 		Authz:   az,
 	}

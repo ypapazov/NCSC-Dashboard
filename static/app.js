@@ -40,6 +40,7 @@
 
   window._fresnel = { keycloak: kc };
   Object.defineProperty(window, '__fresnelToken', {
+    configurable: true,
     get: function () { return kc.token; }
   });
 

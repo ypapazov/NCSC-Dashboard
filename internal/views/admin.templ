@@ -298,8 +298,16 @@ templ AdminUsers(users []*domain.User, total int, orgNames NameMap) {
 
 templ UserDetail(user *domain.User, orgName string) {
 	<div class="page-header">
-		<h1>{ user.DisplayName }</h1>
-		<span class="text-muted text-sm">{ user.Email }</span>
+		<div>
+			<h1>{ user.DisplayName }</h1>
+			<span class="text-muted text-sm">{ user.Email }</span>
+		</div>
+		<a class="btn btn-primary btn-sm"
+			hx-get={ "/api/v1/users/" + user.ID.String() + "/roles" }
+			hx-target="#app" hx-swap="innerHTML"
+			hx-push-url={ "/users/" + user.ID.String() + "/roles" }>
+			{ T(ctx, "admin.manage_roles") }
+		</a>
 	</div>
 	<div class="card">
 		<div class="card-header">{ T(ctx, "admin.user_profile") }</div>
@@ -379,17 +387,24 @@ templ userFormFields(user *domain.User, orgs []*domain.Organization) {
 			}
 		</select>
 	</div>
+	if user == nil {
+		<div class="form-group">
+			<label class="form-label">{ T(ctx, "label.password") }</label>
+			<input type="password" name="password" class="form-input" minlength="8" autocomplete="new-password" value=""/>
+			<small class="text-muted">{ T(ctx, "admin.password_hint") }</small>
+		</div>
+	}
 	<div class="form-actions">
 		<button type="submit" class="btn btn-primary">{ T(ctx, "action.save_short") }</button>
-		<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/admin/users">{ T(ctx, "action.cancel") }</a>
+		<a class="btn" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML" hx-push-url="/users">{ T(ctx, "action.cancel") }</a>
 	</div>
 }
 
 templ AdminRoles(data AdminRolesData) {
 	<div class="page-header">
 		<div>
-			<a class="text-muted text-sm" hx-get="/api/v1/admin/users" hx-target="#app" hx-swap="innerHTML"
-				hx-push-url="/admin/users">{ T(ctx, "admin.back_users") }</a>
+			<a class="text-muted text-sm" hx-get="/api/v1/users" hx-target="#app" hx-swap="innerHTML"
+				hx-push-url="/users">{ T(ctx, "admin.back_users") }</a>
 			<h1 style="margin-top:.25rem;">{ T(ctx, "admin.roles_for") } { data.UserName }</h1>
 		</div>
 	</div>
@@ -414,7 +429,7 @@ templ AdminRoles(data AdminRolesData) {
 								<td class="table-cell text-sm">{ role.ScopeName }</td>
 								<td class="table-cell">
 									<button class="btn btn-sm btn-danger"
-										hx-delete={ fmt.Sprintf("/api/v1/admin/users/%s/roles/%s?scope_type=%s&scope_id=%s", data.UserID.String(), role.Role, role.ScopeType, role.ScopeID.String()) }
+										hx-delete={ fmt.Sprintf("/api/v1/users/%s/roles?role=%s&scope_type=%s&scope_id=%s", data.UserID.String(), role.Role, role.ScopeType, role.ScopeID.String()) }
 										hx-target="#app" hx-swap="innerHTML"
 										hx-confirm={ "Revoke role " + role.Role + "?" }>
 										{ T(ctx, "action.revoke") }
@@ -432,7 +447,7 @@ templ AdminRoles(data AdminRolesData) {
 	<div class="card">
 		<div class="card-header">{ T(ctx, "admin.assign_role") }</div>
 		<div class="card-body">
-			<form hx-post={ "/api/v1/admin/users/" + data.UserID.String() + "/roles" }
+			<form hx-post={ "/api/v1/users/" + data.UserID.String() + "/roles" }
 				hx-target="#app" hx-swap="innerHTML">
 				<div class="form-row">
 					<div class="form-group">

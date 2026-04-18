@@ -54,6 +54,8 @@ services:
       KEYCLOAK_ISSUER: http://keycloak:8080/realms/fresnel
       KEYCLOAK_CLIENT_ID: fresnel-app
       KEYCLOAK_EXTERNAL_URL: https://localhost/realms/fresnel
+      KC_ADMIN_USER: admin
+      KC_ADMIN_PASSWORD: admin
       APP_PUBLIC_URL: https://localhost
       CLAMAV_ADDRESS: clamav:3310
       ATTACHMENT_DIR: /tmp/fresnel-attachments

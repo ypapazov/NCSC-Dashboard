@@ -38,6 +38,7 @@ type Lookups struct {
 	Orgs    storage.OrganizationStore
 	Sectors storage.SectorStore
 	Users   storage.UserStore
+	Roles   storage.RoleStore
 	TLPRed  storage.TLPRedStore
 	Authz   authz.Authorizer
 }
@@ -56,6 +57,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 		Orgs:    lk.Orgs,
 		Sectors: lk.Sectors,
 		Users:   lk.Users,
+		Roles:   lk.Roles,
 		TLPRed:  lk.TLPRed,
 		Authz:   lk.Authz,
 	}
@@ -67,7 +69,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	campaignH := httphandlers.NewCampaignHandler(svc.Campaigns, hlk)
 	sectorH := httphandlers.NewSectorHandler(svc.Sectors)
 	orgH := httphandlers.NewOrgHandler(svc.Orgs, svc.Sectors)
-	userH := httphandlers.NewUserHandler(svc.Users, svc.Orgs)
+	userH := httphandlers.NewUserHandler(svc.Users, svc.Orgs, hlk)
 	corrH := httphandlers.NewCorrelationHandler(svc.Correlations, svc.Events, hlk)
 	attachH := httphandlers.NewAttachmentHandler(svc.Attachments)
 	auditH := httphandlers.NewAuditHandler(svc.Audit, svc.Users)
@@ -166,6 +168,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	mux.HandleFunc("GET /api/v1/users/{id}", userH.Get)
 	mux.HandleFunc("GET /api/v1/users/{id}/edit", userH.Form)
 	mux.HandleFunc("PUT /api/v1/users/{id}", userH.Update)
+	mux.HandleFunc("GET /api/v1/users/{id}/roles", userH.GetRoles)
 	mux.HandleFunc("POST /api/v1/users/{id}/roles", userH.AssignRole)
 	mux.HandleFunc("DELETE /api/v1/users/{id}/roles", userH.RevokeRole)
 

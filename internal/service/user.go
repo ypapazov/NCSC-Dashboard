@@ -3,26 +3,30 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	"fresnel/internal/authz"
 	"fresnel/internal/domain"
+	"fresnel/internal/keycloak"
 	"fresnel/internal/storage"
 
 	"github.com/google/uuid"
 )
 
 type UserService struct {
-	users   storage.UserStore
-	roles   storage.RoleStore
-	authz   authz.Authorizer
-	audit   *AuditService
+	users storage.UserStore
+	roles storage.RoleStore
+	authz authz.Authorizer
+	audit *AuditService
+	kc    *keycloak.AdminClient // nil when KC admin creds not configured
 }
 
-func NewUserService(users storage.UserStore, roles storage.RoleStore, az authz.Authorizer, audit *AuditService) *UserService {
-	return &UserService{users: users, roles: roles, authz: az, audit: audit}
+func NewUserService(users storage.UserStore, roles storage.RoleStore, az authz.Authorizer, audit *AuditService, kc *keycloak.AdminClient) *UserService {
+	return &UserService{users: users, roles: roles, authz: az, audit: audit, kc: kc}
 }
 
-func (s *UserService) Create(ctx context.Context, auth *domain.AuthContext, user *domain.User) error {
+func (s *UserService) Create(ctx context.Context, auth *domain.AuthContext, user *domain.User, password string) error {
 	res := authz.UserResource(user)
 	if !s.authz.Authorize(ctx, auth, authz.ActionCreate, res) {
 		return ErrForbidden
@@ -35,9 +39,24 @@ func (s *UserService) Create(ctx context.Context, auth *domain.AuthContext, user
 	if user.Timezone == "" {
 		user.Timezone = "UTC"
 	}
-	if user.KeycloakSub == "" {
+
+	if password != "" && s.kc != nil {
+		nameParts := strings.SplitN(user.DisplayName, " ", 2)
+		firstName := nameParts[0]
+		lastName := ""
+		if len(nameParts) > 1 {
+			lastName = nameParts[1]
+		}
+		kcSub, err := s.kc.CreateUser(ctx, user.Email, firstName, lastName, password)
+		if err != nil {
+			return fmt.Errorf("keycloak provisioning failed: %w", err)
+		}
+		user.KeycloakSub = kcSub
+		slog.Info("keycloak user provisioned", "email", user.Email, "kc_sub", kcSub)
+	} else if user.KeycloakSub == "" {
 		user.KeycloakSub = "pending-" + user.ID.String()
 	}
+
 	if err := s.users.Create(ctx, user); err != nil {
 		return err
 	}
