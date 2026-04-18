@@ -302,12 +302,20 @@ templ UserDetail(user *domain.User, orgName string) {
 			<h1>{ user.DisplayName }</h1>
 			<span class="text-muted text-sm">{ user.Email }</span>
 		</div>
-		<a class="btn btn-primary btn-sm"
-			hx-get={ "/api/v1/users/" + user.ID.String() + "/roles" }
-			hx-target="#app" hx-swap="innerHTML"
-			hx-push-url={ "/users/" + user.ID.String() + "/roles" }>
-			{ T(ctx, "admin.manage_roles") }
-		</a>
+		<div style="display:flex;gap:.5rem;">
+			<a class="btn btn-primary btn-sm"
+				hx-get={ "/api/v1/users/" + user.ID.String() + "/roles" }
+				hx-target="#app" hx-swap="innerHTML"
+				hx-push-url={ "/users/" + user.ID.String() + "/roles" }>
+				{ T(ctx, "admin.manage_roles") }
+			</a>
+			<button class="btn btn-danger btn-sm"
+				hx-delete={ "/api/v1/users/" + user.ID.String() }
+				hx-confirm={ T(ctx, "admin.delete_user_confirm") }
+				hx-target="#app" hx-swap="innerHTML">
+				{ T(ctx, "action.delete") }
+			</button>
+		</div>
 	</div>
 	<div class="card">
 		<div class="card-header">{ T(ctx, "admin.user_profile") }</div>

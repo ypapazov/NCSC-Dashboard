@@ -41,15 +41,15 @@ CREATE TABLE org_sector_memberships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id),
     sector_id UUID NOT NULL REFERENCES sectors(id),
-    root_user_id UUID REFERENCES users(id),
+    root_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(organization_id, sector_id)
 );
 
 CREATE TABLE user_org_memberships (
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     organization_id UUID NOT NULL REFERENCES organizations(id),
-    assigned_by UUID NOT NULL REFERENCES users(id),
+    assigned_by UUID REFERENCES users(id) ON DELETE SET NULL,
     assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, organization_id)
 );
@@ -61,7 +61,7 @@ CREATE TABLE events (
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     event_type TEXT NOT NULL,
-    submitter_id UUID NOT NULL REFERENCES users(id),
+    submitter_id UUID REFERENCES users(id) ON DELETE SET NULL,
     organization_id UUID NOT NULL REFERENCES organizations(id),
     tlp TEXT NOT NULL,
     impact TEXT NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE event_revisions (
     tlp TEXT NOT NULL,
     impact TEXT NOT NULL,
     status TEXT NOT NULL,
-    changed_by UUID NOT NULL REFERENCES users(id),
+    changed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(event_id, revision_number)
 );
@@ -91,7 +91,7 @@ CREATE TABLE event_revisions (
 CREATE TABLE event_updates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id),
-    author_id UUID NOT NULL REFERENCES users(id),
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
     body TEXT NOT NULL,
     tlp TEXT NOT NULL,
     impact_change TEXT,
@@ -114,7 +114,7 @@ CREATE TABLE status_reports (
     assessed_status TEXT NOT NULL,
     impact TEXT NOT NULL,
     tlp TEXT NOT NULL,
-    author_id UUID NOT NULL REFERENCES users(id),
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
     organization_id UUID NOT NULL REFERENCES organizations(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -129,7 +129,7 @@ CREATE TABLE status_report_revisions (
     assessed_status TEXT NOT NULL,
     impact TEXT NOT NULL,
     tlp TEXT NOT NULL,
-    changed_by UUID NOT NULL REFERENCES users(id),
+    changed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(status_report_id, revision_number)
 );
@@ -148,7 +148,7 @@ CREATE TABLE campaigns (
     description TEXT NOT NULL,
     tlp TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'ACTIVE',
-    created_by UUID NOT NULL REFERENCES users(id),
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     organization_id UUID NOT NULL REFERENCES organizations(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -157,7 +157,7 @@ CREATE TABLE campaigns (
 CREATE TABLE campaign_events (
     campaign_id UUID NOT NULL REFERENCES campaigns(id),
     event_id UUID NOT NULL REFERENCES events(id),
-    linked_by UUID NOT NULL REFERENCES users(id),
+    linked_by UUID REFERENCES users(id) ON DELETE SET NULL,
     linked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (campaign_id, event_id)
 );
@@ -168,7 +168,7 @@ CREATE TABLE correlations (
     event_b_id UUID NOT NULL REFERENCES events(id),
     label TEXT NOT NULL,
     correlation_type TEXT NOT NULL DEFAULT 'MANUAL',
-    created_by_user UUID REFERENCES users(id),
+    created_by_user UUID REFERENCES users(id) ON DELETE SET NULL,
     created_by_agent TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (event_a_id < event_b_id)
@@ -179,7 +179,7 @@ CREATE TABLE event_relationships (
     source_event_id UUID NOT NULL REFERENCES events(id),
     target_event_id UUID NOT NULL REFERENCES events(id),
     label TEXT NOT NULL,
-    created_by_user UUID REFERENCES users(id),
+    created_by_user UUID REFERENCES users(id) ON DELETE SET NULL,
     created_by_agent TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -192,7 +192,7 @@ CREATE TABLE attachments (
     size_bytes BIGINT NOT NULL,
     storage_path TEXT NOT NULL,
     scan_status TEXT NOT NULL DEFAULT 'pending',
-    uploaded_by UUID NOT NULL REFERENCES users(id),
+    uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -200,8 +200,8 @@ CREATE TABLE tlp_red_recipients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     resource_type TEXT NOT NULL,
     resource_id UUID NOT NULL,
-    recipient_user_id UUID NOT NULL REFERENCES users(id),
-    granted_by UUID NOT NULL REFERENCES users(id),
+    recipient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    granted_by UUID REFERENCES users(id) ON DELETE SET NULL,
     granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(resource_type, resource_id, recipient_user_id)
 );
@@ -211,14 +211,14 @@ CREATE INDEX idx_tlp_red_resource ON tlp_red_recipients(resource_type, resource_
 CREATE TABLE platform_config (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
-    updated_by UUID REFERENCES users(id),
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE nudge_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id),
-    recipient_id UUID NOT NULL REFERENCES users(id),
+    recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     nudge_type TEXT NOT NULL,
     escalation_level INTEGER,
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -238,7 +238,7 @@ CREATE TABLE status_formulas (
     node_type TEXT NOT NULL,
     node_id UUID,
     starlark_source TEXT NOT NULL,
-    set_by UUID NOT NULL REFERENCES users(id),
+    set_by UUID REFERENCES users(id) ON DELETE SET NULL,
     set_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(node_type, node_id)
 );

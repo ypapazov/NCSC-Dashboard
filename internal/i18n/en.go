@@ -234,6 +234,7 @@ var enMessages = Messages{
 	"admin.create_user":       "Create User",
 	"admin.new_user_btn":      "+ New User",
 	"admin.password_hint":     "Optional. Sets the login password in Keycloak. Leave blank to configure later.",
+	"admin.delete_user_confirm": "Are you sure you want to delete this user? This cannot be undone.",
 	"admin.no_users":          "No users found.",
 	"admin.users_total":       "%d user(s) total",
 	"admin.back_users":        "\u2190 Back to Users",

@@ -119,6 +119,27 @@ func (s *UserService) Update(ctx context.Context, auth *domain.AuthContext, user
 	return nil
 }
 
+func (s *UserService) Delete(ctx context.Context, auth *domain.AuthContext, id uuid.UUID) error {
+	existing, err := s.users.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrNotFound
+	}
+	res := authz.UserResource(existing)
+	if !s.authz.Authorize(ctx, auth, authz.ActionDelete, res) {
+		return ErrForbidden
+	}
+	if err := s.users.Delete(ctx, id); err != nil {
+		return err
+	}
+	s.audit.Log(ctx, auth, "delete", "user", &id, domain.SeverityHigh, map[string]any{
+		"email": existing.Email,
+	})
+	return nil
+}
+
 func (s *UserService) AssignRole(ctx context.Context, auth *domain.AuthContext, userID uuid.UUID, role domain.Role, scopeType domain.ScopeType, scopeID uuid.UUID) error {
 	res := &authz.Resource{Type: "User", ID: userID, OrganizationID: scopeID}
 	if !s.authz.Authorize(ctx, auth, authz.ActionManageRoles, res) {

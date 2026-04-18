@@ -219,6 +219,25 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	auth := getAuth(r)
+	id, err := parseUUID(r, "id")
+	if err != nil {
+		respondError(w, r, service.ErrValidation)
+		return
+	}
+	if err := h.users.Delete(r.Context(), auth, id); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/users")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type roleRequest struct {
 	Role      domain.Role      `json:"role"`
 	ScopeType domain.ScopeType `json:"scope_type"`

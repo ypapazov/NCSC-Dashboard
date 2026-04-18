@@ -168,6 +168,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	mux.HandleFunc("GET /api/v1/users/{id}", userH.Get)
 	mux.HandleFunc("GET /api/v1/users/{id}/edit", userH.Form)
 	mux.HandleFunc("PUT /api/v1/users/{id}", userH.Update)
+	mux.HandleFunc("DELETE /api/v1/users/{id}", userH.Delete)
 	mux.HandleFunc("GET /api/v1/users/{id}/roles", userH.GetRoles)
 	mux.HandleFunc("POST /api/v1/users/{id}/roles", userH.AssignRole)
 	mux.HandleFunc("DELETE /api/v1/users/{id}/roles", userH.RevokeRole)
