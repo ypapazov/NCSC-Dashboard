@@ -14,16 +14,22 @@ import (
 // hierarchy checks without importing a repository directly.
 type SectorAncestryFunc func(sectorID uuid.UUID) string
 
+// OrgSectorFunc resolves an organization ID to its parent sector ID.
+// Used when a resource carries an OrganizationID but no SectorAncestry,
+// allowing SECTOR_ROOT to cover org-scoped resources like campaigns and users.
+type OrgSectorFunc func(orgID uuid.UUID) uuid.UUID
+
 // CedarAuthorizer implements Authorizer with Go-native logic that mirrors the
 // intended Cedar policy set. The role × action × TLP matrix is encoded
 // directly so it is easy to test and audit.
 type CedarAuthorizer struct {
 	sectorAncestry SectorAncestryFunc
+	orgSector      OrgSectorFunc
 }
 
 // NewCedarAuthorizer returns an Authorizer backed by the Go-native role matrix.
-func NewCedarAuthorizer(saf SectorAncestryFunc) *CedarAuthorizer {
-	return &CedarAuthorizer{sectorAncestry: saf}
+func NewCedarAuthorizer(saf SectorAncestryFunc, osf OrgSectorFunc) *CedarAuthorizer {
+	return &CedarAuthorizer{sectorAncestry: saf, orgSector: osf}
 }
 
 func (a *CedarAuthorizer) Authorize(_ context.Context, auth *domain.AuthContext, action Action, res *Resource) bool {
@@ -130,16 +136,25 @@ func (a *CedarAuthorizer) contributorPermits(auth *domain.AuthContext, role doma
 // ---------------------------------------------------------------------------
 
 // sectorCovers returns true when the sector identified by sectorID is an
-// ancestor of (or is) the resource's sector context.
+// ancestor of (or is) the resource's sector context.  When the resource
+// has no direct SectorAncestry but carries an OrganizationID, the org's
+// sector is resolved via OrgSectorFunc so that SECTOR_ROOT covers
+// org-scoped resources like campaigns and users.
 func (a *CedarAuthorizer) sectorCovers(sectorID uuid.UUID, res *Resource) bool {
-	if res.SectorAncestry == "" {
+	ancestry := res.SectorAncestry
+	if ancestry == "" && res.OrganizationID != uuid.Nil && a.orgSector != nil {
+		if orgSectorID := a.orgSector(res.OrganizationID); orgSectorID != uuid.Nil {
+			ancestry = a.sectorAncestry(orgSectorID)
+		}
+	}
+	if ancestry == "" {
 		return false
 	}
 	rolePath := a.sectorAncestry(sectorID)
 	if rolePath == "" {
 		return false
 	}
-	return strings.HasPrefix(res.SectorAncestry, rolePath)
+	return strings.HasPrefix(ancestry, rolePath)
 }
 
 // scopeCovers checks whether a role assignment's scope encompasses the

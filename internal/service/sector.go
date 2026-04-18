@@ -22,10 +22,6 @@ func NewSectorService(sectors storage.SectorStore, az authz.Authorizer, audit *A
 }
 
 func (s *SectorService) Create(ctx context.Context, auth *domain.AuthContext, sector *domain.Sector) error {
-	res := &authz.Resource{Type: "Sector"}
-	if !s.authz.Authorize(ctx, auth, authz.ActionCreate, res) {
-		return ErrForbidden
-	}
 	if err := sector.Validate(); err != nil {
 		return fmt.Errorf("%w: %v", ErrValidation, err)
 	}
@@ -46,6 +42,11 @@ func (s *SectorService) Create(ctx context.Context, auth *domain.AuthContext, se
 	} else {
 		sector.Depth = 1
 		sector.AncestryPath = "/" + slug(sector.Name) + "/"
+	}
+
+	res := authz.SectorResource(sector)
+	if !s.authz.Authorize(ctx, auth, authz.ActionCreate, res) {
+		return ErrForbidden
 	}
 
 	if err := s.sectors.Create(ctx, sector); err != nil {

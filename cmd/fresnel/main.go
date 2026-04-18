@@ -65,14 +65,22 @@ func main() {
 	auditStore := postgres.NewAuditStore(pool)
 
 	// --- Authorizer ---
-	// The authz SectorAncestryFunc has no context parameter; use the store directly.
-	az := authz.NewCedarAuthorizer(func(sectorID uuid.UUID) string {
-		sec, err := sectorStore.GetByID(context.Background(), sectorID)
-		if err != nil || sec == nil {
-			return ""
-		}
-		return sec.AncestryPath
-	})
+	az := authz.NewCedarAuthorizer(
+		func(sectorID uuid.UUID) string {
+			sec, err := sectorStore.GetByID(context.Background(), sectorID)
+			if err != nil || sec == nil {
+				return ""
+			}
+			return sec.AncestryPath
+		},
+		func(orgID uuid.UUID) uuid.UUID {
+			org, err := orgStore.GetByID(context.Background(), orgID)
+			if err != nil || org == nil {
+				return uuid.Nil
+			}
+			return org.SectorID
+		},
+	)
 
 	// --- Services ---
 	auditSvc := service.NewAuditService(auditStore, log)
