@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"fresnel/internal/authz"
 	"fresnel/internal/domain"
@@ -69,6 +70,7 @@ func (s *CorrelationService) CreateCorrelation(ctx context.Context, auth *domain
 
 	corr.ID = uuid.New()
 	corr.CreatedByUser = &auth.UserID
+	corr.CreatedAt = time.Now().UTC()
 	if err := s.correlations.Create(ctx, corr); err != nil {
 		return err
 	}
@@ -168,6 +170,7 @@ func (s *CorrelationService) CreateRelationship(ctx context.Context, auth *domai
 	}
 	rel.ID = uuid.New()
 	rel.CreatedByUser = &auth.UserID
+	rel.CreatedAt = time.Now().UTC()
 	if err := s.relationships.Create(ctx, rel); err != nil {
 		return err
 	}

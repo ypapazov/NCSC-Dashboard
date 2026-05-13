@@ -1,12 +1,12 @@
-# CyberBG Picture — Operations Guide
+# Fresnel — Operations Guide
 
-**Scope**: How to provision, deploy, upgrade, back up, restore, and maintain a CyberBG Picture instance on AWS (EC2 + Docker Compose). The same procedures apply on vSphere with minor path adjustments — see `AWS_TO_VSPHERE_MIGRATION.md` for the migration path.
+**Scope**: How to provision, deploy, upgrade, back up, restore, and maintain a Fresnel instance on AWS (EC2 + Docker Compose). The same procedures apply on vSphere with minor path adjustments — see `AWS_TO_VSPHERE_MIGRATION.md` for the migration path.
 
 **Related documents**:
 - `HOSTING_REQUIREMENTS.md` — VM specs, network, firewall, TLS, backups
-- `CLOUD_DEPLOYMENT_GUIDE.md` — architectural rationale, encryption at rest
-- `ZERO_DOWNTIME_DEPLOYS.md` — migration discipline, Keycloak change management
 - `AWS_TO_VSPHERE_MIGRATION.md` — moving off AWS to on-prem
+
+> **Note**: Zero-downtime deploy discipline (expand-then-contract migrations, deploy procedures, Keycloak change management) and cloud deployment rationale (architecture portability, encryption at rest) were previously in separate documents. Key content from those has been folded into this guide; the originals are in `docs/archive/`.
 
 ---
 
@@ -589,3 +589,41 @@ The `scripts/deploy.sh` script uses the production composition automatically whe
 | Health check | `curl -s http://localhost:8080/api/v1/health` |
 | Unlock LUKS after reboot | `sudo cryptsetup luksOpen /dev/nvme1n1 fresnel-data && sudo mount /dev/mapper/fresnel-data /data` |
 | Connect via SSM | `aws ssm start-session --target <instance-id>` |
+
+---
+
+## 10. Database migration discipline
+
+The Fresnel API runs migrations on startup (`postgres.Migrate`). The new binary's migration runs while the old binary may still be serving briefly or will need to serve if you roll back.
+
+**The rule: every migration must be backwards-compatible with the previous release's Go code.**
+
+| Change type | Safe in one release? | Correct approach |
+|---|---|---|
+| Add a new table | Yes | New code uses it, old code ignores it |
+| Add a nullable column | Yes | Old code ignores the column |
+| Add a NOT NULL column with a default | Yes (Postgres backfills) | Old code ignores it |
+| Rename a column | **No** | Release N: add new column + dual-write. Release N+1: read from new. Release N+2: drop old. |
+| Drop a column | **No** | Release N: stop using column. Release N+1: drop in migration. |
+| Change a column type | **No** | Same expand-then-contract as rename. |
+
+For a PoC iterating over weeks, releases N and N+1 can often be the same deploy — just make sure the migration file runs before the new Go code starts serving, which it does by design.
+
+**Critical rule**: Never drop or rename something in the same release that changes the Go code depending on it.
+
+If a migration is slow (large data backfill), run it as a pre-deploy step:
+
+```bash
+docker compose run --rm fresnel /app/fresnel migrate
+docker compose up -d --no-deps fresnel
+```
+
+### Keycloak change management
+
+Keycloak is slow to restart (~15–30s). Over a period of weeks you should rarely need to restart it:
+
+- **Adding users, client settings, realm config**: Use the Admin Console or REST API. No restart.
+- **Version upgrade**: Requires a restart.
+- **Realm JSON re-import**: Only on first start (`--import-realm`). For ongoing changes, use the API.
+
+The `start-dev` mode in Compose imports the realm JSON only on first start. Subsequent restarts do not re-import. Use the Admin Console for day-to-day changes and keep `fresnel-realm.json` as the canonical "clean start" definition.

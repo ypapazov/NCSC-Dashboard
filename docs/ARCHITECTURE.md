@@ -1,8 +1,10 @@
 # Fresnel — Architecture Document
 
-**Version**: 0.1
-**Status**: Draft — accompanies Requirements Specification v0.1
+**Version**: 0.2
+**Status**: Revised to reflect implemented state (May 2026)
 **Prerequisite**: Read the Requirements Specification first. This document does not restate domain definitions.
+
+> **Implementation note**: This architecture was originally written as a design target. Where the implementation diverges from the original design, inline annotations mark the difference. For a summary of what is built vs. planned, see [`STATUS.md`](STATUS.md). For deferred features, see [`FUTURE_WORK.md`](../FUTURE_WORK.md).
 
 ---
 
@@ -135,7 +137,7 @@ Responsibilities:
 - Business logic: event lifecycle, status report creation, campaign management, correlation rules.
 - Validation: business rules (TLP cannot be less restrictive on child than parent, status transitions, sector context matching).
 - **Row-level authorization**: Evaluates every data object returned from the storage layer against Cedar before returning it to the HTTP layer. This is the single source of truth for "can this user see this specific record?" — Cedar decides, not SQL.
-- Starlark formula execution for dashboard status computation.
+- Dashboard status computation (currently hardcoded weighted-average; Starlark formula engine is planned — see [`FUTURE_WORK.md`](../FUTURE_WORK.md)).
 - Nudge/escalation scheduling logic.
 - Coordination between storage interfaces (e.g., creating an event and its initial audit entry atomically).
 - Invoking ClamAV for attachment scanning.
@@ -231,7 +233,7 @@ Evaluated on every request before the handler executes.
 - Action: derived from HTTP method + route (e.g., `POST /api/v1/events` → `Action::Create` on `ResourceType::Event`).
 - Resource: the resource *type* and, when available from the URL, the resource *scope* (e.g., org ID from the path).
 
-**Evaluation**: Calls the Cedar engine (linked as a Go library via `cedar-go`) with the principal, action, and resource. The policy set is loaded from the database and cached in memory, invalidated on policy change events.
+**Evaluation**: Calls the authorization engine with the principal, action, and resource. The current implementation is a Go-native role matrix (`internal/authz/cedar.go`) that encodes the role × action × TLP permission table directly in Go. Migration to real Cedar policy files via `cedar-go` is planned (see [`FUTURE_WORK.md`](../FUTURE_WORK.md)).
 
 **Outcome**: `Permit` or `Deny`. Deny → 403 Forbidden, request stops. Permit → request proceeds to handler.
 

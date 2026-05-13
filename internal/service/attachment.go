@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"fresnel/internal/authz"
 	"fresnel/internal/clamav"
@@ -77,6 +78,7 @@ func (s *AttachmentService) Upload(ctx context.Context, auth *domain.AuthContext
 		SizeBytes:   size,
 		ScanStatus:  domain.ScanPending,
 		UploadedBy:  auth.UserID,
+		UploadedAt:  time.Now().UTC(),
 	}
 
 	tmpPath := filepath.Join(s.storageDir, "tmp", att.ID.String())

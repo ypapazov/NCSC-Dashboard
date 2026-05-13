@@ -49,3 +49,6 @@ Thumbs.db
 tmp/
 *.tmp
 *.log
+
+docs/archive/
+.aikdb/

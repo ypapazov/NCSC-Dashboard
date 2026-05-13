@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"fresnel/internal/authz"
 	"fresnel/internal/domain"
@@ -36,6 +37,7 @@ func (s *UserService) Create(ctx context.Context, auth *domain.AuthContext, user
 	}
 	user.ID = uuid.New()
 	user.Status = "active"
+	user.CreatedAt = time.Now().UTC()
 	if user.Timezone == "" {
 		user.Timezone = "UTC"
 	}

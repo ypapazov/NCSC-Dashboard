@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"fresnel/internal/authz"
 	"fresnel/internal/domain"
@@ -28,6 +29,7 @@ func (s *SectorService) Create(ctx context.Context, auth *domain.AuthContext, se
 
 	sector.ID = uuid.New()
 	sector.Status = "active"
+	sector.CreatedAt = time.Now().UTC()
 
 	if sector.ParentSectorID != nil {
 		parent, err := s.sectors.GetByID(ctx, *sector.ParentSectorID)

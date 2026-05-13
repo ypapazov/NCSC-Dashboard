@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"fresnel/internal/authz"
 	"fresnel/internal/domain"
@@ -36,6 +37,7 @@ func (s *OrganizationService) Create(ctx context.Context, auth *domain.AuthConte
 	}
 	org.ID = uuid.New()
 	org.Status = "active"
+	org.CreatedAt = time.Now().UTC()
 	if org.Timezone == "" {
 		org.Timezone = "UTC"
 	}

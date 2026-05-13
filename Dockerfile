@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Generate templ
-FROM ghcr.io/a-h/templ:latest AS generate
+FROM ghcr.io/a-h/templ:v0.3.1001 AS generate
 COPY --chown=65532:65532 . /src
 WORKDIR /src
 RUN ["templ", "generate"]
