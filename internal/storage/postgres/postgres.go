@@ -88,7 +88,7 @@ func applyMigration(ctx context.Context, pool *pgxpool.Pool, name string) error 
 	if err != nil {
 		return fmt.Errorf("begin %s: %w", name, err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Pooled connections may carry session state (e.g. search_path) from
 	// earlier migrations. Reset to a clean default so each migration starts

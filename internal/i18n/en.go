@@ -18,6 +18,7 @@ var enMessages = Messages{
 	"nav.orgs":           "Organizations",
 	"nav.users":          "Users",
 	"nav.audit":          "Audit Log",
+	"nav.help":           "Help",
 
 	// Common actions
 	"action.edit":    "Edit",
@@ -365,6 +366,20 @@ var enMessages = Messages{
 	"role.contributor":   "Contributor",
 	"role.viewer":        "Viewer",
 	"role.liaison":       "Liaison",
+
+	// Role descriptions (shown in assign form)
+	"role.platform_root.desc": "Full platform administrator — manages all sectors, organizations, and users",
+	"role.sector_root.desc":   "Sector administrator — manages organizations and users within a sector",
+	"role.org_root.desc":      "Organization root — full control over a single organization",
+	"role.org_admin.desc":     "Organization admin — manages members and content within an organization",
+	"role.content_admin.desc": "Content admin — can manage events and reports across all organizations",
+	"role.contributor.desc":   "Contributor — can create and edit their own events within an organization",
+	"role.viewer.desc":        "Viewer — read-only access to events and reports within an organization",
+	"role.liaison.desc":       "Liaison — cross-org coordination role assigned to specific organizations",
+
+	// Role scope picker
+	"admin.select_scope_target": "Select target…",
+	"admin.scope_auto_platform": "This role applies platform-wide. No target selection needed.",
 
 	// Scope types
 	"scope.platform": "Platform",

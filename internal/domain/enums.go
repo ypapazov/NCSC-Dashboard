@@ -210,6 +210,46 @@ func (s ScopeType) Valid() bool {
 	return false
 }
 
+// RequiredScopeType returns the scope type that a role must be assigned with.
+// VIEWER may also be assigned at SECTOR scope (sector-wide read access).
+func (r Role) RequiredScopeType() ScopeType {
+	switch r {
+	case RolePlatformRoot, RoleContentAdmin:
+		return ScopePlatform
+	case RoleSectorRoot:
+		return ScopeSector
+	case RoleOrgRoot, RoleOrgAdmin, RoleContributor, RoleViewer, RoleLiaison:
+		return ScopeOrg
+	default:
+		return ""
+	}
+}
+
+// AllowsScopeType reports whether this role may be assigned with the given scope type.
+func (r Role) AllowsScopeType(st ScopeType) bool {
+	if r.RequiredScopeType() == st {
+		return true
+	}
+	if r == RoleViewer && st == ScopeSector {
+		return true
+	}
+	return false
+}
+
+// IsRootRole reports whether the role implies a root designation.
+func (r Role) IsRootRole() bool {
+	switch r {
+	case RolePlatformRoot, RoleSectorRoot, RoleOrgRoot:
+		return true
+	}
+	return false
+}
+
+// RequiresScopeID reports whether the role needs a specific scope target (sector or org ID).
+func (r Role) RequiresScopeID() bool {
+	return r.RequiredScopeType() != ScopePlatform
+}
+
 type CorrelationType string
 
 const (

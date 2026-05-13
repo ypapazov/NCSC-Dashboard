@@ -27,7 +27,7 @@ func LoadAuthContext(ctx context.Context, pool *pgxpool.Pool, claims *oauth.Acce
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var (
 		userID                               uuid.UUID

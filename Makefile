@@ -1,7 +1,11 @@
-.PHONY: build test lint compose-up compose-dev compose-down migrate seed run certs generate
+.PHONY: build test lint compose-up compose-dev compose-down migrate seed run certs generate help
 
-generate:
+generate: help
 	templ generate
+
+help:
+	@echo "Generating help pages…"
+	@go run ./cmd/helpgen help/en static/help/en
 
 build: generate
 	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/fresnel ./cmd/fresnel

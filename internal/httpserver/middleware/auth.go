@@ -87,7 +87,7 @@ func isPublicPath(p string) bool {
 	case "/api/v1/health", "/favicon.ico":
 		return true
 	}
-	return strings.HasPrefix(p, "/static/")
+	return strings.HasPrefix(p, "/static/") || strings.HasPrefix(p, "/help/")
 }
 
 func bearerToken(r *http.Request) string {

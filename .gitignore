@@ -5,6 +5,9 @@
 # Templ generated files
 *_templ.go
 
+# Generated help HTML (built from help/*.md by cmd/helpgen)
+static/help/
+
 # Go
 vendor/
 coverage.out

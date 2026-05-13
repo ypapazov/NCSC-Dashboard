@@ -150,7 +150,7 @@ func (s *StatusReportStore) Update(ctx context.Context, sr *domain.StatusReport,
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var revNum int
 	err = tx.QueryRow(ctx, `
@@ -224,7 +224,7 @@ func (s *StatusReportStore) LinkEvents(ctx context.Context, reportID uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	for _, eid := range eventIDs {
 		_, err = tx.Exec(ctx, `

@@ -330,3 +330,28 @@ func (h *UserHandler) Form(w http.ResponseWriter, r *http.Request) {
 	}
 	respondView(w, r, http.StatusOK, views.UserForm(user, orgs))
 }
+
+func (h *UserHandler) ScopeOptions(w http.ResponseWriter, r *http.Request) {
+	role := domain.Role(r.URL.Query().Get("role"))
+	if !role.Valid() {
+		respondView(w, r, http.StatusOK, views.RoleScopePicker(role, nil, nil))
+		return
+	}
+
+	ctx := r.Context()
+	var sectors []*domain.Sector
+	var orgs []*domain.Organization
+
+	scopeType := role.RequiredScopeType()
+	switch scopeType {
+	case domain.ScopeSector:
+		sectors, _ = h.lookups.Sectors.List(ctx)
+	case domain.ScopeOrg:
+		orgs, _ = h.lookups.Orgs.List(ctx, nil)
+	}
+	if role == domain.RoleViewer {
+		sectors, _ = h.lookups.Sectors.List(ctx)
+	}
+
+	respondView(w, r, http.StatusOK, views.RoleScopePicker(role, sectors, orgs))
+}

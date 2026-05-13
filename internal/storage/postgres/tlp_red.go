@@ -20,7 +20,7 @@ func (s *TLPRedStore) SetRecipients(ctx context.Context, resourceType string, re
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	_, err = tx.Exec(ctx, `
 DELETE FROM fresnel.tlp_red_recipients WHERE resource_type = $1 AND resource_id = $2`,

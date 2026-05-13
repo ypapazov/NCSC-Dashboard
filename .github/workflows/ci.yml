@@ -1,0 +1,114 @@
+# Validates Fresnel, publishes workflow artifacts (binaries + Docker image tarball).
+# TODO: Push release binaries to GitHub Releases and the image to GHCR (login + metadata labels).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  actions: write # required for Docker Buildx GHA cache (TODO: drop if you remove cache backends)
+
+env:
+  TEMPL_VERSION: v0.3.1001
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@${{ env.TEMPL_VERSION }}
+
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Regenerate help and templ outputs
+        run: make generate
+
+      - name: Verify generated files are committed
+        run: git diff --exit-code
+
+      - name: Module integrity
+        run: go mod verify
+
+      - name: Format check
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then
+            echo "gofmt needed on:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          args: --timeout=5m
+
+      - name: Test and vet (compile-check)
+        run: go vet ./... && go test -count=1 ./...
+
+      - name: Build release binaries
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          set -eux
+          mkdir -p dist
+          build_one() {
+            local goos="$1" goarch="$2"
+            GOOS="$goos" GOARCH="$goarch" go build -trimpath \
+              -ldflags="-s -w" \
+              -o "dist/fresnel-${goos}-${goarch}" ./cmd/fresnel
+          }
+          build_one linux amd64
+          build_one linux arm64
+          build_one darwin arm64
+          build_one darwin amd64
+          ls -la dist
+
+      - name: Upload binaries artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresnel-binaries-${{ github.run_id }}
+          path: |
+            dist/fresnel-linux-amd64
+            dist/fresnel-linux-arm64
+            dist/fresnel-darwin-arm64
+            dist/fresnel-darwin-amd64
+          if-no-files-found: error
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container image (local only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: fresnel:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Save image tarball
+        run: docker save fresnel:ci-${{ github.sha }} | gzip -1 > fresnel-image.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresnel-docker-image-${{ github.run_id }}
+          path: fresnel-image.tar.gz
+          if-no-files-found: error

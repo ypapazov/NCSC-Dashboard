@@ -155,7 +155,7 @@ func (s *EventStore) Update(ctx context.Context, e *domain.Event, changedBy uuid
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var revNum int
 	err = tx.QueryRow(ctx, `

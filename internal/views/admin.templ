@@ -457,45 +457,91 @@ templ AdminRoles(data AdminRolesData) {
 		<div class="card-body">
 			<form hx-post={ "/api/v1/users/" + data.UserID.String() + "/roles" }
 				hx-target="#app" hx-swap="innerHTML">
-				<div class="form-row">
-					<div class="form-group">
-						<label class="form-label" for="role">{ T(ctx, "label.role") }</label>
-						<select id="role" name="role" class="form-select" required>
-							<option value="">{ T(ctx, "admin.select_role") }</option>
-							<option value="PLATFORM_ROOT">{ T(ctx, "role.platform_root") }</option>
-							<option value="SECTOR_ROOT">{ T(ctx, "role.sector_root") }</option>
-							<option value="ORG_ROOT">{ T(ctx, "role.org_root") }</option>
-							<option value="ORG_ADMIN">{ T(ctx, "role.org_admin") }</option>
-							<option value="CONTENT_ADMIN">{ T(ctx, "role.content_admin") }</option>
-							<option value="CONTRIBUTOR">{ T(ctx, "role.contributor") }</option>
-							<option value="VIEWER">{ T(ctx, "role.viewer") }</option>
-							<option value="LIAISON">{ T(ctx, "role.liaison") }</option>
-						</select>
-					</div>
-					<div class="form-group">
-						<label class="form-label" for="scope_type">{ T(ctx, "label.scope_type") }</label>
-						<select id="scope_type" name="scope_type" class="form-select" required>
-							<option value="">{ T(ctx, "admin.select_scope") }</option>
-							<option value="PLATFORM">{ T(ctx, "scope.platform") }</option>
-							<option value="SECTOR">{ T(ctx, "scope.sector") }</option>
-							<option value="ORG">{ T(ctx, "scope.org") }</option>
-						</select>
-					</div>
-				</div>
 				<div class="form-group">
-					<label class="form-label" for="scope_id">{ T(ctx, "label.scope_target") }</label>
-					<select id="scope_id" name="scope_id" class="form-select">
-						<option value="">{ T(ctx, "admin.scope_platform") }</option>
-						for _, opt := range data.ScopeOptions {
-							<option value={ opt.ID.String() }>{ opt.Name } ({ opt.Type })</option>
-						}
+					<label class="form-label" for="role">{ T(ctx, "label.role") }</label>
+					<select id="role" name="role" class="form-select" required
+						hx-get="/api/v1/roles/scope-options"
+						hx-target="#scope-picker"
+						hx-swap="innerHTML"
+						hx-trigger="change">
+						<option value="">{ T(ctx, "admin.select_role") }</option>
+						@roleOption("PLATFORM_ROOT", T(ctx, "role.platform_root"), T(ctx, "role.platform_root.desc"))
+						@roleOption("SECTOR_ROOT", T(ctx, "role.sector_root"), T(ctx, "role.sector_root.desc"))
+						@roleOption("ORG_ROOT", T(ctx, "role.org_root"), T(ctx, "role.org_root.desc"))
+						@roleOption("ORG_ADMIN", T(ctx, "role.org_admin"), T(ctx, "role.org_admin.desc"))
+						@roleOption("CONTENT_ADMIN", T(ctx, "role.content_admin"), T(ctx, "role.content_admin.desc"))
+						@roleOption("CONTRIBUTOR", T(ctx, "role.contributor"), T(ctx, "role.contributor.desc"))
+						@roleOption("VIEWER", T(ctx, "role.viewer"), T(ctx, "role.viewer.desc"))
+						@roleOption("LIAISON", T(ctx, "role.liaison"), T(ctx, "role.liaison.desc"))
 					</select>
-					<span class="form-hint">{ T(ctx, "admin.scope_hint") }</span>
 				</div>
+				<div id="scope-picker"></div>
 				<div class="form-actions">
 					<button type="submit" class="btn btn-primary btn-sm">{ T(ctx, "admin.assign_role") }</button>
 				</div>
 			</form>
 		</div>
 	</div>
+}
+
+templ roleOption(value, label, description string) {
+	<option value={ value } title={ description }>{ label } — { description }</option>
+}
+
+templ RoleScopePicker(role domain.Role, sectors []*domain.Sector, orgs []*domain.Organization) {
+	if role.RequiredScopeType() == domain.ScopePlatform {
+		<input type="hidden" name="scope_type" value="PLATFORM"/>
+		<input type="hidden" name="scope_id" value=""/>
+		<p class="text-muted text-sm" style="margin:.5rem 0;">{ T(ctx, "admin.scope_auto_platform") }</p>
+	} else if role == domain.RoleViewer {
+		<div class="form-group">
+			<label class="form-label">{ T(ctx, "label.scope_type") }</label>
+			<select name="scope_type" class="form-select" required>
+				<option value="ORG">{ T(ctx, "scope.org") }</option>
+				<option value="SECTOR">{ T(ctx, "scope.sector") }</option>
+			</select>
+		</div>
+		<div class="form-group">
+			<label class="form-label">{ T(ctx, "label.scope_target") }</label>
+			<select name="scope_id" class="form-select" required>
+				<option value="">{ T(ctx, "admin.select_scope_target") }</option>
+				if orgs != nil {
+					for _, o := range orgs {
+						<option value={ o.ID.String() }>{ o.Name } (Org)</option>
+					}
+				}
+				if sectors != nil {
+					for _, s := range sectors {
+						<option value={ s.ID.String() }>{ s.Name } (Sector)</option>
+					}
+				}
+			</select>
+		</div>
+	} else if role.RequiredScopeType() == domain.ScopeSector {
+		<input type="hidden" name="scope_type" value="SECTOR"/>
+		<div class="form-group">
+			<label class="form-label">{ T(ctx, "label.scope_target") }</label>
+			<select name="scope_id" class="form-select" required>
+				<option value="">{ T(ctx, "admin.select_scope_target") }</option>
+				if sectors != nil {
+					for _, s := range sectors {
+						<option value={ s.ID.String() }>{ s.Name }</option>
+					}
+				}
+			</select>
+		</div>
+	} else if role.RequiredScopeType() == domain.ScopeOrg {
+		<input type="hidden" name="scope_type" value="ORG"/>
+		<div class="form-group">
+			<label class="form-label">{ T(ctx, "label.scope_target") }</label>
+			<select name="scope_id" class="form-select" required>
+				<option value="">{ T(ctx, "admin.select_scope_target") }</option>
+				if orgs != nil {
+					for _, o := range orgs {
+						<option value={ o.ID.String() }>{ o.Name }</option>
+					}
+				}
+			</select>
+		</div>
+	}
 }

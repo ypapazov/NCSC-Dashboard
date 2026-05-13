@@ -143,6 +143,9 @@ func (s *UserService) Delete(ctx context.Context, auth *domain.AuthContext, id u
 }
 
 func (s *UserService) AssignRole(ctx context.Context, auth *domain.AuthContext, userID uuid.UUID, role domain.Role, scopeType domain.ScopeType, scopeID uuid.UUID) error {
+	if err := ValidateRoleScope(role, scopeType, scopeID); err != nil {
+		return err
+	}
 	res := &authz.Resource{Type: "User", ID: userID, OrganizationID: scopeID}
 	if !s.authz.Authorize(ctx, auth, authz.ActionManageRoles, res) {
 		return ErrForbidden
@@ -150,9 +153,35 @@ func (s *UserService) AssignRole(ctx context.Context, auth *domain.AuthContext, 
 	if err := s.roles.AssignRole(ctx, userID, role, scopeType, scopeID, auth.UserID); err != nil {
 		return err
 	}
+	if role.IsRootRole() {
+		sid := &scopeID
+		if scopeType == domain.ScopePlatform {
+			sid = nil
+		}
+		if err := s.roles.DesignateRoot(ctx, userID, scopeType, sid, auth.UserID); err != nil {
+			slog.Warn("failed to auto-designate root", "user_id", userID, "scope_type", scopeType, "err", err)
+		}
+	}
 	s.audit.Log(ctx, auth, "assign_role", "user", &userID, domain.SeverityHigh, map[string]any{
 		"role": role, "scope_type": scopeType, "scope_id": scopeID,
 	})
+	return nil
+}
+
+// ValidateRoleScope checks that the role, scope type, and scope ID form a valid combination.
+func ValidateRoleScope(role domain.Role, scopeType domain.ScopeType, scopeID uuid.UUID) error {
+	if !role.Valid() {
+		return fmt.Errorf("%w: invalid role %q", ErrValidation, role)
+	}
+	if !scopeType.Valid() {
+		return fmt.Errorf("%w: invalid scope type %q", ErrValidation, scopeType)
+	}
+	if !role.AllowsScopeType(scopeType) {
+		return fmt.Errorf("%w: role %s requires %s scope, got %s", ErrValidation, role, role.RequiredScopeType(), scopeType)
+	}
+	if role.RequiresScopeID() && scopeID == uuid.Nil {
+		return fmt.Errorf("%w: role %s requires a scope target (sector or organization ID)", ErrValidation, role)
+	}
 	return nil
 }
 

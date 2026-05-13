@@ -85,6 +85,12 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	}
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(st))))
 
+	helpFS, err := fs.Sub(static.Files, "help")
+	if err != nil {
+		return nil, err
+	}
+	mux.Handle("GET /help/", http.StripPrefix("/help/", http.FileServer(http.FS(helpFS))))
+
 	// --- Nav ---
 	mux.Handle("GET /api/v1/nav", httphandlers.Nav())
 
@@ -172,6 +178,7 @@ func NewRouter(log *slog.Logger, cfg *config.Config, pool *pgxpool.Pool, svc Ser
 	mux.HandleFunc("GET /api/v1/users/{id}/roles", userH.GetRoles)
 	mux.HandleFunc("POST /api/v1/users/{id}/roles", userH.AssignRole)
 	mux.HandleFunc("DELETE /api/v1/users/{id}/roles", userH.RevokeRole)
+	mux.HandleFunc("GET /api/v1/roles/scope-options", userH.ScopeOptions)
 
 	// --- Audit ---
 	mux.HandleFunc("GET /api/v1/audit", auditH.List)
