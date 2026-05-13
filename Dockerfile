@@ -5,11 +5,17 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Generate templ
-FROM ghcr.io/a-h/templ:v0.3.1001 AS generate
-COPY --chown=65532:65532 . /src
+# Generate help HTML (static/help is gitignored; must run before embed) and templ outputs
+FROM golang:1.24-alpine AS generate
+RUN apk add --no-cache ca-certificates git
 WORKDIR /src
-RUN ["templ", "generate"]
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ARG TEMPL_VERSION=v0.3.1001
+RUN go run ./cmd/helpgen help/en static/help/en
+RUN go install github.com/a-h/templ/cmd/templ@${TEMPL_VERSION} \
+	&& "$(go env GOPATH)/bin/templ" generate
 
 # Build
 FROM golang:1.24-alpine AS build

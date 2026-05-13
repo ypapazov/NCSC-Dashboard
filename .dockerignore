@@ -12,7 +12,9 @@
 bin/
 .aikdb/
 docs/
+# Exclude prose docs; keep translated help sources for Dockerfile helpgen
 *.md
+!help/**/*.md
 
 # Terraform state and local overrides (may contain secrets)
 infra/aws/terraform.tfstate
