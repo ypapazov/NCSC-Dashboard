@@ -117,4 +117,3 @@ ORDER BY o.name`, ancestryPrefix)
 	}
 	return out, rows.Err()
 }
-

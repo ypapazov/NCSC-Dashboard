@@ -28,7 +28,7 @@ func Health(log *slog.Logger, pool *pgxpool.Pool, keycloakIssuer string) http.Ha
 		if !dbOK || !kcOK {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"status":    "unhealthy",
+				"status":   "unhealthy",
 				"database": map[bool]string{true: "ok", false: "unreachable"}[dbOK],
 				"keycloak": map[bool]string{true: "ok", false: "unreachable"}[kcOK],
 			})

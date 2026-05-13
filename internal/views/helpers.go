@@ -344,15 +344,15 @@ func syncTimelineJSON(events []*domain.Event, sectors []*service.DashboardNode) 
 		}
 
 		items = append(items, item{
-			ID:      e.ID.String(),
-			Group:   orgID,
+			ID:    e.ID.String(),
+			Group: orgID,
 			Content: "<div class='tl-item-inner'><span class='tl-title'>" + template.HTMLEscapeString(title) + "</span>" +
 				"<span class='badge badge-impact-" + strings.ToLower(string(e.Impact)) + "' style='font-size:.65rem;padding:.1rem .3rem;'>" + string(e.Impact) + "</span></div>",
-			Start:   start.Format(time.RFC3339),
-			End:     endStr,
-			Type:    "range",
-			Class:   cssClass,
-			Title:   template.HTMLEscapeString(e.Title) + " (" + string(e.Status) + ")",
+			Start: start.Format(time.RFC3339),
+			End:   endStr,
+			Type:  "range",
+			Class: cssClass,
+			Title: template.HTMLEscapeString(e.Title) + " (" + string(e.Status) + ")",
 		})
 	}
 

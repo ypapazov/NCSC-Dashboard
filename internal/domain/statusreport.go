@@ -73,13 +73,13 @@ type StatusReportRevision struct {
 }
 
 type StatusReportFilter struct {
-	SectorContextID     *uuid.UUID
+	SectorContextID      *uuid.UUID
 	SectorAncestryPrefix string // ancestry path prefix for recursive sector queries
-	OrganizationID      *uuid.UUID
-	ScopeType           string
-	ScopeRef            *uuid.UUID
-	AssessedStatus      *AssessedStatus
-	DateFrom            *time.Time
-	DateTo              *time.Time
+	OrganizationID       *uuid.UUID
+	ScopeType            string
+	ScopeRef             *uuid.UUID
+	AssessedStatus       *AssessedStatus
+	DateFrom             *time.Time
+	DateTo               *time.Time
 	Pagination
 }

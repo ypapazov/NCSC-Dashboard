@@ -17,15 +17,15 @@ type RoleAssignment struct {
 
 // AuthContext is the request-scoped identity and authorization view for a user.
 type AuthContext struct {
-	UserID               uuid.UUID
-	KeycloakSub          string
-	DisplayName          string
-	Email                string
-	PrimaryOrgID         uuid.UUID
-	OrgMemberships       []uuid.UUID
-	ActiveOrgContext     uuid.UUID
-	AdministrativeScope  []ScopeEntry
-	IsRoot               bool
-	RootScope            *ScopeEntry
-	Roles                []RoleAssignment
+	UserID              uuid.UUID
+	KeycloakSub         string
+	DisplayName         string
+	Email               string
+	PrimaryOrgID        uuid.UUID
+	OrgMemberships      []uuid.UUID
+	ActiveOrgContext    uuid.UUID
+	AdministrativeScope []ScopeEntry
+	IsRoot              bool
+	RootScope           *ScopeEntry
+	Roles               []RoleAssignment
 }

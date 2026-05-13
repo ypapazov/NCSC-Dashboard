@@ -28,7 +28,7 @@ type Config struct {
 	KeycloakAdminUser     string
 	KeycloakAdminPassword string
 
-	AppPublicURL   string // e.g. https://localhost
+	AppPublicURL  string // e.g. https://localhost
 	ClamAVAddress string // TCP address (host:port) for clamd; empty disables scanning
 
 	// Email: SES API (preferred on AWS) or SMTP (on-prem fallback).
@@ -72,22 +72,22 @@ func Load() (*Config, error) {
 		cacheTTL = time.Duration(n) * time.Second
 	}
 	return &Config{
-		ListenAddr:          getenv("LISTEN_ADDR", ":8080"),
-		DatabaseURL:         getenv("DATABASE_URL", ""),
-		KeycloakIssuer:      getenv("KEYCLOAK_ISSUER", ""),
-		KeycloakClientID:    getenv("KEYCLOAK_CLIENT_ID", ""),
+		ListenAddr:            getenv("LISTEN_ADDR", ":8080"),
+		DatabaseURL:           getenv("DATABASE_URL", ""),
+		KeycloakIssuer:        getenv("KEYCLOAK_ISSUER", ""),
+		KeycloakClientID:      getenv("KEYCLOAK_CLIENT_ID", ""),
 		KeycloakExternalURL:   getenv("KEYCLOAK_EXTERNAL_URL", ""),
 		KeycloakAdminUser:     getenv("KC_ADMIN_USER", ""),
 		KeycloakAdminPassword: getenv("KC_ADMIN_PASSWORD", ""),
 		AppPublicURL:          getenv("APP_PUBLIC_URL", "https://localhost"),
-		ClamAVAddress:       getenv("CLAMAV_ADDRESS", ""),
-		SESRegion:           getenv("SES_REGION", ""),
-		SMTPHost:            getenv("SMTP_HOST", ""),
-		SMTPPort:            smtpPort,
-		SMTPUsername:        getenv("SMTP_USERNAME", ""),
-		SMTPPassword:        getenv("SMTP_PASSWORD", ""),
-		AttachmentDir:       getenv("ATTACHMENT_DIR", "/var/lib/fresnel/attachments"),
-		DashboardCacheTTL:   cacheTTL,
+		ClamAVAddress:         getenv("CLAMAV_ADDRESS", ""),
+		SESRegion:             getenv("SES_REGION", ""),
+		SMTPHost:              getenv("SMTP_HOST", ""),
+		SMTPPort:              smtpPort,
+		SMTPUsername:          getenv("SMTP_USERNAME", ""),
+		SMTPPassword:          getenv("SMTP_PASSWORD", ""),
+		AttachmentDir:         getenv("ATTACHMENT_DIR", "/var/lib/fresnel/attachments"),
+		DashboardCacheTTL:     cacheTTL,
 	}, nil
 }
 

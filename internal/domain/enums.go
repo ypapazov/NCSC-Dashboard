@@ -146,19 +146,19 @@ func (a AssessedStatus) NumericValue() float64 {
 type EventType string
 
 const (
-	EventTypePhishing        EventType = "PHISHING"
-	EventTypeMalware         EventType = "MALWARE"
-	EventTypeRansomware      EventType = "RANSOMWARE"
-	EventTypeDDoS            EventType = "DDOS"
-	EventTypeDataBreach      EventType = "DATA_BREACH"
-	EventTypeUnauthorized    EventType = "UNAUTHORIZED_ACCESS"
-	EventTypeWebDefacement   EventType = "WEB_DEFACEMENT"
-	EventTypeInsiderThreat   EventType = "INSIDER_THREAT"
-	EventTypeSupplyChain     EventType = "SUPPLY_CHAIN"
-	EventTypeVulnerability   EventType = "VULNERABILITY"
-	EventTypeHybrid          EventType = "HYBRID"
-	EventTypeMisinformation  EventType = "MISINFORMATION"
-	EventTypeUnclassified    EventType = "UNCLASSIFIED"
+	EventTypePhishing       EventType = "PHISHING"
+	EventTypeMalware        EventType = "MALWARE"
+	EventTypeRansomware     EventType = "RANSOMWARE"
+	EventTypeDDoS           EventType = "DDOS"
+	EventTypeDataBreach     EventType = "DATA_BREACH"
+	EventTypeUnauthorized   EventType = "UNAUTHORIZED_ACCESS"
+	EventTypeWebDefacement  EventType = "WEB_DEFACEMENT"
+	EventTypeInsiderThreat  EventType = "INSIDER_THREAT"
+	EventTypeSupplyChain    EventType = "SUPPLY_CHAIN"
+	EventTypeVulnerability  EventType = "VULNERABILITY"
+	EventTypeHybrid         EventType = "HYBRID"
+	EventTypeMisinformation EventType = "MISINFORMATION"
+	EventTypeUnclassified   EventType = "UNCLASSIFIED"
 )
 
 func (e EventType) Valid() bool {
@@ -270,8 +270,8 @@ const (
 type CampaignStatus string
 
 const (
-	CampaignActive   CampaignStatus = "ACTIVE"
-	CampaignClosed   CampaignStatus = "CLOSED"
+	CampaignActive CampaignStatus = "ACTIVE"
+	CampaignClosed CampaignStatus = "CLOSED"
 )
 
 type AuditSeverity string

@@ -13,22 +13,22 @@ import (
 )
 
 type DashboardNode struct {
-	ID             uuid.UUID            `json:"id"`
-	Name           string               `json:"name"`
-	NodeType       string               `json:"node_type"` // "sector", "organization", or "platform"
+	ID             uuid.UUID             `json:"id"`
+	Name           string                `json:"name"`
+	NodeType       string                `json:"node_type"` // "sector", "organization", or "platform"
 	AssessedStatus domain.AssessedStatus `json:"assessed_status"`
 	ReportedStatus domain.AssessedStatus `json:"reported_status,omitempty"`
-	Children       []*DashboardNode     `json:"children,omitempty"`
-	Restricted     bool                 `json:"restricted,omitempty"`
-	Depth          int                  `json:"depth"`
-	AncestryPath   string               `json:"-"`
+	Children       []*DashboardNode      `json:"children,omitempty"`
+	Restricted     bool                  `json:"restricted,omitempty"`
+	Depth          int                   `json:"depth"`
+	AncestryPath   string                `json:"-"`
 }
 
 type DashboardService struct {
-	sectors  storage.SectorStore
-	orgs     storage.OrganizationStore
-	reports  storage.StatusReportStore
-	authz    authz.Authorizer
+	sectors storage.SectorStore
+	orgs    storage.OrganizationStore
+	reports storage.StatusReportStore
+	authz   authz.Authorizer
 
 	mu       sync.RWMutex
 	cache    *DashboardNode

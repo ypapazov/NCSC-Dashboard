@@ -26,9 +26,9 @@ type SwimlaneData struct {
 }
 
 type DashboardGraphData struct {
-	Events    []*domain.Event
-	Edges     *service.GraphEdges
-	Campaigns []*domain.Campaign
+	Events        []*domain.Event
+	Edges         *service.GraphEdges
+	Campaigns     []*domain.Campaign
 	CampaignLinks map[uuid.UUID][]uuid.UUID // campaignID -> []eventID
 }
 
@@ -40,10 +40,10 @@ type SyncTimelineData struct {
 // --- Events ---
 
 type CorrelationView struct {
-	CorrelationType domain.CorrelationType
-	RelatedEventID  uuid.UUID
+	CorrelationType   domain.CorrelationType
+	RelatedEventID    uuid.UUID
 	RelatedEventTitle string
-	Label           string
+	Label             string
 }
 
 type EventDetailData struct {

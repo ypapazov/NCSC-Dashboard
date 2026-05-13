@@ -1,23 +1,32 @@
-# Validates Fresnel, publishes workflow artifacts (binaries + Docker image tarball).
-# TODO: Push release binaries to GitHub Releases and the image to GHCR (login + metadata labels).
+# CI: validate, build artifacts; on main — deploy help to Pages + image to GHCR; on v* tags — GitHub Release + GHCR.
+#
+# GitHub settings (no extra secrets required if you use GITHUB_TOKEN):
+# - Pages: Settings → Pages → Build and deployment → Source: “GitHub Actions”.
+# - Actions: Settings → Actions → General → Workflow permissions → “Read and write permissions”
+#   (so GITHUB_TOKEN can publish releases, packages, and Pages when permitted below; fork PRs stay read-only).
+# - Optional: environments → github-pages (created automatically on first deploy).
 name: CI
 
 on:
   push:
     branches: [main, master]
+    tags: ["v*"]
   pull_request:
     branches: [main, master]
 
-permissions:
-  contents: read
-  actions: write # required for Docker Buildx GHA cache (TODO: drop if you remove cache backends)
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   TEMPL_VERSION: v0.3.1001
 
 jobs:
-  validate-and-build:
+  ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,6 +87,13 @@ jobs:
           build_one darwin amd64
           ls -la dist
 
+      - name: Upload help site (for GitHub Pages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: help-site
+          path: static/help/en
+          if-no-files-found: error
+
       - name: Upload binaries artifact
         uses: actions/upload-artifact@v4
         with:
@@ -92,7 +108,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build container image (local only)
+      - name: Build container image (local load)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -112,3 +128,106 @@ jobs:
           name: fresnel-docker-image-${{ github.run_id }}
           path: fresnel-image.tar.gz
           if-no-files-found: error
+
+  deploy-help-pages:
+    needs: ci
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download help site
+        uses: actions/download-artifact@v4
+        with:
+          name: help-site
+          path: _site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  publish-release:
+    needs: ci
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: fresnel-binaries-${{ github.run_id }}
+          path: dist
+
+      - name: Name release asset
+        run: cp dist/fresnel-linux-amd64 "dist/fresnel-${{ github.ref_name }}-linux-amd64"
+
+      - name: Publish GitHub Release (linux/amd64 binary)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/fresnel-${{ github.ref_name }}-linux-amd64
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  push-ghcr:
+    needs: ci
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/master' ||
+       startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata and tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' || github.ref_name == 'master' }}
+            type=sha,prefix=sha-
+            type=ref,event=tag
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

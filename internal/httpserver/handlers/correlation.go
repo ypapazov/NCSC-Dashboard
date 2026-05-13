@@ -13,28 +13,28 @@ import (
 )
 
 type GraphNode struct {
-	ID          uuid.UUID         `json:"id"`
-	Title       string            `json:"title"`
-	Impact      domain.Impact     `json:"impact"`
+	ID          uuid.UUID          `json:"id"`
+	Title       string             `json:"title"`
+	Impact      domain.Impact      `json:"impact"`
 	Status      domain.EventStatus `json:"status"`
-	EventType   domain.EventType  `json:"event_type"`
-	TLP         domain.TLP        `json:"tlp"`
-	OrgID       uuid.UUID         `json:"org_id"`
-	OrgName     string            `json:"org_name,omitempty"`
-	UpdatedAt   string            `json:"updated_at"`
-	Shape       string            `json:"shape"`
-	BorderColor string            `json:"border_color"`
-	FillOpacity float64           `json:"fill_opacity"`
+	EventType   domain.EventType   `json:"event_type"`
+	TLP         domain.TLP         `json:"tlp"`
+	OrgID       uuid.UUID          `json:"org_id"`
+	OrgName     string             `json:"org_name,omitempty"`
+	UpdatedAt   string             `json:"updated_at"`
+	Shape       string             `json:"shape"`
+	BorderColor string             `json:"border_color"`
+	FillOpacity float64            `json:"fill_opacity"`
 }
 
 type GraphEdge struct {
-	ID              string                  `json:"id"`
-	Source          uuid.UUID               `json:"source"`
-	Target          uuid.UUID               `json:"target"`
-	Label           string                  `json:"label"`
-	CorrelationType domain.CorrelationType  `json:"correlation_type,omitempty"`
-	LineStyle       string                  `json:"line_style"`
-	IsRelationship  bool                    `json:"is_relationship"`
+	ID              string                 `json:"id"`
+	Source          uuid.UUID              `json:"source"`
+	Target          uuid.UUID              `json:"target"`
+	Label           string                 `json:"label"`
+	CorrelationType domain.CorrelationType `json:"correlation_type,omitempty"`
+	LineStyle       string                 `json:"line_style"`
+	IsRelationship  bool                   `json:"is_relationship"`
 }
 
 type GraphData struct {

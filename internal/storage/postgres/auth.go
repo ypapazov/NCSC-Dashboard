@@ -30,10 +30,10 @@ func LoadAuthContext(ctx context.Context, pool *pgxpool.Pool, claims *oauth.Acce
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	var (
-		userID                               uuid.UUID
-		keycloakSub, displayName, email    string
-		primaryOrg                           uuid.UUID
-		status                               string
+		userID                          uuid.UUID
+		keycloakSub, displayName, email string
+		primaryOrg                      uuid.UUID
+		status                          string
 	)
 	err = tx.QueryRow(ctx, `
 SELECT id, keycloak_sub, display_name, email, primary_org_id, status
@@ -108,12 +108,12 @@ SELECT scope_type, scope_id FROM fresnel_iam.root_designations WHERE user_id = $
 		return nil, err
 	}
 	var roots []struct {
-		t string
+		t  string
 		id pgtype.UUID
 	}
 	for brows.Next() {
 		var r struct {
-			t string
+			t  string
 			id pgtype.UUID
 		}
 		if err := brows.Scan(&r.t, &r.id); err != nil {
