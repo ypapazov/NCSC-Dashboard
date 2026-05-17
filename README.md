@@ -4,8 +4,6 @@ A **cyber situational awareness platform** for tracking and sharing operational 
 
 Fresnel serves decision-makers — people in cyber governance and organizational impact assessment who need to understand *the situation*, not the technical details. It is not a threat intelligence platform, SIEM, or SOAR tool. It is the dashboard layer above all of those.
 
-**Context**: This is a successor to the legacy [CyberPicture](../cyber-picture/) system (Flask/MongoDB, built for exercise scenarios). Fresnel redesigns the domain model for real-world multi-organization operational use with proper identity management, authorization, and federation readiness.
-
 ---
 
 ## Current State
@@ -221,7 +219,6 @@ See `.env.example` for the complete list.
 | Document | What it covers |
 |----------|---------------|
 | [`FUTURE_WORK.md`](FUTURE_WORK.md) | Planned but unimplemented initiatives (Cedar PDP, Starlark, AI, federation, etc.) |
-| [`.aikdb/STATUS.md`](.aikdb/STATUS.md) | Implementation status — what's built, what's working, known gaps |
 | [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) | Product definition, domain model, authorization, API design |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture, layered design, data schema |
 | [`docs/OPERATIONS_GUIDE.md`](docs/OPERATIONS_GUIDE.md) | AWS provisioning, deploys, backups, maintenance, migration discipline |
@@ -231,10 +228,11 @@ See `.env.example` for the complete list.
 | [`docs/SECTORS.md`](docs/SECTORS.md) | NIS2 sector list (Bulgarian) |
 | [`docs/AWS_TO_VSPHERE_MIGRATION.md`](docs/AWS_TO_VSPHERE_MIGRATION.md) | Moving from AWS to on-prem vSphere |
 | `docs/TODO/` | Proposals: Cedar real policies, UI redesign, hierarchical tree view |
-| `docs/archive/` | Historical documents (original implementation plans, frontend analysis, etc.) |
 
 ---
 
 ## License
 
-Not yet specified.
+Fresnel is released under the **MIT License**. See [`LICENSE.md`](LICENSE.md) for the full text.
+
+Copyright © 2026 Yavor Papazov.
